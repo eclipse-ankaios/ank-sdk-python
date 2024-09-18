@@ -18,6 +18,7 @@ import argparse
 import subprocess
 
 
+PROJECT_NAME = "AnkaiosSDK"
 REPORT_DIR = "reports"
 COVERAGE_DIR = os.path.join(REPORT_DIR, "coverage")
 UTEST_DIR = os.path.join(REPORT_DIR, "utest")
@@ -29,6 +30,7 @@ def run_pytest_utest():
     pytest.main([
         '--junitxml={}'.format(os.path.join(UTEST_DIR, 'utest_report.xml')),
         'tests',
+        # '-p', 'no:warnings',
         '-vv'
     ])
 
@@ -36,12 +38,12 @@ def run_pytest_utest():
 def run_pytest_cov():
     os.makedirs(COVERAGE_DIR, exist_ok=True)
     pytest.main([
-        '--cov=src',
-        # '--cov-config=.coveragerc',
+        '--cov={}'.format(PROJECT_NAME),
         '--cov-report=html:{}'.format(os.path.join(COVERAGE_DIR, 'html')),
         '--cov-report=xml:{}'.format(os.path.join(COVERAGE_DIR, 'cov_report.xml')),
         '--cov-report=term',
         'tests',
+        '-p', 'no:warnings',
         '-vv'
     ])
 
@@ -49,7 +51,7 @@ def run_pytest_cov():
 def run_pylint():
     os.makedirs(PYLINT_DIR, exist_ok=True)
     result = subprocess.run([
-        'pylint', 'src', 'tests', '--rcfile=.pylintrc', '--output-format=parseable'
+        'pylint', PROJECT_NAME, 'tests', '--rcfile=.pylintrc', '--output-format=parseable'
     ], capture_output=True, text=True)
     
     pylint_output = result.stdout
@@ -69,8 +71,7 @@ def run_pylint():
 
 
 if __name__ == "__main__":
-    os.makedirs(REPORT_DIR, exist_ok=True)
-    parser = argparse.ArgumentParser(description='Run tests for AnkaiosSDK Python package')
+    parser = argparse.ArgumentParser(description=f'Run tests for {PROJECT_NAME} Python package')
     parser.add_argument('-c', '--cov', action='store_true', help='Run coverage')
     parser.add_argument('-u', '--utest', action='store_true', help='Run unit tests')
     parser.add_argument('-l', '--lint', action='store_true', help='Run pylint')
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     if not any([args.cov, args.utest, args.lint, args.all]):
         parser.print_help()
         exit(0)
+    os.makedirs(REPORT_DIR, exist_ok=True)
 
     if args.cov or args.all:
         run_pytest_cov()

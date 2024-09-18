@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from src.AnkaiosSDK import WorkloadStateEnum
+from AnkaiosSDK import WorkloadStateEnum
 
 
 def test_get():

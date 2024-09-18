@@ -22,7 +22,7 @@ PROJECT_NAME = "AnkaiosSDK"
 
 def generate_protos():
     """Generate python protobuf files from the proto files."""
-    protos_dir = f"src/{PROJECT_NAME}/_protos"
+    protos_dir = f"{PROJECT_NAME}/_protos"
     proto_files = ["ank_base.proto", "control_api.proto"]
 
     for proto_file in proto_files:
@@ -67,8 +67,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://eclipse-ankaios.github.io/ankaios/latest/",
     python_requires='>=3.6',
-    package_dir={'': 'src'},
-    packages=find_packages(where="src"),
+    package_dir={'': '.'},
+    packages=find_packages(where="."),
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

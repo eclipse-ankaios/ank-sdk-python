@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from src.AnkaiosSDK import WorkloadInstanceName
+from AnkaiosSDK import WorkloadInstanceName
 
 
 def test_creation():

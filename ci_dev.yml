@@ -27,7 +27,7 @@ jobs:
 
       - name: Run pylint
         run: |
-          pylint src tests > pylint_report.txt
+          pylint AnkaiosSDK tests > pylint_report.txt
           
       - name: Upload pylint report
         uses: actions/upload-artifact@v3
@@ -54,7 +54,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run -m unittest discover -s src
+          coverage run -m unittest discover -s AnkaiosSDK
           coverage report
           coverage html
 

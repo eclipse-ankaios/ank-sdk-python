@@ -14,8 +14,8 @@
 
 import pytest
 from unittest.mock import patch, mock_open
-from src.AnkaiosSDK import Workload, WorkloadBuilder
-from src.AnkaiosSDK._protos import _ank_base
+from AnkaiosSDK import Workload, WorkloadBuilder
+from AnkaiosSDK._protos import _ank_base
 
 @pytest.fixture
 def workload():

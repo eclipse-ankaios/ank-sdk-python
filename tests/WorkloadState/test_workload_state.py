@@ -12,8 +12,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from src.AnkaiosSDK import WorkloadState
-from src.AnkaiosSDK._protos import _ank_base
+from AnkaiosSDK import WorkloadState
+from AnkaiosSDK._protos import _ank_base
 
 
 def test_creation():

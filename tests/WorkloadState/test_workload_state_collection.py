@@ -13,8 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from src.AnkaiosSDK import WorkloadStateCollection, WorkloadState, WorkloadExecutionState
-from src.AnkaiosSDK._protos import _ank_base
+from AnkaiosSDK import WorkloadStateCollection, WorkloadState, WorkloadExecutionState
+from AnkaiosSDK._protos import _ank_base
 
 
 def test_get():

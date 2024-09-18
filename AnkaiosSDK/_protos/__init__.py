@@ -12,6 +12,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# TODO remove this line after the issue is fixed
+# https://github.com/grpc/grpc/issues/37609
+# https://github.com/protocolbuffers/protobuf/issues/18096
+import warnings
+warnings.filterwarnings("ignore", ".*obsolete", UserWarning, "google.protobuf.runtime_version")
+
 try:
     import AnkaiosSDK._protos.ank_base_pb2 as _ank_base
     import AnkaiosSDK._protos.control_api_pb2 as _control_api
