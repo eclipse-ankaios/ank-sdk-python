@@ -1,0 +1,11 @@
+[MASTER]
+ignore-patterns=
+    .*_pb2.py,
+    .*_pb2_grpc.py,
+
+[MESSAGES CONTROL]
+disable=
+    # classes from protos are not recognized by pylint
+    E1101,  # no-member
+    # module names have the same name with the classes within. They cannot be snake_case
+    C0103,  # invalid-name

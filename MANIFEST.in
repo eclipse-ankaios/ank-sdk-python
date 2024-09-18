@@ -1,0 +1,11 @@
+# Include all .proto files in the src/protos directory
+recursive-include src/protos *.proto
+
+# Include the README file
+include README.md
+
+# Include the license file
+include LICENSE
+
+# Include the requirements.txt file
+include requirements.txt
