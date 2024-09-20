@@ -101,13 +101,12 @@ if __name__ == "__main__":
     complete_state = CompleteState()
 
     # Create workload
-    workload = Workload(
-        agent_name="agent_A"
-    )
+    workload = Workload.builder().workload_name("nginx").build()
+    workload2 = Workload.builder().workload_name("dyn_nginx").build()
 
     # Add workload to complete state
-    complete_state.set_workload("dynamic_nginx", workload)
-    complete_state.set_workload("dynamic_nginx2", workload)
+    complete_state.set_workload(workload)
+    complete_state.set_workload(workload2)
 
 
     from_ankaios = _control_api.FromAnkaios(

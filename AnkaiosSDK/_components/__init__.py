@@ -12,10 +12,23 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+This module initializes the AnkaiosSDK package by importing all necessary components.
+
+Imports:
+    Workload component: responsible for defining the workload of the system.
+    WorkloadState component: responsible for accessing the state of the workload.
+    CompleteState component: responsible for accessing the complete state of the system.
+    Request component: responsible for defining a request to be sent to the system.
+    Response component: responsible for defining a response from the system.
+    Manifest component: responsible for defining a manifest object.
+"""
+
 from .Workload import *
 from .WorkloadState import *
 from .CompleteState import *
 from .Request import *
 from .Response import *
+from .Manifest import *
 
 __all__ = [name for name in globals() if not name.startswith('_')]

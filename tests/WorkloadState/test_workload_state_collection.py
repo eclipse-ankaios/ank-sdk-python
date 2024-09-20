@@ -47,6 +47,7 @@ def test_get():
     assert "1234" in workload_states_dict["agent_Test"]["workload_Test"].keys()
     assert type(workload_states_dict["agent_Test"]["workload_Test"]["1234"]) == WorkloadExecutionState
 
+
 def test_from_proto():
     ank_workload_state = _ank_base.WorkloadStatesMap(
         agentStateMap={"agent_Test": _ank_base.ExecutionsStatesOfWorkload(

@@ -18,7 +18,8 @@ from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint
 
 from ._protos import _control_api
-from ._components import Workload, CompleteState, Request, Response, ResponseEvent, WorkloadStateCollection
+from ._components import Workload, CompleteState, Request, Response, \
+                         ResponseEvent, WorkloadStateCollection, Manifest
 
 
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
@@ -49,7 +50,7 @@ class Ankaios:
         self.path = self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH
 
         self._read_thread = None
-        self._read = False
+        self._connected = False
         self._responses_lock = Lock()
         self._responses: dict[str, ResponseEvent] = {}
 
@@ -83,7 +84,7 @@ class Ankaios:
 
         with open(f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb") as f:
 
-            while self._read:
+            while self._connected:
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = b''
                 while True:
@@ -123,7 +124,7 @@ class Ankaios:
 
     def _get_response_by_id(self, request_id: str, timeout: int = 10) -> Response:
         """Returns the response by the request id."""
-        if not self._read:
+        if not self._connected:
             raise ValueError("Reading from the control interface is not started.")
 
         with self._responses_lock:
@@ -145,7 +146,7 @@ class Ankaios:
 
     def _send_request(self, request: Request, timeout: int = 10) -> Response:
         """Send a request and wait for the response."""
-        if not self._read:
+        if not self._connected:
             raise ValueError("Cannot request if not connected.")
         self._write_to_pipe(request)
 
@@ -161,36 +162,73 @@ class Ankaios:
 
     def connect(self) -> None:
         """Connect to the control interface by starting to read from the input fifo."""
-        if self._read:
-            raise ValueError("Reading from the control interface is already started.")
+        if self._connected:
+            raise ValueError("Already connected.")
         self._read_thread = Thread(target=self._read_from_control_interface)
         self._read_thread.start()
-        self._read = True
+        self._connected = True
 
     def disconnect(self) -> None:
         """Disconnect from the control interface by stopping to read from the input fifo."""
-        if not self._read:
-            raise ValueError("Reading from the control interface is not started.")
-        self._read = False
+        if not self._connected:
+            raise ValueError("Already disconnected.")
+        self._connected = False
         self._read_thread.join()
 
-    def apply_manifest(self, manifest: dict) -> None:
-        # TODO apply_manifest - ank apply
-        pass
+    def apply_manifest(self, manifest: Manifest) -> None:
+        """Send a request to apply a manifest."""
+        request = Request(request_type="update_state")
+        request.set_complete_state(manifest.generate_complete_state())
+        for mask in manifest.calculate_masks():
+            request.add_mask(mask)
 
-    def delete_manifest(self, manifest: dict) -> None:
-        # TODO delete_manifest
-        pass
+        # Send request
+        try:
+            response = self._send_request(request)
+        except TimeoutError as e:
+            self.logger.error(f"{e}")
+            return
 
-    def run_workload(self, workload_name: str, workload: Workload) -> None:
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error(f"Error while trying to apply manifest: {content}")
+        elif content_type == "update_state_success":
+            self.logger.info("Update successfull: {} added workloads, {} deleted workloads.".
+                             format(content["added_workloads"], content["deleted_workloads"]))
+
+    def delete_manifest(self, manifest: Manifest) -> None:
+        """Send a request to delete a manifest."""
+        request = Request(request_type="update_state")
+        request.set_complete_state(CompleteState())
+        for mask in manifest.calculate_masks():
+            request.add_mask(mask)
+
+        # Send request
+        try:
+            response = self._send_request(request)
+        except TimeoutError as e:
+            self.logger.error(f"{e}")
+            return
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error(f"Error while trying to delete manifest: {content}")
+        elif content_type == "update_state_success":
+            self.logger.info("Update successfull: {} added workloads, {} deleted workloads.".
+                             format(content["added_workloads"], content["deleted_workloads"]))
+
+    def run_workload(self, workload: Workload) -> None:
         """Send a request to run a workload."""
         complete_state = CompleteState()
-        complete_state.set_workload(workload_name, workload)
+        complete_state.set_workload(workload)
 
         # Create the request
         request = Request(request_type="update_state")
         request.set_complete_state(complete_state)
-        request.add_mask(f"desiredState.workloads.{workload_name}")
+        for mask in workload._get_masks():
+            request.add_mask(mask)
 
         # Send request
         try:

@@ -17,24 +17,33 @@ from unittest.mock import patch, mock_open
 from AnkaiosSDK import Workload, WorkloadBuilder
 from AnkaiosSDK._protos import _ank_base
 
+
 @pytest.fixture
 def workload():
     return Workload.builder() \
+        .workload_name("workload_test") \
         .agent_name("agent_Test") \
         .runtime("runtime_test") \
         .restart_policy("NEVER") \
         .runtime_config("config_test") \
-        .add_dependency("workload_test", "RUNNING") \
+        .add_dependency("workload_test_other", "RUNNING") \
         .add_tag("key1", "value1") \
         .add_tag("key2", "value2") \
         .build()
+
 
 def test_builder(workload):
     builder = workload.builder()
     assert builder is not None
     assert isinstance(builder, WorkloadBuilder)
 
+
 def test_update_fields(workload):
+    assert workload._get_masks() == ["desiredState.workloads.workload_test"]
+
+    workload.update_workload_name("new_workload_test")
+    assert workload.name == "new_workload_test"
+
     workload.update_agent_name("new_agent_Test")
     assert workload._workload.agent == "new_agent_Test"
 
@@ -52,6 +61,7 @@ def test_update_fields(workload):
         workload.update_restart_policy("INVALID_POLICY")
     workload.update_restart_policy("ON_FAILURE")
     assert workload._workload.restartPolicy == _ank_base.ON_FAILURE
+
 
 def test_dependencies(workload):
     assert len(workload.get_dependencies()) == 1
@@ -71,6 +81,7 @@ def test_dependencies(workload):
     workload.update_dependencies(deps)
     assert len(workload.get_dependencies()) == 2
 
+
 def test_tags(workload):
     assert len(workload.get_tags()) == 2
 
@@ -84,6 +95,7 @@ def test_tags(workload):
 
     assert len(workload.get_tags()) == 2
 
+
 def test_proto(workload):
     proto = workload._to_proto()
     assert proto is not None
@@ -91,74 +103,50 @@ def test_proto(workload):
     assert proto.runtime == "runtime_test"
     assert proto.restartPolicy == _ank_base.NEVER
     assert proto.runtimeConfig == "config_test"
-    assert proto.dependencies.dependencies == {"workload_test": _ank_base.ADD_COND_RUNNING}
+    assert proto.dependencies.dependencies == {"workload_test_other": _ank_base.ADD_COND_RUNNING}
     assert proto.tags == _ank_base.Tags(tags=[
         _ank_base.Tag(key="key1", value="value1"), 
         _ank_base.Tag(key="key2", value="value2")
     ])
 
-    new_workload = Workload()
+    new_workload = Workload("workload_test")
     new_workload._from_proto(proto)
     assert new_workload is not None
     assert str(workload) == str(new_workload)
 
-@pytest.fixture
-def builder():
-    return WorkloadBuilder()
 
-def test_workload_fields(builder):
-    assert builder.agent_name("agent_Test") == builder
-    assert builder.wl_agent_name == "agent_Test"
-    
-    assert builder.runtime("runtime_test") == builder
-    assert builder.wl_runtime == "runtime_test"
+def test_from_dict(workload):
+    workload_dict = {
+        "name": "workload_test",
+        "agent": "agent_Test",
+        "runtime": "runtime_test",
+        "restartPolicy": "NEVER",
+        "runtimeConfig": "config_test",
+        "dependencies": {"workload_test_other": "RUNNING"},
+        "tags": {"key1": "value1", "key2": "value2"}
+    }
 
-    assert builder.runtime_config("config_test") == builder
-    assert builder.wl_runtime_config == "config_test"
+    new_workload = Workload._from_dict("workload_test", workload_dict)
+    assert new_workload is not None
+    assert str(workload) == str(new_workload)
 
-    with patch("builtins.open", mock_open(read_data="config_test_from_file")):
-        assert builder.runtime_config_from_file("config_test_from_file") == builder
-        assert builder.wl_runtime_config == "config_test_from_file"
 
-    assert builder.restart_policy("NEVER") == builder
-    assert builder.wl_restart_policy == "NEVER"
+@pytest.mark.parametrize("function_name, data, mask", [
+    ("update_workload_name", {"name": "workload_test"}, "desiredState.workloads.workload_test"),
+    ("update_agent_name", {"agent_name": "agent_Test"}, "desiredState.workloads.workload_test.agent"),
+    ("update_runtime", {"runtime": "runtime_test"}, "desiredState.workloads.workload_test.runtime"),
+    ("update_restart_policy", {"policy": "NEVER"}, "desiredState.workloads.workload_test.restartPolicy"),
+    ("update_runtime_config", {"config": "config_test"}, "desiredState.workloads.workload_test.runtimeConfig"),
+    ("add_dependency", {"workload_name": "workload_test_other", "condition": "RUNNING"}, "desiredState.workloads.workload_test.dependencies"),
+    ("add_tag", {"key": "key1", "value": "value1"}, "desiredState.workloads.workload_test.tags"),
+])
+def test_mask_generation(function_name, data, mask):
+    workload = Workload("workload_test")
 
-def test_add_dependency(builder):
-    assert len(builder.dependencies) == 0
+    # Call function and assert the mask has been added
+    getattr(workload, function_name)(**data)
+    assert workload._get_masks() == [mask]
 
-    assert builder.add_dependency("workload_test", "RUNNING") == builder
-    assert builder.dependencies == {"workload_test": "RUNNING"}
-
-    assert builder.add_dependency("workload_test_other", "RUNNING") == builder
-    assert builder.dependencies == {"workload_test": "RUNNING", "workload_test_other": "RUNNING"}
-
-def test_add_tag(builder):
-    assert len(builder.tags) == 0
-
-    assert builder.add_tag("key_test", "abc") == builder
-    assert builder.tags == [("key_test", "abc")]
-
-    assert builder.add_tag("key_test", "bcd") == builder
-    assert builder.tags == [("key_test", "abc"), ("key_test", "bcd")]
-
-def test_build(builder):
-    with pytest.raises(ValueError, match="Workload can not be built without an agent name."):
-        builder.build()
-    builder.agent_name("agent_Test")
-
-    with pytest.raises(ValueError, match="Workload can not be built without a runtime."):
-        builder.build()
-    builder.runtime("runtime_test")
-
-    with pytest.raises(ValueError, match="Workload can not be built without a runtime configuration."):
-        builder.build()
-    builder.runtime_config("config_test")
-
-    builder.restart_policy("NEVER")
-    builder.add_dependency("workload_test", "RUNNING")
-    builder.add_tag("key_test", "abc")
-    
-    workload = builder.build()
-
-    assert workload is not None
-    assert isinstance(workload, Workload)
+    # Updating the mask again should not add a new mask
+    getattr(workload, function_name)(**data)
+    assert len(workload._get_masks()) == 1
