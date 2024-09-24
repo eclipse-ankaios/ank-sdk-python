@@ -9,3 +9,5 @@ disable=
     E1101,  # no-member
     # module names have the same name with the classes within. They cannot be snake_case
     C0103,  # invalid-name
+    # Protected members are accessed throughout the project to be able to hide that functionality from the user.
+    W0212,  # protected-access

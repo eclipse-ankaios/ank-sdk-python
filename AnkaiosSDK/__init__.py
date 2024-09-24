@@ -12,6 +12,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+This module contains the AnkaiosSDK package.
+It exposes to the user all the classes available in the SDK.
+
+Imports:
+    Ankaios: The main SDK class.
+    All the other classes, available in the _components folder.
+"""
+
 from .Ankaios import *
 from ._components import *
 

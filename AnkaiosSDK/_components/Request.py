@@ -12,6 +12,28 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+This module defines the Request class for creating and handling requests to the Ankaios system.
+
+Classes:
+    Request: Represents a request to the Ankaios system and provides methods to get and set
+    the state of the system.
+
+Usage:
+    - Create a Request for updating the state:
+        request = Request(request_type="update_state")
+        request.set_complete_state(complete_state)
+
+    - Create a Request for getting the state:
+        request = Request(request_type="get_state")
+
+    - Get the request ID:
+        request_id = request.get_id()
+
+    - Add a mask to the request:
+        request.add_mask("desiredState.workloads")
+"""
+
 import uuid
 from .._protos import _ank_base
 from .CompleteState import CompleteState
@@ -21,7 +43,19 @@ __all__ = ["Request"]
 
 
 class Request:
+    """
+    Represents a request to the Ankaios system.
+    """
     def __init__(self, request_type: str) -> None:
+        """
+        Initializes a Request instance with the given request type.
+
+        Args:
+            request_type (str): The type of the request, either "update_state" or "get_state".
+
+        Raises:
+            ValueError: If the request type is invalid.
+        """
         self._request = _ank_base.Request()
         self._request.requestId = str(uuid.uuid4())
         self._request_type = request_type
@@ -30,40 +64,55 @@ class Request:
             raise ValueError("Invalid request type. Supported values: 'update_state', 'get_state'.")
 
     def __str__(self) -> str:
+        """
+        Returns the string representation of the request.
+
+        Returns:
+            str: The string representation of the request.
+        """
         return str(self._to_proto())
 
-    def _get_id(self) -> str:
-        """Get the request ID."""
+    def get_id(self) -> str:
+        """
+        Gets the request ID.
+
+        Returns:
+            str: The request ID.
+        """
         return self._request.requestId
 
     def set_complete_state(self, complete_state: CompleteState) -> None:
-        """Set the complete state for the request."""
+        """
+        Sets the complete state for the request.
+
+        Args:
+            complete_state (CompleteState): The complete state to set for the request.
+
+        Raises:
+            ValueError: If the request type is not "update_state".
+        """
         if self._request_type != "update_state":
             raise ValueError("Complete state can only be set for an update state request.")
 
         self._request.updateStateRequest.newState.CopyFrom(complete_state._to_proto())
 
     def add_mask(self, mask: str) -> None:
-        """Set the update mask for the request."""
+        """
+        Sets the update mask for the request.
+
+        Args:
+            mask (str): The mask to set for the request.
+        """
         if self._request_type == "update_state":
             self._request.updateStateRequest.updateMask.append(mask)
         elif self._request_type == "get_state":
             self._request.completeStateRequest.fieldMask.append(mask)
-        else:
-            raise ValueError("Invalid request type.")
 
     def _to_proto(self) -> _ank_base.Request:
-        """Convert the Request object to a proto message."""
+        """
+        Converts the Request object to a proto message.
+
+        Returns:
+            _ank_base.Request: The protobuf message representing the request.
+        """
         return self._request
-
-
-if __name__ == "__main__":
-    request_update = Request(request_type="update_state")
-
-    # Create the CompleteState object
-    complete_state = CompleteState()
-    request_update.set_complete_state(complete_state)
-    print(request_update)
-
-    request_get = Request(request_type="get_state")
-    print(request_get)

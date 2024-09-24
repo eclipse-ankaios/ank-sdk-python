@@ -16,8 +16,8 @@
 This script defines the Workload and WorkloadBuilder classes for creating and managing workloads.
 
 Classes:
-    Workload: Represents a workload with various attributes and methods to update them.
-    WorkloadBuilder: A builder class to create a Workload object with a fluent interface.
+    - Workload: Represents a workload with various attributes and methods to update them.
+    - WorkloadBuilder: A builder class to create a Workload object with a fluent interface.
 
 Usage:
     - Create a workload using the WorkloadBuilder:
@@ -487,7 +487,7 @@ class WorkloadBuilder:
             raise ValueError("Workload can not be built without a name.")
 
         workload = Workload(self.wl_name)
-        workload._set_from_builder()  # pylint: disable=protected-access
+        workload._set_from_builder()
 
         if self.wl_agent_name is None:
             raise ValueError("Workload can not be built without an agent name.")
@@ -507,5 +507,5 @@ class WorkloadBuilder:
         if len(self.tags) > 0:
             workload.update_tags(self.tags)
 
-        workload._add_mask(f"desiredState.workloads.{workload.name}")  # pylint: disable=protected-access
+        workload._add_mask(f"desiredState.workloads.{workload.name}")
         return workload

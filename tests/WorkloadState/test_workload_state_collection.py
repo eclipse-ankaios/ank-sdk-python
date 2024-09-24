@@ -12,12 +12,19 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
+"""
+This module contains unit tests for the WorkloadStateCollection class in the AnkaiosSDK.
+"""
+
 from AnkaiosSDK import WorkloadStateCollection, WorkloadState, WorkloadExecutionState
 from AnkaiosSDK._protos import _ank_base
 
 
 def test_get():
+    """
+    Test the basic functionality of the WorkloadStateCollection class,
+    including adding a workload state and retrieving it as a list and dictionary.
+    """
     workload_state_collection = WorkloadStateCollection()
     assert workload_state_collection is not None
     assert len(workload_state_collection._workload_states) == 0
@@ -34,10 +41,12 @@ def test_get():
         state=execution_state
     )
 
+    # Test get_as_list
     workload_state_collection.add_workload_state(workload_state)
     assert len(workload_state_collection._workload_states) == 1
     assert workload_state_collection.get_as_list() == [workload_state]
 
+    # Test get_as_dict
     workload_states_dict = workload_state_collection.get_as_dict()
     assert len(workload_states_dict) == 1
     assert "agent_Test" in workload_states_dict.keys()
@@ -45,10 +54,15 @@ def test_get():
     assert "workload_Test" in workload_states_dict["agent_Test"].keys()
     assert len(workload_states_dict["agent_Test"]["workload_Test"]) == 1
     assert "1234" in workload_states_dict["agent_Test"]["workload_Test"].keys()
-    assert type(workload_states_dict["agent_Test"]["workload_Test"]["1234"]) == WorkloadExecutionState
+    assert isinstance(workload_states_dict["agent_Test"]["workload_Test"]["1234"],
+                      WorkloadExecutionState)
 
 
 def test_from_proto():
+    """
+    Test the _from_proto method of the WorkloadStateCollection class,
+    ensuring it correctly populates the collection from a proto message.
+    """
     ank_workload_state = _ank_base.WorkloadStatesMap(
         agentStateMap={"agent_Test": _ank_base.ExecutionsStatesOfWorkload(
             wlNameStateMap={"workload_Test": _ank_base.ExecutionsStatesForId(

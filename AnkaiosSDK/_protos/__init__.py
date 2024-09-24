@@ -12,7 +12,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# TODO remove this line after the issue is fixed
+"""
+This module contains the AnkaiosSDK protobuf components.
+It contains the proto files and the generated protobuf classes.
+
+Imports:
+    ank_base_pb2: Used for general grpc messages.
+    control_api_pb2: Used for exchanging messages with the control interface.
+"""
+
+# TODO remove this line after the issue is fixed  # pylint: disable=fixme
 # https://github.com/grpc/grpc/issues/37609
 # https://github.com/protocolbuffers/protobuf/issues/18096
 import warnings

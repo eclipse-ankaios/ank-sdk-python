@@ -12,19 +12,51 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+This script defines the Response and ResponseEvent classes,
+used for receiving messages from the control interface.
+
+Classes:
+    - Response: Represents a response from the control interface.
+    - ResponseEvent: Represents an event used to wait for a response.
+
+Usage:
+    - Get response content:
+        response = Response()
+        (content_type, content) = response.get_content()
+    
+    - Check if the request_id matches:
+        response = Response()
+        if response.check_request_id("1234"):
+            print("Request ID matches")
+"""
+
 from typing import Union
 from threading import Event
-from .._protos import _ank_base, _control_api
+from .._protos import _control_api
 from .CompleteState import CompleteState
-from .Workload import Workload
 
 
 __all__ = ["Response", "ResponseEvent"]
 
 
 class Response:
+    """
+    Represents a response received from the Ankaios system.
+
+    Attributes:
+        buffer (bytes): The received message buffer.
+        content_type (str): The type of the response content
+                            (e.g., "error", "complete_state", "update_state_success").
+        content: The content of the response, which can be a string, CompleteState, or dictionary.
+    """
     def __init__(self, message_buffer: bytes) -> None:
-        """Initialize the Response object with the received message buffer."""
+        """
+        Initializes the Response object with the received message buffer.
+
+        Args:
+            message_buffer (bytes): The received message buffer.
+        """
         self.buffer = message_buffer
         self._response = None
         self.content_type = None
@@ -34,18 +66,27 @@ class Response:
         self._from_proto()
 
     def _parse_response(self) -> None:
+        """
+        Parses the received message buffer into a protobuf response message.
+
+        Raises:
+            ValueError: If there is an error parsing the message buffer.
+        """
         from_ankaios = _control_api.FromAnkaios()
         try:
             # Deserialize the received proto msg
             from_ankaios.ParseFromString(self.buffer)
         except Exception as e:
-            raise ValueError(f"Invalid response, parsing error: '{e}'")
+            raise ValueError(f"Invalid response, parsing error: '{e}'") from e
         self._response = from_ankaios.response
 
     def _from_proto(self) -> None:
         """
-        Convert the proto message to a Response object.
+        Converts the parsed protobuf message to a Response object.
         This can be either an error, a complete state, or an update state success.
+
+        Raises:
+            ValueError: If the response type is invalid.
         """
         if self._response.HasField("error"):
             self.content_type = "error"
@@ -64,63 +105,83 @@ class Response:
             raise ValueError("Invalid response type.")
 
     def get_request_id(self) -> str:
-        """Get the request_id of the response."""
+        """
+        Gets the request id of the response.
+
+        Returns:
+            str: The request id of the response.
+        """
         return self._response.requestId
 
     def check_request_id(self, request_id: str) -> bool:
-        """Check if the request_id of the response matches the given request_id."""
+        """
+        Checks if the request id of the response matches the given request id.
+
+        Args:
+            request_id (str): The request id to check against.
+
+        Returns:
+            bool: True if the request_id matches, False otherwise.
+        """
         return self._response.requestId == request_id
 
     def get_content(self) -> tuple[str, Union[str, CompleteState, dict]]:
-        """Get the content of the response."""
+        """
+        Gets the content of the response.
+
+        Returns:
+            (tuple[str, Union[str, CompleteState, dict]]): A tuple containing the content type 
+                    and the content of the response.
+        """
         return (self.content_type, self.content)
 
 
 class ResponseEvent(Event):
+    """
+    Represents an event that holds a Response object.
+    """
     def __init__(self, response: Response = None) -> None:
+        """
+        Initializes the ResponseEvent with an optional Response object.
+
+        Args:
+            response Optional(Response): The response to associate with the event. Defaults to None.
+        """
         super().__init__()
         self._response = response
 
     def set_response(self, response: Response) -> None:
-        """Set the response."""
+        """
+        Sets the response and triggers the event.
+
+        Args:
+            response (Response): The response to set.
+        """
         self._response = response
         self.set()
 
     def get_response(self) -> Response:
-        """Get the response."""
+        """
+        Gets the response associated with the event.
+
+        Returns:
+            Response: The response associated with the event.
+        """
         return self._response
 
     def wait_for_response(self, timeout: int) -> Response:
-        """Wait for the response."""
+        """
+        Waits for the response to be set, with a specified timeout.
+
+        Args:
+            timeout (int): The maximum time to wait for the response, in seconds.
+
+        Returns:
+            Response: The response associated with the event.
+
+        Raises:
+            TimeoutError: If the response is not set within the specified timeout.
+        """
         if not self.wait(timeout):
             raise TimeoutError("Timeout while waiting for the response.")
         return self.get_response()
-
-
-if __name__ == "__main__":
-    complete_state = CompleteState()
-
-    # Create workload
-    workload = Workload.builder().workload_name("nginx").build()
-    workload2 = Workload.builder().workload_name("dyn_nginx").build()
-
-    # Add workload to complete state
-    complete_state.set_workload(workload)
-    complete_state.set_workload(workload2)
-
-
-    from_ankaios = _control_api.FromAnkaios(
-        response=_ank_base.Response(
-            requestId="1234",
-            completeState=complete_state._to_proto()
-        )
-    )
-
-    response = Response(from_ankaios.SerializeToString())
-    print(response.get_request_id())
-    (content_type, content) = response.get_content()
-    print(content_type)
-    print(content)
-
-    if response.check_request_id("1234"):
-        print("Request ID matches")

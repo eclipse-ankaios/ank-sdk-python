@@ -12,6 +12,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+Run tests for AnkaiosSDK Python package.
+This script runs unit tests, coverage and pylint and
+saves the results in the reports directory.
+
+Example usage:
+    # This will run the unit tests with the --full-trace option
+    python3 run_tests.py -u --full-trace
+"""
+
 import os
 import pytest
 import argparse
@@ -25,17 +35,17 @@ UTEST_DIR = os.path.join(REPORT_DIR, "utest")
 PYLINT_DIR = os.path.join(REPORT_DIR, "pylint")
 
 
-def run_pytest_utest():
+def run_pytest_utest(args):
     os.makedirs(UTEST_DIR, exist_ok=True)
     pytest.main([
         '--junitxml={}'.format(os.path.join(UTEST_DIR, 'utest_report.xml')),
         'tests',
         # '-p', 'no:warnings',
         '-vv'
-    ])
+    ] + args)
 
 
-def run_pytest_cov():
+def run_pytest_cov(args):
     os.makedirs(COVERAGE_DIR, exist_ok=True)
     pytest.main([
         '--cov={}'.format(PROJECT_NAME),
@@ -45,14 +55,14 @@ def run_pytest_cov():
         'tests',
         '-p', 'no:warnings',
         '-vv'
-    ])
+    ] + args)
 
 
-def run_pylint():
+def run_pylint(args):
     os.makedirs(PYLINT_DIR, exist_ok=True)
     result = subprocess.run([
         'pylint', PROJECT_NAME, 'tests', '--rcfile=.pylintrc', '--output-format=parseable'
-    ], capture_output=True, text=True)
+    ] + args, capture_output=True, text=True)
     
     pylint_output = result.stdout
     rating_line = None
@@ -71,21 +81,22 @@ def run_pylint():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=f'Run tests for {PROJECT_NAME} Python package')
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-c', '--cov', action='store_true', help='Run coverage')
     parser.add_argument('-u', '--utest', action='store_true', help='Run unit tests')
     parser.add_argument('-l', '--lint', action='store_true', help='Run pylint')
     parser.add_argument('-a', '--all', action='store_true', help='Run all tests')
 
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
     if not any([args.cov, args.utest, args.lint, args.all]):
         parser.print_help()
         exit(0)
     os.makedirs(REPORT_DIR, exist_ok=True)
 
     if args.cov or args.all:
-        run_pytest_cov()
+        run_pytest_cov(extra_args)
     if args.utest or args.all:
-        run_pytest_utest()
+        run_pytest_utest(extra_args)
     if args.lint or args.all:
-        run_pylint()
+        run_pylint(extra_args)

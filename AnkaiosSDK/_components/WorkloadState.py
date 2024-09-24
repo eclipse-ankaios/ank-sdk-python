@@ -18,14 +18,14 @@ It provides functionality to interpret and manage the states and sub-states of w
 including converting between different representations and handling collections of workload states.
 
 Classes:
-    WorkloadExecutionState: Represents the execution state and sub-state of a workload.
-    WorkloadInstanceName: Represents the name of a workload instance.
-    WorkloadState: Represents the state of a workload (execution state and name).
-    WorkloadStateCollection: A collection of workload states.
+    - WorkloadExecutionState: Represents the execution state and sub-state of a workload.
+    - WorkloadInstanceName: Represents the name of a workload instance.
+    - WorkloadState: Represents the state of a workload (execution state and name).
+    - WorkloadStateCollection: A collection of workload states.
 
 Enums:
-    WorkloadStateEnum: Enumeration for different states of a workload.
-    WorkloadSubStateEnum: Enumeration for different sub-states of a workload.
+    - WorkloadStateEnum: Enumeration for different states of a workload.
+    - WorkloadSubStateEnum: Enumeration for different sub-states of a workload.
 
 Usage:
     - Get all workload states:
@@ -278,8 +278,8 @@ class WorkloadExecutionState:
         if field is None:
             raise ValueError("Invalid state for workload.")
 
-        self.state = WorkloadStateEnum._get(field)  # pylint: disable=protected-access
-        self.substate = WorkloadSubStateEnum._get(self.state, getattr(exec_state, field))  # pylint: disable=protected-access
+        self.state = WorkloadStateEnum._get(field)
+        self.substate = WorkloadSubStateEnum._get(self.state, getattr(exec_state, field))
 
 
 # pylint: disable=too-few-public-methods
