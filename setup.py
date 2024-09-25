@@ -78,12 +78,12 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "protobuf>=3.20.2",
+        "protobuf==5.27.2",
         "PyYAML",
     ],
     setup_requires=[
-        "protobuf>=3.20.2",
-        "grpcio-tools>=1.66.1",
+        "protobuf==5.27.2",
+        "grpcio-tools>=1.56.2",
     ]
 )
 

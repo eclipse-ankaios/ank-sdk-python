@@ -180,7 +180,7 @@ class Ankaios:
                     msg_buf += next_byte
 
                 try:
-                    response = Response(msg_buf)
+                    response = Response(bytes(msg_buf))
                 except ValueError as e:  # pragma: no cover
                     self.logger.error("Error while reading: %s", e)
                     continue
