@@ -36,19 +36,19 @@ jobs:
         run: python3 run_tests.py --lint
 
       - name: Upload unit test report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
           path: reports/utest
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: reports/coverage
 
       - name: Upload lint report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: pylint-report
           path: reports/pylint
