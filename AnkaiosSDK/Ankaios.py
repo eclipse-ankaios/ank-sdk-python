@@ -144,56 +144,6 @@ class Ankaios:
         self.logger.addHandler(handler)
         self.set_logger_level(AnkaiosLogLevel.INFO)
 
-    def _read_from_control_interface_old(self) -> None:  # pragma: no cover
-        """
-        Reads from the control interface input fifo and saves the response.
-        This is meant to be run in a separate thread. 
-        It reads the response from the control interface and saves it in the responses dictionary,
-        by triggering the corresponding ResponseEvent.
-        """
-
-        with open(f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb") as f:
-
-            while self._connected:
-                # Buffer for reading in the byte size of the proto msg
-                varint_buffer = b''
-                while True:
-                    # Consume byte for byte
-                    next_byte: bytes = f.read(1)
-                    print(f"Read next_byte: {next_byte}, type: {type(next_byte)}")
-                    if not next_byte:
-                        break
-                    varint_buffer += next_byte
-                    print(f"Updated varint_buffer: {varint_buffer}, type: {type(varint_buffer)}")
-                    # Stop if the most significant bit is 0 (indicating the last byte of the varint)
-                    if next_byte[0] & 0b10000000 == 0:
-                        break
-                # Decode the varint and receive the proto msg length
-                msg_len, _ = _DecodeVarint(varint_buffer, 0)
-
-                # Buffer for the proto msg itself
-                msg_buf = b''
-                for _ in range(msg_len):
-                    # Read exact amount of byte according to the calculated proto msg length
-                    next_byte = f.read(1)
-                    if not next_byte:
-                        break
-                    msg_buf += next_byte
-
-                try:
-                    response = Response(msg_buf)
-                except ValueError as e:
-                    print(f"{e}")
-                    continue
-
-                request_id = response.get_request_id()
-                with self._responses_lock:
-                    if request_id in self._responses:
-                        self._responses[request_id].set_response(response)
-                    else:
-                        self._responses[request_id] = ResponseEvent(response)
-                        self._responses[request_id].set()
-
     def _read_from_control_interface(self) -> None:
         """
         Reads from the control interface input fifo and saves the response.
