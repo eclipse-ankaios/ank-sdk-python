@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run unit tests
+        run: python3 run_tests.py --utest
+
+      - name: Run coverage
+        run: python3 run_tests.py --cov
+
+      - name: Run lint
+        run: python3 run_tests.py --lint
+
+      - name: Upload unit test report
+        uses: actions/upload-artifact@v2
+        with:
+          name: unit-test-report
+          path: reports/utest
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: reports/coverage
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v2
+        with:
+          name: pylint-report
+          path: reports/pylint

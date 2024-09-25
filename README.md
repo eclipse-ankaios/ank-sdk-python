@@ -4,5 +4,4 @@ Eclipse Ankaios Python SDK provides a convenient python interface for interactin
 
 # To do
 - Finish the marked TODO methods from Ankaios.py, realted to configuration handling.
-- Enable github workflow verifications
 - Add to pip wheel

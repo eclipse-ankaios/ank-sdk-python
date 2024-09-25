@@ -1,3 +1,0 @@
-setuptools    # For setting up the package
-protobuf      # Core protobuf library
-grpcio-tools  # For generating .pb2 files

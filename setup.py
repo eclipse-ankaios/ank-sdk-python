@@ -84,7 +84,15 @@ setup(
     setup_requires=[
         "protobuf==5.27.2",
         "grpcio-tools>=1.56.2",
-    ]
+    ],
+    extras_require={
+        # Development dependencies
+        'dev': [
+            'pytest',
+            'pytest-cov',
+            'pylint',
+        ],
+    },
 )
 
 
