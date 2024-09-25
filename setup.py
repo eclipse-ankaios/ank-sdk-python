@@ -14,14 +14,14 @@
 
 import os
 from setuptools import setup, find_packages
-from grpc_tools import protoc
-
 
 PROJECT_NAME = "AnkaiosSDK"
 
 
 def generate_protos():
     """Generate python protobuf files from the proto files."""
+    from grpc_tools import protoc
+
     protos_dir = f"{PROJECT_NAME}/_protos"
     proto_files = ["ank_base.proto", "control_api.proto"]
 
@@ -40,20 +40,17 @@ def generate_protos():
             ]
             if protoc.main(command) != 0:
                 raise Exception(f"Error: {proto_file} compilation failed")
-            
+
             # Fix the import path in the generated control_api_pb2
             # https://github.com/protocolbuffers/protobuf/issues/1491#issuecomment-261914766
             if "control_api" in proto_file:
                 with open(output_file, 'r') as file:
                     filedata = file.read()
                     newdata = filedata.replace(
-                        "import ank_base_pb2 as ank__base__pb2", 
+                        "import ank_base_pb2 as ank__base__pb2",
                         "from . import ank_base_pb2 as ank__base__pb2")
                 with open(output_file, 'w') as file:
                     file.write(newdata)
-            
-
-generate_protos()
 
 
 setup(
@@ -81,8 +78,14 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "setuptools",
-        "protobuf",
-        "grpcio-tools",
+        "protobuf>=3.20.2",
+        "PyYAML",
     ],
+    setup_requires=[
+        "protobuf>=3.20.2",
+        "grpcio-tools>=1.66.1",
+    ]
 )
+
+
+generate_protos()
