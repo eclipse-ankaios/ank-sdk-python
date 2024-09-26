@@ -24,20 +24,19 @@ Usage:
     - Get response content:
         response = Response()
         (content_type, content) = response.get_content()
-    
+
     - Check if the request_id matches:
         response = Response()
         if response.check_request_id("1234"):
             print("Request ID matches")
 """
 
+__all__ = ["Response", "ResponseEvent"]
+
 from typing import Union
 from threading import Event
 from .._protos import _control_api
-from .CompleteState import CompleteState
-
-
-__all__ = ["Response", "ResponseEvent"]
+from .complete_state import CompleteState
 
 
 class Response:
@@ -47,8 +46,9 @@ class Response:
     Attributes:
         buffer (bytes): The received message buffer.
         content_type (str): The type of the response content
-                            (e.g., "error", "complete_state", "update_state_success").
-        content: The content of the response, which can be a string, CompleteState, or dictionary.
+            (e.g., "error", "complete_state", "update_state_success").
+        content: The content of the response, which can be a string,
+            CompleteState, or dictionary.
     """
     def __init__(self, message_buffer: bytes) -> None:
         """
@@ -83,7 +83,8 @@ class Response:
     def _from_proto(self) -> None:
         """
         Converts the parsed protobuf message to a Response object.
-        This can be either an error, a complete state, or an update state success.
+        This can be either an error, a complete state,
+        or an update state success.
 
         Raises:
             ValueError: If the response type is invalid.
@@ -98,8 +99,10 @@ class Response:
         elif self._response.HasField("UpdateStateSuccess"):
             self.content_type = "update_state_success"
             self.content = {
-                "added_workloads": self._response.UpdateStateSuccess.addedWorkloads,
-                "deleted_workloads": self._response.UpdateStateSuccess.deletedWorkloads,
+                "added_workloads":
+                    self._response.UpdateStateSuccess.addedWorkloads,
+                "deleted_workloads":
+                    self._response.UpdateStateSuccess.deletedWorkloads,
             }
         else:
             raise ValueError("Invalid response type.")
@@ -130,8 +133,8 @@ class Response:
         Gets the content of the response.
 
         Returns:
-            (tuple[str, Union[str, CompleteState, dict]]): A tuple containing the content type 
-                    and the content of the response.
+            (tuple[str, Union[str, CompleteState, dict]]): A tuple containing
+                the content type and the content of the response.
         """
         return (self.content_type, self.content)
 
@@ -145,7 +148,8 @@ class ResponseEvent(Event):
         Initializes the ResponseEvent with an optional Response object.
 
         Args:
-            response Optional(Response): The response to associate with the event. Defaults to None.
+            response Optional(Response): The response to associate with
+                the event. Defaults to None.
         """
         super().__init__()
         self._response = response
@@ -174,13 +178,15 @@ class ResponseEvent(Event):
         Waits for the response to be set, with a specified timeout.
 
         Args:
-            timeout (int): The maximum time to wait for the response, in seconds.
+            timeout (int): The maximum time to wait for the response,
+                in seconds.
 
         Returns:
             Response: The response associated with the event.
 
         Raises:
-            TimeoutError: If the response is not set within the specified timeout.
+            TimeoutError: If the response is not set within the
+                specified timeout.
         """
         if not self.wait(timeout):
             raise TimeoutError("Timeout while waiting for the response.")

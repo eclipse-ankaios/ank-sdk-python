@@ -13,17 +13,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadStateCollection class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadStateCollection
+class in the ankaios_sdk.
 """
 
-from AnkaiosSDK import WorkloadStateCollection, WorkloadState, WorkloadExecutionState
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import WorkloadStateCollection, WorkloadState, \
+    WorkloadExecutionState
+from ankaios_sdk._protos import _ank_base
 
 
 def test_get():
     """
-    Test the basic functionality of the WorkloadStateCollection class,
-    including adding a workload state and retrieving it as a list and dictionary.
+    Test the basic functionality of the WorkloadStateCollection
+    class, including adding a workload state and retrieving it
+    as a list and dictionary.
     """
     workload_state_collection = WorkloadStateCollection()
     assert workload_state_collection is not None
@@ -54,8 +57,10 @@ def test_get():
     assert "workload_Test" in workload_states_dict["agent_Test"].keys()
     assert len(workload_states_dict["agent_Test"]["workload_Test"]) == 1
     assert "1234" in workload_states_dict["agent_Test"]["workload_Test"].keys()
-    assert isinstance(workload_states_dict["agent_Test"]["workload_Test"]["1234"],
-                      WorkloadExecutionState)
+    assert isinstance(
+        workload_states_dict["agent_Test"]["workload_Test"]["1234"],
+        WorkloadExecutionState
+    )
 
 
 def test_from_proto():

@@ -13,17 +13,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadExecutionState class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadExecutionState
+class in the ankaios_sdk.
 """
 
 import pytest
-from AnkaiosSDK import WorkloadExecutionState, WorkloadStateEnum, WorkloadSubStateEnum
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import WorkloadExecutionState, WorkloadStateEnum, \
+    WorkloadSubStateEnum
+from ankaios_sdk._protos import _ank_base
 
 
 def test_interpret_state():
     """
-    Test the interpretation of a valid execution state in the WorkloadExecutionState class.
+    Test the interpretation of a valid execution state in the
+    WorkloadExecutionState class.
     """
     workload_state = WorkloadExecutionState(
         _ank_base.ExecutionState(
@@ -33,14 +36,15 @@ def test_interpret_state():
     )
 
     assert workload_state.state == WorkloadStateEnum.Pending
-    assert workload_state.substate == WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    assert workload_state.substate == \
+        WorkloadSubStateEnum.PENDING_WAITING_TO_START
     assert workload_state.info == "Dummy information"
 
 
 def test_interpret_state_error():
     """
-    Test the handling of an invalid execution state in the WorkloadExecutionState class, 
-    ensuring it raises a ValueError.
+    Test the handling of an invalid execution state in the
+    WorkloadExecutionState class, ensuring it raises a ValueError.
     """
     with pytest.raises(ValueError, match="Invalid state for workload."):
         WorkloadExecutionState(

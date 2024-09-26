@@ -13,7 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the CompleteState class for managing the state of the system.
+This script defines the CompleteState class for managing
+the state of the system.
 
 Classes:
     - CompleteState: Represents the complete state of the system.
@@ -41,12 +42,13 @@ Usage:
         workload_states = complete_state.get_workload_states()
 """
 
-from .._protos import _ank_base
-from .Workload import Workload
-from .WorkloadState import WorkloadStateCollection
-
-
 __all__ = ["CompleteState"]
+
+from .._protos import _ank_base
+from .workload import Workload
+from .workload_state import WorkloadStateCollection
+
+
 DEFAULT_API_VERSION = "v0.1"
 
 
@@ -110,7 +112,8 @@ class CompleteState:
             workload_name (str): The name of the workload to retrieve.
 
         Returns:
-            Workload: The workload with the specified name, or None if not found.
+            Workload: The workload with the specified name,
+                or None if not found.
         """
         for wl in self._workloads:
             if wl.name == workload_name:
@@ -142,7 +145,7 @@ class CompleteState:
         Returns:
             list[str]: A list of connected agents.
         """
-        # Return keys because the value "AgentAttributes" is not yet implemented
+        # "AgentAttributes" does not contain anything at the moment
         return list(self._complete_state.agents.agents.keys())
 
     def _from_dict(self, dict_state: dict) -> None:
@@ -153,24 +156,30 @@ class CompleteState:
             dict_state (dict): The dictionary representing the complete state.
         """
         self._complete_state = _ank_base.CompleteState()
-        self._set_api_version(dict_state.get("apiVersion", self.get_api_version()))
+        self._set_api_version(
+            dict_state.get("apiVersion", self.get_api_version())
+        )
         self._workloads = []
         if dict_state.get("workloads") is None:
             return
-        for workload_name, workload_dict in dict_state.get("workloads").items():
-            self._workloads.append(Workload._from_dict(workload_name, workload_dict))
+        for workload_name, workload_dict in \
+                dict_state.get("workloads").items():
+            self._workloads.append(
+                Workload._from_dict(workload_name, workload_dict)
+            )
 
     def _to_proto(self) -> _ank_base.CompleteState:
         """
         Converts the CompleteState object to a proto message.
 
         Returns:
-            _ank_base.CompleteState: The protobuf message representing the complete state.
+            _ank_base.CompleteState: The protobuf message representing
+                the complete state.
         """
         # Clear previous workloads
         for workload in self._workloads:
-            self._complete_state.desiredState.workloads.workloads[workload.name]\
-                .CopyFrom(workload._to_proto())
+            self._complete_state.desiredState.workloads.\
+                workloads[workload.name].CopyFrom(workload._to_proto())
         return self._complete_state
 
     def _from_proto(self, proto: _ank_base.CompleteState) -> None:
@@ -178,7 +187,8 @@ class CompleteState:
         Converts the proto message to a CompleteState object.
 
         Args:
-            proto (_ank_base.CompleteState): The protobuf message representing the complete state.
+            proto (_ank_base.CompleteState): The protobuf message representing
+                the complete state.
         """
         self._complete_state = proto
         self._workloads = []
@@ -187,4 +197,6 @@ class CompleteState:
             workload = Workload(workload_name)
             workload._from_proto(proto_workload)
             self._workloads.append(workload)
-        self._workload_state_collection._from_proto(self._complete_state.workloadStates)
+        self._workload_state_collection._from_proto(
+            self._complete_state.workloadStates
+        )

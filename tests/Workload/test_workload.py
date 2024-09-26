@@ -13,19 +13,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the Workload class in the AnkaiosSDK.
+This module contains unit tests for the Workload class in the ankaios_sdk.
 
 Fixtures:
     workload: Returns a Workload instance with some default values.
 
 Helper Functions:
-    generate_workload: Helper function to generate a Workload instance with some default values.
+    generate_workload: Helper function to generate a Workload instance
+        with some default values.
 """
 
 from unittest.mock import patch, mock_open
 import pytest
-from AnkaiosSDK import Workload, WorkloadBuilder
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import Workload, WorkloadBuilder
+from ankaios_sdk._protos import _ank_base
 
 
 def generate_test_workload(workload_name: str = "workload_test") -> Workload:
@@ -91,7 +92,9 @@ def test_update_fields(workload):  # pylint: disable=redefined-outer-name
     workload.update_runtime_config("new_config_test")
     assert workload._workload.runtimeConfig == "new_config_test"
 
-    with patch("builtins.open", mock_open(read_data="new_config_test_from_file")):
+    with patch("builtins.open", mock_open(
+            read_data="new_config_test_from_file"
+            )):
         workload.update_runtime_config_from_file("new_config_test_from_file")
         assert workload._workload.runtimeConfig == "new_config_test_from_file"
 
@@ -159,7 +162,8 @@ def test_to_proto(workload):  # pylint: disable=redefined-outer-name
     assert proto.runtime == "runtime_test"
     assert proto.restartPolicy == _ank_base.NEVER
     assert proto.runtimeConfig == "config_test"
-    assert proto.dependencies.dependencies == {"workload_test_other": _ank_base.ADD_COND_RUNNING}
+    assert proto.dependencies.dependencies == {"workload_test_other":
+                                               _ank_base.ADD_COND_RUNNING}
     assert proto.tags == _ank_base.Tags(tags=[
         _ank_base.Tag(key="key1", value="value1"),
         _ank_base.Tag(key="key2", value="value2")
@@ -213,7 +217,8 @@ def test_from_dict(workload):  # pylint: disable=redefined-outer-name
         "desiredState.workloads.workload_test.restartPolicy"),
     ("update_runtime_config", {"config": "config_test"},
         "desiredState.workloads.workload_test.runtimeConfig"),
-    ("add_dependency", {"workload_name": "workload_test_other", "condition": "RUNNING"},
+    ("add_dependency", {"workload_name": "workload_test_other",
+                        "condition": "RUNNING"},
         "desiredState.workloads.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
         "desiredState.workloads.workload_test.tags"),
@@ -223,7 +228,8 @@ def test_mask_generation(function_name, data, mask):
     Test the generation of masks when updating fields of the Workload instance.
 
     Args:
-        function_name (str): The name of the function to call on the Workload instance.
+        function_name (str): The name of the function to call on
+            the Workload instance.
         data (dict): The data to pass to the function.
         mask (str): The expected mask to be generated.
     """

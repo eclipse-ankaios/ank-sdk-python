@@ -13,11 +13,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the Request class in the AnkaiosSDK.
+This module contains unit tests for the Request class in the ankaios_sdk.
 """
 
 import pytest
-from AnkaiosSDK import Request, CompleteState
+from ankaios_sdk import Request, CompleteState
 from tests.Workload.test_workload import generate_test_workload
 
 
@@ -56,14 +56,18 @@ def test_update_state():
     request = Request("update_state")
     complete_state = CompleteState()
     request.set_complete_state(complete_state)
-    assert request._request.updateStateRequest.newState == complete_state._to_proto()
+    assert request._request.updateStateRequest.newState == \
+        complete_state._to_proto()
 
     request.add_mask("test_mask")
     assert request._request.updateStateRequest.updateMask == ["test_mask"]
 
-    with pytest.raises(ValueError,
-                       match="Complete state can only be set for an update state request."):
+    with pytest.raises(
+            ValueError,
+            match="Complete state can only be set for an update state request."
+            ):
         Request("get_state").set_complete_state(CompleteState())
+
 
 def test_get_state():
     """

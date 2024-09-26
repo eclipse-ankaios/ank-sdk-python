@@ -13,13 +13,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the Response class in the AnkaiosSDK.
+This module contains unit tests for the Response class in the ankaios_sdk.
 """
 
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
-from AnkaiosSDK import Response, CompleteState
-from AnkaiosSDK._protos import _ank_base, _control_api
+from ankaios_sdk import Response, CompleteState
+from ankaios_sdk._protos import _ank_base, _control_api
 
 
 MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
@@ -55,7 +55,9 @@ MESSAGE_UPDATE_SUCCESS = _control_api.FromAnkaios(
     )
 )
 MESSAGE_BUFFER_UPDATE_SUCCESS = MESSAGE_UPDATE_SUCCESS.SerializeToString()
-MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(MESSAGE_UPDATE_SUCCESS.ByteSize())
+MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(
+    MESSAGE_UPDATE_SUCCESS.ByteSize()
+)
 
 MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(

@@ -13,11 +13,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadState class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadState
+class in the ankaios_sdk.
 """
 
-from AnkaiosSDK import WorkloadState
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import WorkloadState
+from ankaios_sdk._protos import _ank_base
 
 
 def test_creation():

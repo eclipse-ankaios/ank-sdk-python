@@ -13,11 +13,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Workload and WorkloadBuilder classes for creating and managing workloads.
+This script defines the Workload and WorkloadBuilder classes for
+creating and managing workloads.
 
 Classes:
-    - Workload: Represents a workload with various attributes and methods to update them.
-    - WorkloadBuilder: A builder class to create a Workload object with a fluent interface.
+    - Workload: Represents a workload with various attributes and
+        methods to update them.
+    - WorkloadBuilder: A builder class to create a Workload object
+        with a fluent interface.
 
 Usage:
     - Create a workload using the WorkloadBuilder:
@@ -26,8 +29,8 @@ Usage:
             .agent_name("agent_A") \
             .runtime("podman") \
             .restart_policy("NEVER") \
-            .runtime_config("image: docker.io/library/nginx\n" +
-                            "commandOptions: [\"-p\", \"8080:80\"]") \
+            .runtime_config("image: docker.io/library/nginx\n"
+                            + "commandOptions: [\"-p\", \"8080:80\"]") \
             .add_dependency("other_workload", "RUNNING") \
             .add_tag("key1", "value1") \
             .add_tag("key2", "value2") \
@@ -50,11 +53,10 @@ Usage:
         print(workload)
 """
 
+__all__ = ["Workload", "WorkloadBuilder"]
+
 
 from .._protos import _ank_base
-
-
-__all__ = ["Workload", "WorkloadBuilder"]
 
 
 class Workload:
@@ -67,7 +69,8 @@ class Workload:
     def __init__(self, name: str) -> None:
         """
         Initialize a Workload object.
-        The Workload object should be created using the Workload.builder() method.
+        The Workload object should be created using the
+        Workload.builder() method.
 
         Args:
             name (str): The workload name.
@@ -175,8 +178,8 @@ class Workload:
         }
 
         if policy not in policy_map:
-            raise ValueError("Invalid restart policy. Supported values " +
-                             "'NEVER', 'ON_FAILURE', 'ALWAYS'.")
+            raise ValueError("Invalid restart policy. Supported values "
+                             + "'NEVER', 'ON_FAILURE', 'ALWAYS'.")
         self._workload.restartPolicy = policy_map[policy]
         if not self.__from_builder:
             self._add_mask(f"{self._main_mask}.restartPolicy")
@@ -200,9 +203,10 @@ class Workload:
         }
 
         if condition not in condition_map:
-            raise ValueError("Invalid condition. Supported values: " +
-                             "'RUNNING', 'SUCCEEDED', 'FAILED'.")
-        self._workload.dependencies.dependencies[workload_name] = condition_map[condition]
+            raise ValueError("Invalid condition. Supported values: "
+                             + "'RUNNING', 'SUCCEEDED', 'FAILED'.")
+        self._workload.dependencies.dependencies[workload_name] = \
+            condition_map[condition]
         if not self.__from_builder:
             self._add_mask(f"{self._main_mask}.dependencies")
 
@@ -211,7 +215,8 @@ class Workload:
         Return the dependencies of the workload.
 
         Returns:
-            dict: A dictionary of dependencies with workload names as keys and conditions as values.
+            dict: A dictionary of dependencies with workload names
+                as keys and conditions as values.
         """
         deps = dict(self._workload.dependencies.dependencies)
         for dep in deps:
@@ -228,7 +233,8 @@ class Workload:
         Update the dependencies of the workload.
 
         Args:
-            dependencies (dict): A dictionary of dependencies with workload names and values.
+            dependencies (dict): A dictionary of dependencies with
+                workload names and values.
         """
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
@@ -300,7 +306,7 @@ class Workload:
         Args:
             workload_name (str): The name of the workload.
             dict_workload (dict): The dictionary to convert.
-        
+
         Returns:
             Workload: The Workload object created from the dictionary.
         """
@@ -326,7 +332,8 @@ class Workload:
         Convert the Workload object to a proto message.
 
         Returns:
-            _ank_base.Workload: The proto message representation of the Workload object.
+            _ank_base.Workload: The proto message representation
+                of the Workload object.
         """
         return self._workload
 
@@ -417,7 +424,9 @@ class WorkloadBuilder:
         self.wl_runtime_config = runtime_config
         return self
 
-    def runtime_config_from_file(self, runtime_config_path: str) -> "WorkloadBuilder":
+    def runtime_config_from_file(
+            self, runtime_config_path: str
+            ) -> "WorkloadBuilder":
         """
         Set the runtime configuration using a file.
 
@@ -444,7 +453,9 @@ class WorkloadBuilder:
         self.wl_restart_policy = restart_policy
         return self
 
-    def add_dependency(self, workload_name: str, condition: str) -> "WorkloadBuilder":
+    def add_dependency(
+            self, workload_name: str, condition: str
+            ) -> "WorkloadBuilder":
         """
         Add a dependency.
 
@@ -475,7 +486,8 @@ class WorkloadBuilder:
     def build(self) -> Workload:
         """
         Build the Workload object.
-        Required fields: workload name, agent name, runtime and runtime configuration.
+        Required fields: workload name, agent name, runtime and
+        runtime configuration.
 
         Returns:
             Workload: The built Workload object.
@@ -490,11 +502,14 @@ class WorkloadBuilder:
         workload._set_from_builder()
 
         if self.wl_agent_name is None:
-            raise ValueError("Workload can not be built without an agent name.")
+            raise ValueError("Workload can not be built without an "
+                             + "agent name.")
         if self.wl_runtime is None:
-            raise ValueError("Workload can not be built without a runtime.")
+            raise ValueError("Workload can not be built without a "
+                             + "runtime.")
         if self.wl_runtime_config is None:
-            raise ValueError("Workload can not be built without a runtime configuration.")
+            raise ValueError("Workload can not be built without a "
+                             + "runtime configuration.")
 
         workload.update_agent_name(self.wl_agent_name)
         workload.update_runtime(self.wl_runtime)

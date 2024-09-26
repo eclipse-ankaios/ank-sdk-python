@@ -13,18 +13,20 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadSubStateEnum class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadSubStateEnum
+class in the ankaios_sdk.
 """
 
 import pytest
-from AnkaiosSDK import WorkloadSubStateEnum, WorkloadStateEnum
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import WorkloadSubStateEnum, WorkloadStateEnum
+from ankaios_sdk._protos import _ank_base
 
 
 def test_get():
     """
     Test the get method of the WorkloadSubStateEnum class,
-    ensuring it correctly retrieves the enumeration member based on the state and field.
+    ensuring it correctly retrieves the enumeration member
+    based on the state and field.
     """
     data = [
         (WorkloadStateEnum.AgentDisconnected, _ank_base.AGENT_DISCONNECTED,

@@ -13,11 +13,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the ResponseEvent class in the AnkaiosSDK.
+This module contains unit tests for the ResponseEvent class in the ankaios_sdk.
 """
 
 import pytest
-from AnkaiosSDK import ResponseEvent, Response
+from ankaios_sdk import ResponseEvent, Response
 from tests.Response.test_response import MESSAGE_BUFFER_ERROR
 
 

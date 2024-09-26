@@ -13,14 +13,17 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module defines various classes and enumerations related to the state of workloads.
-It provides functionality to interpret and manage the states and sub-states of workloads, 
-including converting between different representations and handling collections of workload states.
+This module defines various classes and enumerations related to the state
+of workloads. It provides functionality to interpret and manage the states
+and sub-states of workloads, including converting between different
+representations and handling collections of workload states.
 
 Classes:
-    - WorkloadExecutionState: Represents the execution state and sub-state of a workload.
+    - WorkloadExecutionState: Represents the execution state and
+        sub-state of a workload.
     - WorkloadInstanceName: Represents the name of a workload instance.
-    - WorkloadState: Represents the state of a workload (execution state and name).
+    - WorkloadState: Represents the state of a workload
+        (execution state and name).
     - WorkloadStateCollection: A collection of workload states.
 
 Enums:
@@ -42,13 +45,13 @@ Usage:
         info = workload_state.execution_state.info
 """
 
+__all__ = ["WorkloadStateCollection", "WorkloadState",
+           "WorkloadInstanceName", "WorkloadExecutionState",
+           "WorkloadStateEnum", "WorkloadSubStateEnum"]
+
 from typing import TypeAlias
 from enum import Enum
 from .._protos import _ank_base
-
-
-__all__ = ["WorkloadStateCollection", "WorkloadState", "WorkloadInstanceName",
-           "WorkloadExecutionState", "WorkloadStateEnum", "WorkloadSubStateEnum"]
 
 
 class WorkloadStateEnum(Enum):
@@ -92,10 +95,12 @@ class WorkloadStateEnum(Enum):
             field (str): The field name to look up.
 
         Returns:
-            WorkloadStateEnum: The enumeration member corresponding to the field name.
+            WorkloadStateEnum: The enumeration member corresponding
+                to the field name.
 
         Raises:
-            KeyError: If the field name does not correspond to any enumeration member.
+            KeyError: If the field name does not correspond to
+                any enumeration member.
         """
         field = field[0].upper() + field[1:]  # Capitalize the first letter
         return WorkloadStateEnum[field]
@@ -114,7 +119,8 @@ class WorkloadSubStateEnum(Enum):
         RUNNING_OK (int): The workload is running successfully.
         STOPPING (int): The workload is stopping.
         STOPPING_WAITING_TO_STOP (int): The workload is waiting to stop.
-        STOPPING_REQUESTED_AT_RUNTIME (int): The workload stop was requested at runtime.
+        STOPPING_REQUESTED_AT_RUNTIME (int): The workload stop was
+            requested at runtime.
         STOPPING_DELETE_FAILED (int): The workload stop failed to delete.
         SUCCEEDED_OK (int): The workload succeeded successfully.
         FAILED_EXEC_FAILED (int): The workload failed due to execution failure.
@@ -150,7 +156,8 @@ class WorkloadSubStateEnum(Enum):
         return self.name
 
     @staticmethod
-    def _get(state: WorkloadStateEnum, field: _ank_base) -> "WorkloadSubStateEnum":
+    def _get(state: WorkloadStateEnum,
+             field: _ank_base) -> "WorkloadSubStateEnum":
         """
         Get the enumeration member corresponding to the given state and field.
 
@@ -159,10 +166,12 @@ class WorkloadSubStateEnum(Enum):
             field (_ank_base): The field to look up.
 
         Returns:
-            WorkloadSubStateEnum: The enumeration member corresponding to the state and field.
+            WorkloadSubStateEnum: The enumeration member corresponding
+                to the state and field.
 
         Raises:
-            ValueError: If the field does not correspond to any enumeration member.
+            ValueError: If the field does not correspond to
+                any enumeration member.
         """
         proto_mapper = {}
         if state == WorkloadStateEnum.AgentDisconnected:
@@ -220,23 +229,27 @@ class WorkloadSubStateEnum(Enum):
                     WorkloadSubStateEnum.REMOVED
             }
         if field not in proto_mapper:
-            raise ValueError(f"No corresponding WorkloadSubStateEnum value for enum: {field}")
+            raise ValueError("No corresponding WorkloadSubStateEnum "
+                             + f"value for enum: {field}")
         return proto_mapper[field]
 
     def _sub_state2ank_base(self) -> _ank_base:
         """
-        Convert the WorkloadSubStateEnum member to the corresponding _ank_base value.
+        Convert the WorkloadSubStateEnum member to the corresponding
+        _ank_base value.
 
         Returns:
             _ank_base: The corresponding _ank_base value.
 
         Raises:
-            ValueError: If there is no corresponding _ank_base value for the enumeration member.
+            ValueError: If there is no corresponding _ank_base
+                value for the enumeration member.
         """
         try:
             return getattr(_ank_base, self.name)
         except AttributeError as e:  # pragma: no cover
-            raise ValueError(f"No corresponding ank_base value for enum: {self.name}") from e
+            raise ValueError("No corresponding ank_base value "
+                             + f"for enum: {self.name}") from e
 
 
 # pylint: disable=too-few-public-methods
@@ -264,10 +277,12 @@ class WorkloadExecutionState:
 
     def _interpret_state(self, exec_state: _ank_base.ExecutionState) -> None:
         """
-        Interprets the execution state and sets the state, substate, and info attributes.
+        Interprets the execution state and sets the state, substate,
+        and info attributes.
 
         Args:
-            exec_state (_ank_base.ExecutionState): The execution state to interpret.
+            exec_state (_ank_base.ExecutionState): The execution
+                state to interpret.
 
         Raises:
             ValueError: If the execution state is invalid.
@@ -279,7 +294,9 @@ class WorkloadExecutionState:
             raise ValueError("Invalid state for workload.")
 
         self.state = WorkloadStateEnum._get(field)
-        self.substate = WorkloadSubStateEnum._get(self.state, getattr(exec_state, field))
+        self.substate = WorkloadSubStateEnum._get(
+            self.state, getattr(exec_state, field)
+        )
 
 
 # pylint: disable=too-few-public-methods
@@ -292,7 +309,8 @@ class WorkloadInstanceName:
         workload_name (str): The name of the workload.
         workload_id (str): The ID of the workload.
     """
-    def __init__(self, agent_name: str, workload_name: str, workload_id: str) -> None:
+    def __init__(self, agent_name: str,
+                 workload_name: str, workload_id: str) -> None:
         """
         Initializes a WorkloadInstanceName instance.
 
@@ -321,8 +339,10 @@ class WorkloadState:
     Represents the state of a workload.
 
     Attributes:
-        execution_state (WorkloadExecutionState): The execution state of the workload.
-        workload_instance_name (WorkloadInstanceName): The name of the workload instance.
+        execution_state (WorkloadExecutionState): The execution state
+            of the workload.
+        workload_instance_name (WorkloadInstanceName): The name of the
+            workload instance.
     """
     def __init__(self, agent_name: str, workload_name: str,
                  workload_id: str, state: _ank_base.ExecutionState) -> None:
@@ -336,12 +356,15 @@ class WorkloadState:
             state (_ank_base.ExecutionState): The execution state to interpret.
         """
         self.execution_state = WorkloadExecutionState(state)
-        self.workload_instance_name = WorkloadInstanceName(agent_name, workload_name, workload_id)
+        self.workload_instance_name = WorkloadInstanceName(
+            agent_name, workload_name, workload_id
+        )
 
 
 class WorkloadStateCollection:
     """
-    A class that represents a collection of workload states and provides methods to manipulate them.
+    A class that represents a collection of workload states and provides
+    methods to manipulate them.
     """
     ExecutionsStatesForId: TypeAlias = dict[str, WorkloadExecutionState]
     ExecutionsStatesOfWorkload: TypeAlias = dict[str, ExecutionsStatesForId]
@@ -378,10 +401,12 @@ class WorkloadStateCollection:
 
             workload_name = state.workload_instance_name.workload_name
             if workload_name not in return_dict[agent_name]:
-                return_dict[agent_name][workload_name] = self.ExecutionsStatesForId()
+                return_dict[agent_name][workload_name] = \
+                    self.ExecutionsStatesForId()
 
             workload_id = state.workload_instance_name.workload_id
-            return_dict[agent_name][workload_name][workload_id] = state.execution_state
+            return_dict[agent_name][workload_name][workload_id] = \
+                state.execution_state
         return return_dict
 
     def get_as_list(self) -> list[WorkloadState]:
@@ -398,7 +423,8 @@ class WorkloadStateCollection:
         Populates the collection from a proto message.
 
         Args:
-            state (_ank_base.WorkloadStatesMap): The proto message to interpret.
+            state (_ank_base.WorkloadStatesMap): The proto message
+                to interpret.
         """
         for agent_name in state.agentStateMap:
             for workload_name in state.agentStateMap[agent_name].\
@@ -409,6 +435,7 @@ class WorkloadStateCollection:
                         agent_name,
                         workload_name,
                         workload_id,
-                        state.agentStateMap[agent_name].wlNameStateMap[workload_name].\
-                            idStateMap[workload_id]
+                        state.agentStateMap[agent_name]
+                        .wlNameStateMap[workload_name]
+                        .idStateMap[workload_id]
                     ))

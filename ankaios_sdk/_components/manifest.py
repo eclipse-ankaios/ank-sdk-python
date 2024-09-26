@@ -16,24 +16,25 @@
 This module defines the Manifest class for handling ankaios manifests.
 
 Classes:
-    - Manifest: Represents a workload manifest and provides methods to validate and load it.
+    - Manifest: Represents a workload manifest and provides methods to
+        validate and load it.
 
 Usage:
     - Load a manifest from a file:
         manifest = Manifest.from_file("path/to/manifest.yaml")
-    
+
     - Load a manifest from a string:
         manifest = Manifest.from_string("apiVersion: 1.0\nworkloads: {}")
-    
+
     - Load a manifest from a dictionary:
         manifest = Manifest.from_dict({"apiVersion": "1.0", "workloads": {}})
-    
+
     - Generate a CompleteState instance from the manifest:
         complete_state = manifest.generate_complete_state()
 """
 
 import yaml
-from .CompleteState import CompleteState
+from .complete_state import CompleteState
 
 
 class Manifest():
@@ -120,8 +121,9 @@ class Manifest():
             return False
         if "workloads" not in self._manifest.keys():
             return False
-        wl_allowed_keys = ["runtime", "agent", "restartPolicy", "runtimeConfig",
-                           "dependencies", "tags", "controlInterfaceAccess"]
+        wl_allowed_keys = ["runtime", "agent", "restartPolicy",
+                           "runtimeConfig", "dependencies", "tags",
+                           "controlInterfaceAccess"]
         for wl_name in self._manifest["workloads"]:
             for key in self._manifest["workloads"][wl_name].keys():
                 if key not in wl_allowed_keys:
@@ -143,7 +145,8 @@ class Manifest():
         Generates a CompleteState instance from the manifest.
 
         Returns:
-            CompleteState: An instance of the CompleteState class populated with the manifest data.
+            CompleteState: An instance of the CompleteState class
+                populated with the manifest data.
         """
         complete_state = CompleteState()
         complete_state._from_dict(self._manifest)

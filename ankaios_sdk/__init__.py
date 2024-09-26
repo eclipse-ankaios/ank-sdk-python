@@ -13,18 +13,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains the AnkaiosSDK protobuf components.
-It contains the proto files and the generated protobuf classes.
+This module contains the ankaios_sdk package.
+It exposes to the user all the classes available in the SDK.
 
 Imports:
-    ank_base_pb2: Used for general grpc messages.
-    control_api_pb2: Used for exchanging messages with the control interface.
+    Ankaios: The main SDK class.
+    All the other classes, available in the _components folder.
 """
 
-try:
-    import AnkaiosSDK._protos.ank_base_pb2 as _ank_base
-    import AnkaiosSDK._protos.control_api_pb2 as _control_api
-except ImportError as r:
-    raise r
+from .ankaios import *
+from ._components import *
 
-__all__ = ["_ank_base", "_control_api"]
+__all__ = [name for name in globals() if not name.startswith('_')]

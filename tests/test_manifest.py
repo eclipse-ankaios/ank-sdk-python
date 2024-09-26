@@ -13,12 +13,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the Manifest class in the AnkaiosSDK.
+This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
 from unittest.mock import patch, mock_open
 import pytest
-from AnkaiosSDK import Manifest, CompleteState
+from ankaios_sdk import Manifest, CompleteState
 
 
 MANIFEST_CONTENT = """apiVersion: v0.1
@@ -28,17 +28,16 @@ workloads:
     restartPolicy: NEVER
     agent: agent_A
     runtimeConfig: |
-      image: ghcr.io/eclipse-ankaios/tests/nginx:alpine-slim
-      commandOptions: ["-p", "8081:80"]"""
+      image: image/test"""
 
 MANIFEST_DICT = {
-    'apiVersion': 'v0.1', 
+    'apiVersion': 'v0.1',
     'workloads': {
         'nginx_test': {
-            'runtime': 'podman', 
-            'restartPolicy': 'NEVER', 
-            'agent': 'agent_A', 
-            'runtimeConfig': 'image: ghcr.io/eclipse-ankaios/tests/nginx:alpine-slim\ncommandOptions: ["-p", "8081:80"]'  # pylint: disable=line-too-long
+            'runtime': 'podman',
+            'restartPolicy': 'NEVER',
+            'agent': 'agent_A',
+            'runtimeConfig': 'image: image/test'
         }
     }
 }
@@ -50,7 +49,7 @@ def test_from_file():
     ensuring it correctly loads a manifest from a file and handles errors.
     """
     with patch("builtins.open", mock_open(read_data=MANIFEST_CONTENT)), \
-        patch("AnkaiosSDK.Manifest.from_string") as mock_from_string:
+            patch("ankaios_sdk.Manifest.from_string") as mock_from_string:
         _ = Manifest.from_file("manifest.yaml")
         mock_from_string.assert_called_once_with(MANIFEST_CONTENT)
 
@@ -61,9 +60,10 @@ def test_from_file():
 def test_from_string():
     """
     Test the from_string method of the Manifest class,
-    ensuring it correctly parses a manifest from a YAML string and handles errors.
+    ensuring it correctly parses a manifest from a YAML
+    string and handles errors.
     """
-    with patch("AnkaiosSDK.Manifest.from_dict") as mock_from_dict:
+    with patch("ankaios_sdk.Manifest.from_dict") as mock_from_dict:
         _ = Manifest.from_string(MANIFEST_CONTENT)
         mock_from_dict.assert_called_once_with(MANIFEST_DICT)
 
@@ -74,7 +74,8 @@ def test_from_string():
 def test_from_dict():
     """
     Test the from_dict method of the Manifest class,
-    ensuring it correctly creates a Manifest instance from a dictionary and handles errors.
+    ensuring it correctly creates a Manifest instance
+    from a dictionary and handles errors.
     """
     manifest = Manifest.from_dict(MANIFEST_DICT)
     assert manifest._manifest == MANIFEST_DICT
@@ -109,15 +110,15 @@ def test_calculate_masks():
     """
     manifest_dict = MANIFEST_DICT.copy()
     manifest_dict["workloads"]["nginx_test_other"] = {
-            'runtime': 'podman', 
-            'restartPolicy': 'NEVER', 
-            'agent': 'agent_B', 
-            'runtimeConfig': 'image: ghcr.io/eclipse-ankaios/tests/nginx:alpine-slim\ncommandOptions: ["-p", "8082:80"]'  # pylint: disable=line-too-long
+            'runtime': 'podman',
+            'restartPolicy': 'NEVER',
+            'agent': 'agent_B',
+            'runtimeConfig': 'image: image/test'
         }
     manifest = Manifest(manifest_dict)
     assert len(manifest._calculate_masks()) == 2
     assert manifest._calculate_masks() == [
-        "desiredState.workloads.nginx_test", 
+        "desiredState.workloads.nginx_test",
         "desiredState.workloads.nginx_test_other"
     ]
 
@@ -126,7 +127,7 @@ def test_generate_complete_state():
     """
     Test the CompleteState instance generation from a Manifest instance.
     """
-    with patch("AnkaiosSDK.CompleteState._from_dict") as mock_complete_state:
+    with patch("ankaios_sdk.CompleteState._from_dict") as mock_complete_state:
         manifest = Manifest(MANIFEST_DICT)
         complete_state = manifest.generate_complete_state()
         mock_complete_state.assert_called_once_with(manifest._manifest)

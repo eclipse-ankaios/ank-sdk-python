@@ -15,7 +15,7 @@
 import os
 from setuptools import setup, find_packages
 
-PROJECT_NAME = "AnkaiosSDK"
+PROJECT_NAME = "ankaios_sdk"
 
 
 def generate_protos():
@@ -91,6 +91,7 @@ setup(
             'pytest',
             'pytest-cov',
             'pylint',
+            'pycodestyle',
         ],
     },
 )

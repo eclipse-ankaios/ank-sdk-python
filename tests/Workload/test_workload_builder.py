@@ -13,7 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadBuilder class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadBuilder
+class in the ankaios_sdk.
 
 Fixtures:
     builder: Returns a WorkloadBuilder instance.
@@ -21,7 +22,7 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from AnkaiosSDK import Workload, WorkloadBuilder
+from ankaios_sdk import Workload, WorkloadBuilder
 
 
 @pytest.fixture
@@ -52,7 +53,9 @@ def test_workload_fields(builder):  # pylint: disable=redefined-outer-name
     assert builder.wl_runtime_config == "config_test"
 
     with patch("builtins.open", mock_open(read_data="config_test_from_file")):
-        assert builder.runtime_config_from_file("config_test_from_file") == builder
+        assert builder.runtime_config_from_file(
+            "config_test_from_file"
+            ) == builder
         assert builder.wl_runtime_config == "config_test_from_file"
 
     assert builder.restart_policy("NEVER") == builder
@@ -72,7 +75,8 @@ def test_add_dependency(builder):  # pylint: disable=redefined-outer-name
     assert builder.dependencies == {"workload_test": "RUNNING"}
 
     assert builder.add_dependency("workload_test_other", "RUNNING") == builder
-    assert builder.dependencies == {"workload_test": "RUNNING", "workload_test_other": "RUNNING"}
+    assert builder.dependencies == {"workload_test": "RUNNING",
+                                    "workload_test_other": "RUNNING"}
 
 
 def test_add_tag(builder):  # pylint: disable=redefined-outer-name
@@ -98,23 +102,31 @@ def test_build(builder):  # pylint: disable=redefined-outer-name
     Args:
         builder (WorkloadBuilder): The WorkloadBuilder fixture.
     """
-    with pytest.raises(ValueError, match=
-                       "Workload can not be built without a name."):
+    with pytest.raises(
+            ValueError,
+            match="Workload can not be built without a name."
+            ):
         builder.build()
     builder = builder.workload_name("workload_test")
 
-    with pytest.raises(ValueError, match=
-                       "Workload can not be built without an agent name."):
+    with pytest.raises(
+            ValueError,
+            match="Workload can not be built without an agent name."
+            ):
         builder.build()
     builder = builder.agent_name("agent_Test")
 
-    with pytest.raises(ValueError, match=
-                       "Workload can not be built without a runtime."):
+    with pytest.raises(
+            ValueError,
+            match="Workload can not be built without a runtime."
+            ):
         builder.build()
     builder = builder.runtime("runtime_test")
 
-    with pytest.raises(ValueError, match=
-                       "Workload can not be built without a runtime configuration."):
+    with pytest.raises(
+            ValueError,
+            match="Workload can not be built without a runtime configuration."
+            ):
         builder.build()
 
     workload = builder.runtime_config("config_test") \

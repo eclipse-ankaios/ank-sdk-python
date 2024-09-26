@@ -11,4 +11,6 @@ reports/
 .pytest_cache/
 
 # Build directory
-AnkaiosSDK.egg-info
+ankaios_sdk.egg-info
+build/
+dist/

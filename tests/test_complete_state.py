@@ -13,11 +13,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the Manifest class in the AnkaiosSDK.
+This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
-from AnkaiosSDK import CompleteState, WorkloadStateCollection
-from AnkaiosSDK._protos import _ank_base
+from ankaios_sdk import CompleteState, WorkloadStateCollection
+from ankaios_sdk._protos import _ank_base
 from tests.Workload.test_workload import generate_test_workload
 
 
@@ -34,7 +34,8 @@ def test_general_functionality():
 
 def test_workload_functionality():
     """
-    Test the functionality of CompleteState class regarding setting and getting workloads.
+    Test the functionality of CompleteState class
+    regarding setting and getting workloads.
     """
     complete_state = CompleteState()
     assert len(complete_state.get_workloads()) == 0
@@ -49,7 +50,8 @@ def test_workload_functionality():
 
 def test_workload_states():
     """
-    Test the functionality of CompleteState class regarding setting and getting workload states.
+    Test the functionality of CompleteState class regarding
+    setting and getting workload states.
     """
     complete_state = CompleteState()
     complete_state._from_proto(_ank_base.CompleteState(

@@ -9,9 +9,8 @@ on:
       - main
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,30 +24,90 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install .[dev]
+      - name: Save cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
+  unit_test:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Run unit tests
         run: python3 run_tests.py --utest
-
-      - name: Run coverage
-        run: python3 run_tests.py --cov
-
-      - name: Run lint
-        run: python3 run_tests.py --lint
-
       - name: Upload unit test report
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
           path: reports/utest
 
+  coverage:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Run coverage
+        run: python3 run_tests.py --cov
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: reports/coverage
 
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Run lint
+        run: python3 run_tests.py --lint
       - name: Upload lint report
         uses: actions/upload-artifact@v4
         with:
           name: pylint-report
           path: reports/pylint
+
+  codestyle:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Run pep8 codestyle check
+        run: python3 run_tests.py --pep8
+      - name: Upload codestyle report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codestyle-report
+          path: reports/codestyle

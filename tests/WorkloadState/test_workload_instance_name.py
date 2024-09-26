@@ -13,10 +13,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the WorkloadInstanceName class in the AnkaiosSDK.
+This module contains unit tests for the WorkloadInstanceName
+class in the ankaios_sdk.
 """
 
-from AnkaiosSDK import WorkloadInstanceName
+from ankaios_sdk import WorkloadInstanceName
 
 
 def test_creation():

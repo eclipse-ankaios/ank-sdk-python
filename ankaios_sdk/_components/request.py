@@ -13,11 +13,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module defines the Request class for creating and handling requests to the Ankaios system.
+This module defines the Request class for creating and handling
+requests to the Ankaios system.
 
 Classes:
-    Request: Represents a request to the Ankaios system and provides methods to get and set
-    the state of the system.
+    Request: Represents a request to the Ankaios system and provides
+        methods to get and set the state of the system.
 
 Usage:
     - Create a Request for updating the state:
@@ -34,12 +35,11 @@ Usage:
         request.add_mask("desiredState.workloads")
 """
 
+__all__ = ["Request"]
+
 import uuid
 from .._protos import _ank_base
-from .CompleteState import CompleteState
-
-
-__all__ = ["Request"]
+from .complete_state import CompleteState
 
 
 class Request:
@@ -51,7 +51,8 @@ class Request:
         Initializes a Request instance with the given request type.
 
         Args:
-            request_type (str): The type of the request, either "update_state" or "get_state".
+            request_type (str): The type of the request,
+                either "update_state" or "get_state".
 
         Raises:
             ValueError: If the request type is invalid.
@@ -61,7 +62,8 @@ class Request:
         self._request_type = request_type
 
         if request_type not in ["update_state", "get_state"]:
-            raise ValueError("Invalid request type. Supported values: 'update_state', 'get_state'.")
+            raise ValueError("Invalid request type. Supported values: "
+                             + "'update_state', 'get_state'.")
 
     def __str__(self) -> str:
         """
@@ -86,15 +88,19 @@ class Request:
         Sets the complete state for the request.
 
         Args:
-            complete_state (CompleteState): The complete state to set for the request.
+            complete_state (CompleteState): The complete state to
+                set for the request.
 
         Raises:
             ValueError: If the request type is not "update_state".
         """
         if self._request_type != "update_state":
-            raise ValueError("Complete state can only be set for an update state request.")
+            raise ValueError("Complete state can only be set "
+                             + "for an update state request.")
 
-        self._request.updateStateRequest.newState.CopyFrom(complete_state._to_proto())
+        self._request.updateStateRequest.newState.CopyFrom(
+            complete_state._to_proto()
+        )
 
     def add_mask(self, mask: str) -> None:
         """
