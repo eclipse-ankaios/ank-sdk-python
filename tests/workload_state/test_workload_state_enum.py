@@ -26,7 +26,10 @@ def test_get():
     ensuring it correctly retrieves the enumeration member
     and its string representation.
     """
-    field = "agentDisconnected"
-    workload_state = WorkloadStateEnum._get(field)
-    assert workload_state == WorkloadStateEnum.AgentDisconnected
-    assert str(workload_state) == "AgentDisconnected"
+    workload_state = WorkloadStateEnum._get("agentDisconnected")
+    assert workload_state == WorkloadStateEnum.AGENT_DISCONNECTED
+    workload_state = WorkloadStateEnum._get("pending")
+    assert workload_state == WorkloadStateEnum.PENDING
+    workload_state = WorkloadStateEnum._get("notScheduled")
+    assert workload_state == WorkloadStateEnum.NOT_SCHEDULED
+    assert str(workload_state) == "NOT_SCHEDULED"

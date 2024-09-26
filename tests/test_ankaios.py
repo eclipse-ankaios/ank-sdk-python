@@ -22,9 +22,9 @@ from unittest.mock import patch, mock_open, MagicMock
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
     Manifest, CompleteState
-from tests.Workload.test_workload import generate_test_workload
+from tests.workload.test_workload import generate_test_workload
 from tests.test_request import generate_test_request
-from tests.Response.test_response import MESSAGE_BUFFER_ERROR, \
+from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
     MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_BUFFER_UPDATE_SUCCESS, \
     MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH
 from tests.test_manifest import MANIFEST_DICT
@@ -56,12 +56,12 @@ def test_connection():
     ankaios = Ankaios()
     assert not ankaios._connected
 
-    with patch("threading.Thread") as MockThread:
+    with patch("threading.Thread") as mock_thread:
         mock_thread_instance = MagicMock()
-        MockThread.return_value = mock_thread_instance
+        mock_thread.return_value = mock_thread_instance
 
         ankaios.connect()
-        MockThread.assert_called_once_with(
+        mock_thread.assert_called_once_with(
             target=ankaios._read_from_control_interface
         )
         mock_thread_instance.start.assert_called_once()

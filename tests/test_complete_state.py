@@ -18,7 +18,7 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 
 from ankaios_sdk import CompleteState, WorkloadStateCollection
 from ankaios_sdk._protos import _ank_base
-from tests.Workload.test_workload import generate_test_workload
+from tests.workload.test_workload import generate_test_workload
 
 
 def test_general_functionality():

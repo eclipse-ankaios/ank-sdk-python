@@ -18,7 +18,7 @@ This module contains unit tests for the ResponseEvent class in the ankaios_sdk.
 
 import pytest
 from ankaios_sdk import ResponseEvent, Response
-from tests.Response.test_response import MESSAGE_BUFFER_ERROR
+from tests.response.test_response import MESSAGE_BUFFER_ERROR
 
 
 def test_event():

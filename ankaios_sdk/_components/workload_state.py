@@ -68,14 +68,14 @@ class WorkloadStateEnum(Enum):
         NotScheduled (int): The workload is not scheduled.
         Removed (int): The workload has been removed.
     """
-    AgentDisconnected: int = 0
-    Pending: int = 1
-    Running: int = 2
-    Stopping: int = 3
-    Succeeded: int = 4
-    Failed: int = 5
-    NotScheduled: int = 6
-    Removed: int = 7
+    AGENT_DISCONNECTED: int = 0
+    PENDING: int = 1
+    RUNNING: int = 2
+    STOPPING: int = 3
+    SUCCEEDED: int = 4
+    FAILED: int = 5
+    NOT_SCHEDULED: int = 6
+    REMOVED: int = 7
 
     def __str__(self) -> str:
         """
@@ -102,8 +102,11 @@ class WorkloadStateEnum(Enum):
             KeyError: If the field name does not correspond to
                 any enumeration member.
         """
-        field = field[0].upper() + field[1:]  # Capitalize the first letter
-        return WorkloadStateEnum[field]
+        if field == "agentDisconnected":
+            return WorkloadStateEnum.AGENT_DISCONNECTED
+        if field == "notScheduled":
+            return WorkloadStateEnum.NOT_SCHEDULED
+        return WorkloadStateEnum[field.upper()]
 
 
 class WorkloadSubStateEnum(Enum):
@@ -174,12 +177,12 @@ class WorkloadSubStateEnum(Enum):
                 any enumeration member.
         """
         proto_mapper = {}
-        if state == WorkloadStateEnum.AgentDisconnected:
+        if state == WorkloadStateEnum.AGENT_DISCONNECTED:
             proto_mapper = {
                 _ank_base.AGENT_DISCONNECTED:
                     WorkloadSubStateEnum.AGENT_DISCONNECTED
             }
-        elif state == WorkloadStateEnum.Pending:
+        elif state == WorkloadStateEnum.PENDING:
             proto_mapper = {
                 _ank_base.PENDING_INITIAL:
                     WorkloadSubStateEnum.PENDING_INITIAL,
@@ -190,11 +193,11 @@ class WorkloadSubStateEnum(Enum):
                 _ank_base.PENDING_STARTING_FAILED:
                     WorkloadSubStateEnum.PENDING_STARTING_FAILED
             }
-        elif state == WorkloadStateEnum.Running:
+        elif state == WorkloadStateEnum.RUNNING:
             proto_mapper = {
                 _ank_base.RUNNING_OK: WorkloadSubStateEnum.RUNNING_OK
             }
-        elif state == WorkloadStateEnum.Stopping:
+        elif state == WorkloadStateEnum.STOPPING:
             proto_mapper = {
                 _ank_base.STOPPING: WorkloadSubStateEnum.STOPPING,
                 _ank_base.STOPPING_WAITING_TO_STOP:
@@ -204,12 +207,12 @@ class WorkloadSubStateEnum(Enum):
                 _ank_base.STOPPING_DELETE_FAILED:
                     WorkloadSubStateEnum.STOPPING_DELETE_FAILED
             }
-        elif state == WorkloadStateEnum.Succeeded:
+        elif state == WorkloadStateEnum.SUCCEEDED:
             proto_mapper = {
                 _ank_base.SUCCEEDED_OK:
                     WorkloadSubStateEnum.SUCCEEDED_OK
             }
-        elif state == WorkloadStateEnum.Failed:
+        elif state == WorkloadStateEnum.FAILED:
             proto_mapper = {
                 _ank_base.FAILED_EXEC_FAILED:
                     WorkloadSubStateEnum.FAILED_EXEC_FAILED,
@@ -218,12 +221,12 @@ class WorkloadSubStateEnum(Enum):
                 _ank_base.FAILED_LOST:
                     WorkloadSubStateEnum.FAILED_LOST
             }
-        elif state == WorkloadStateEnum.NotScheduled:
+        elif state == WorkloadStateEnum.NOT_SCHEDULED:
             proto_mapper = {
                 _ank_base.NOT_SCHEDULED:
                     WorkloadSubStateEnum.NOT_SCHEDULED
             }
-        elif state == WorkloadStateEnum.Removed:
+        elif state == WorkloadStateEnum.REMOVED:
             proto_mapper = {
                 _ank_base.REMOVED:
                     WorkloadSubStateEnum.REMOVED

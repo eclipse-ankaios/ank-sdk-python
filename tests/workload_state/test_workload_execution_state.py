@@ -35,7 +35,7 @@ def test_interpret_state():
         )
     )
 
-    assert workload_state.state == WorkloadStateEnum.Pending
+    assert workload_state.state == WorkloadStateEnum.PENDING
     assert workload_state.substate == \
         WorkloadSubStateEnum.PENDING_WAITING_TO_START
     assert workload_state.info == "Dummy information"

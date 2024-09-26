@@ -18,7 +18,7 @@ This module contains unit tests for the Request class in the ankaios_sdk.
 
 import pytest
 from ankaios_sdk import Request, CompleteState
-from tests.Workload.test_workload import generate_test_workload
+from tests.workload.test_workload import generate_test_workload
 
 
 def generate_test_request(request_type: str = "update_state") -> Request:
