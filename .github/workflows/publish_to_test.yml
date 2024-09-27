@@ -7,7 +7,7 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
 
-  release:
+  publish:
     needs: build
     permissions: write-all
     runs-on: ubuntu-latest
@@ -26,15 +26,16 @@ jobs:
         path: ~/.cache/pip
         key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
 
+    # Needed because this is the name of the package on the Test Pypi index
+    - name: Add _test to the package name
+      run: |
+        sed -i 's/PROJECT_NAME = "ankaios_sdk"/PROJECT_NAME = "ankaios_sdk_test"/g' setup.py
+
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
         pip install .[dev]
         pip install twine
-
-    - name: Add _test to the package name
-      run: |
-        sed -i 's/PROJECT_NAME = "ankaios_sdk"/PROJECT_NAME = "ankaios_sdk_test"/g' setup.py
 
     - name: Build package
       run: |
