@@ -76,10 +76,12 @@ class Workload:
             name (str): The workload name.
         """
         self._workload = _ank_base.Workload()
-        self._main_mask = f"desiredState.workloads.{name}"
+        self._main_mask = ""
         self._masks = []
         self.__from_builder = False
         self.name = name
+
+        self._update_masks()
 
     def __str__(self) -> str:
         """
@@ -106,6 +108,20 @@ class Workload:
         """
         self.__from_builder = True
 
+    def _update_masks(self) -> None:
+        """
+        Update the masks of the Workload object.
+        """
+        old_main_mask = self._main_mask
+        self._main_mask = f"desiredState.workloads.{self.name}"
+        if old_main_mask == "":
+            return
+        # pylint: disable=consider-using-enumerate
+        for i in range(len(self._masks)):
+            self._masks[i] = self._masks[i].replace(
+                old_main_mask, self._main_mask
+            )
+
     def update_workload_name(self, name: str) -> None:
         """
         Set the workload name.
@@ -114,6 +130,7 @@ class Workload:
             name (str): The workload name to update.
         """
         self.name = name
+        self._update_masks()
         if not self.__from_builder:
             self._add_mask(self._main_mask)
 
