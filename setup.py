@@ -59,7 +59,7 @@ setup(
     license="Apache-2.0",
     author="Elektrobit Automotive GmbH and Ankaios contributors",
     # author_email="",
-    description="Eclipse Ankaios Python SDK provides a convenient python interface for interacting with the Ankaios platform.",
+    description="Eclipse Ankaios Python SDK - provides a convenient Python interface for interacting with the Ankaios platform.",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://eclipse-ankaios.github.io/ankaios/latest/",
