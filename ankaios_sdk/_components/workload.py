@@ -76,12 +76,9 @@ class Workload:
             name (str): The workload name.
         """
         self._workload = _ank_base.Workload()
-        self._main_mask = ""
-        self._masks = []
-        self.__from_builder = False
         self.name = name
-
-        self._update_masks()
+        self._main_mask = f"desiredState.workloads.{self.name}"
+        self.masks = [self._main_mask]
 
     def __str__(self) -> str:
         """
@@ -102,26 +99,6 @@ class Workload:
         """
         return WorkloadBuilder()
 
-    def _set_from_builder(self) -> None:
-        """
-        Set the __from_builder attribute to True.
-        """
-        self.__from_builder = True
-
-    def _update_masks(self) -> None:
-        """
-        Update the masks of the Workload object.
-        """
-        old_main_mask = self._main_mask
-        self._main_mask = f"desiredState.workloads.{self.name}"
-        if old_main_mask == "":
-            return
-        # pylint: disable=consider-using-enumerate
-        for i in range(len(self._masks)):
-            self._masks[i] = self._masks[i].replace(
-                old_main_mask, self._main_mask
-            )
-
     def update_workload_name(self, name: str) -> None:
         """
         Set the workload name.
@@ -130,8 +107,7 @@ class Workload:
             name (str): The workload name to update.
         """
         self.name = name
-        self._update_masks()
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(self._main_mask)
 
     def update_agent_name(self, agent_name: str) -> None:
@@ -142,7 +118,7 @@ class Workload:
             agent_name (str): The agent name to update.
         """
         self._workload.agent = agent_name
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.agent")
 
     def update_runtime(self, runtime: str) -> None:
@@ -153,7 +129,7 @@ class Workload:
             runtime (str): The runtime to update.
         """
         self._workload.runtime = runtime
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.runtime")
 
     def update_runtime_config(self, config: str) -> None:
@@ -164,7 +140,7 @@ class Workload:
             config (str): The runtime configuration to update.
         """
         self._workload.runtimeConfig = config
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.runtimeConfig")
 
     def update_runtime_config_from_file(self, config_file: str) -> None:
@@ -198,7 +174,7 @@ class Workload:
             raise ValueError("Invalid restart policy. Supported values "
                              + "'NEVER', 'ON_FAILURE', 'ALWAYS'.")
         self._workload.restartPolicy = policy_map[policy]
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.restartPolicy")
 
     def add_dependency(self, workload_name: str, condition: str) -> None:
@@ -224,7 +200,7 @@ class Workload:
                              + "'RUNNING', 'SUCCEEDED', 'FAILED'.")
         self._workload.dependencies.dependencies[workload_name] = \
             condition_map[condition]
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.dependencies")
 
     def get_dependencies(self) -> dict:
@@ -267,7 +243,7 @@ class Workload:
         """
         tag = _ank_base.Tag(key=key, value=value)
         self._workload.tags.tags.append(tag)
-        if not self.__from_builder:
+        if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.tags")
 
     def get_tags(self) -> list[tuple[str, str]]:
@@ -301,19 +277,8 @@ class Workload:
         Args:
             mask (str): The mask to add.
         """
-        if mask not in self._masks:
-            self._masks.append(mask)
-
-    def _get_masks(self) -> list[str]:
-        """
-        Return the list of masks.
-
-        Returns:
-            list: A list of masks.
-        """
-        if self._main_mask in self._masks:
-            return [self._main_mask]
-        return self._masks
+        if mask not in self.masks:
+            self.masks.append(mask)
 
     @staticmethod
     def _from_dict(workload_name: str, dict_workload: dict) -> "Workload":
@@ -362,6 +327,7 @@ class Workload:
             proto (_ank_base.Workload): The proto message to convert.
         """
         self._workload = proto
+        self.masks = []
 
 
 class WorkloadBuilder:
@@ -516,7 +482,6 @@ class WorkloadBuilder:
             raise ValueError("Workload can not be built without a name.")
 
         workload = Workload(self.wl_name)
-        workload._set_from_builder()
 
         if self.wl_agent_name is None:
             raise ValueError("Workload can not be built without an "
@@ -539,5 +504,4 @@ class WorkloadBuilder:
         if len(self.tags) > 0:
             workload.update_tags(self.tags)
 
-        workload._add_mask(f"desiredState.workloads.{workload.name}")
         return workload

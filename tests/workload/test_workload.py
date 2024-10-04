@@ -78,7 +78,7 @@ def test_update_fields(workload):  # pylint: disable=redefined-outer-name
     Args:
         workload (Workload): The Workload fixture.
     """
-    assert workload._get_masks() == ["desiredState.workloads.workload_test"]
+    assert workload.masks == ["desiredState.workloads.workload_test"]
 
     workload.update_workload_name("new_workload_test")
     assert workload.name == "new_workload_test"
@@ -234,11 +234,12 @@ def test_mask_generation(function_name, data, mask):
         mask (str): The expected mask to be generated.
     """
     my_workload = Workload("workload_test")
+    my_workload.masks = []
 
     # Call function and assert the mask has been added
     getattr(my_workload, function_name)(**data)
-    assert my_workload._get_masks() == [mask]
+    assert my_workload.masks == [mask]
 
     # Updating the mask again should not add a new mask
     getattr(my_workload, function_name)(**data)
-    assert len(my_workload._get_masks()) == 1
+    assert len(my_workload.masks) == 1

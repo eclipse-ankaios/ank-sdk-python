@@ -381,7 +381,7 @@ class Ankaios:
         # Create the request
         request = Request(request_type="update_state")
         request.set_complete_state(complete_state)
-        for mask in workload._get_masks():
+        for mask in workload.masks:
             request.add_mask(mask)
 
         # Send request
