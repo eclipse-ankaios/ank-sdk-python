@@ -59,6 +59,7 @@ Usage:
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
 
 import logging
+from typing import Union
 from enum import Enum
 import threading
 from google.protobuf.internal.encoder import _VarintBytes
@@ -87,6 +88,7 @@ class AnkaiosLogLevel(Enum):
     DEBUG = logging.DEBUG
 
 
+# pylint: disable=too-many-public-methods
 class Ankaios:
     """
     A class to interact with the Ankaios control interface. It provides
@@ -453,43 +455,82 @@ class Ankaios:
             )
         return state.get_workload(workload_name) if state is not None else None
 
+    def set_configs_from_file(self, configs_path: str) -> None:
+        """
+        Set the configs from a file.
+        The configs file should have a dictionary as the top level object.
+        The names will be the keys of the dictionary.
+
+        Args:
+            config_path (str): The path to the configs file.
+        """
+        # with open(configs_path, "r", encoding="utf-8") as f:
+        #     configs = f.read()
+        #     self.set_configs(configs)
+        raise NotImplementedError(
+            "set_configs_from_file is not implemented yet."
+            )
+
+    def set_configs(self, configs: dict) -> None:
+        """
+        Set the configs. The names will be the keys of the dictionary.
+
+        Args:
+            configs (dict): The configs dictionary.
+        """
+        raise NotImplementedError("set_configs is not implemented yet.")
+
     def set_config_from_file(self, name: str, config_path: str) -> None:
         """
-        Set the config from a file.
+        Set the config from a file, with the provided name.
+        If the config exists, it will be replaced.
 
         Args:
             name (str): The name of the config.
             config_path (str): The path to the config file.
         """
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = f.read()
-            self.set_config(name, config)
+        raise NotImplementedError(
+            "set_config_from_file is not implemented yet."
+            )
 
-    # TODO Ankaios.set_config  # pylint: disable=fixme
-    def set_config(self, name: str, config: dict) -> None:
+    def set_config(self, name: str, config: Union[dict, list, str]) -> None:
         """
-        Set the config.
+        Set the config with the provided name.
+        If the config exists, it will eb replaced.
 
         Args:
             name (str): The name of the config.
-            config (dict): The config dictionary.
+            config (Union[dict, list, str]): The config dictionary.
         """
         raise NotImplementedError("set_config is not implemented yet.")
 
-    # TODO Ankaios.get_config  this  # pylint: disable=fixme
-    def get_config(self, name: str) -> dict:
+    def get_configs(self) -> dict:
         """
-        Get the config.
+        Get the configs. The keys will be the names.
+
+        Returns:
+            dict: The configs dictionary.
+        """
+        raise NotImplementedError("get_configs is not implemented yet.")
+
+    def get_config(self, name: str) -> Union[dict, list, str]:
+        """
+        Get the config with the provided name.
 
         Args:
             name (str): The name of the config.
 
         Returns:
-            dict: The config dictionary.
+            Union[dict, list, str]: The config.
         """
         raise NotImplementedError("get_config is not implemented yet.")
 
-    # TODO Ankaios.delete_config  this  # pylint: disable=fixme
+    def delete_configs(self) -> None:
+        """
+        Delete all the configs.
+        """
+        raise NotImplementedError("delete_configs is not implemented yet.")
+
     def delete_config(self, name: str) -> None:
         """
         Delete the config.

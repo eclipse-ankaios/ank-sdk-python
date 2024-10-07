@@ -31,7 +31,7 @@ Usage:
             .restart_policy("NEVER") \
             .runtime_config("image: docker.io/library/nginx\n"
                             + "commandOptions: [\"-p\", \"8080:80\"]") \
-            .add_dependency("other_workload", "RUNNING") \
+            .add_dependency("other_workload", "ADD_COND_RUNNING") \
             .add_tag("key1", "value1") \
             .add_tag("key2", "value2") \
             .build()
@@ -41,7 +41,7 @@ Usage:
 
     - Update dependencies:
         deps = workload.get_dependencies()
-        deps["other_workload"] = "SUCCEEDED"
+        deps["other_workload"] = "ADD_COND_SUCCEEDED"
         workload.update_dependencies(deps)
 
     - Update tags:
@@ -164,23 +164,18 @@ class Workload:
         Raises:
             ValueError: If an invalid restart policy is provided.
         """
-        policy_map = {
-            "NEVER": _ank_base.NEVER,
-            "ON_FAILURE": _ank_base.ON_FAILURE,
-            "ALWAYS": _ank_base.ALWAYS
-        }
-
-        if policy not in policy_map:
-            raise ValueError("Invalid restart policy. Supported values "
-                             + "'NEVER', 'ON_FAILURE', 'ALWAYS'.")
-        self._workload.restartPolicy = policy_map[policy]
+        if policy not in _ank_base.RestartPolicy.keys():
+            raise ValueError("Invalid restart policy. Supported values: "
+                             + ", ".join(_ank_base.RestartPolicy.keys()) + ".")
+        self._workload.restartPolicy = _ank_base.RestartPolicy.Value(policy)
         if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.restartPolicy")
 
     def add_dependency(self, workload_name: str, condition: str) -> None:
         """
         Add a dependency to the workload.
-        Supported values: 'RUNNING', 'SUCCEEDED', 'FAILED'.
+        Supported values: 'ADD_COND_RUNNING', 'ADD_COND_SUCCEEDED',
+        'ADD_COND_FAILED'.
 
         Args:
             workload_name (str): The name of the dependent workload.
@@ -189,17 +184,11 @@ class Workload:
         Raises:
             ValueError: If an invalid condition is provided.
         """
-        condition_map = {
-            "RUNNING": _ank_base.ADD_COND_RUNNING,
-            "SUCCEEDED": _ank_base.ADD_COND_SUCCEEDED,
-            "FAILED": _ank_base.ADD_COND_FAILED
-        }
-
-        if condition not in condition_map:
+        if condition not in _ank_base.AddCondition.keys():
             raise ValueError("Invalid condition. Supported values: "
-                             + "'RUNNING', 'SUCCEEDED', 'FAILED'.")
+                             + ", ".join(_ank_base.AddCondition.keys()) + ".")
         self._workload.dependencies.dependencies[workload_name] = \
-            condition_map[condition]
+            _ank_base.AddCondition.Value(condition)
         if self._main_mask not in self.masks:
             self._add_mask(f"{self._main_mask}.dependencies")
 
@@ -213,12 +202,7 @@ class Workload:
         """
         deps = dict(self._workload.dependencies.dependencies)
         for dep in deps:
-            if deps[dep] == _ank_base.ADD_COND_RUNNING:
-                deps[dep] = "RUNNING"
-            elif deps[dep] == _ank_base.ADD_COND_SUCCEEDED:
-                deps[dep] = "SUCCEEDED"
-            elif deps[dep] == _ank_base.ADD_COND_FAILED:
-                deps[dep] = "FAILED"
+            deps[dep] = _ank_base.AddCondition.Name(deps[dep])
         return deps
 
     def update_dependencies(self, dependencies: dict) -> None:
@@ -269,6 +253,35 @@ class Workload:
             self._workload.tags.tags.pop()
         for key, value in tags:
             self.add_tag(key, value)
+
+    def add_config(self, alias: str, name: str) -> None:
+        """
+        Link a configuration to the workload.
+
+        Args:
+            alias (str): The alias of the configuration.
+            name (str): The name of the configuration.
+        """
+        raise NotImplementedError("add_config is not implemented yet.")
+
+    def get_configs(self) -> tuple[tuple[str, str]]:
+        """
+        Return the configurations linked to the workload.
+
+        Returns:
+            tuple: A tuple containing the alias and name of the configurations.
+        """
+        raise NotImplementedError("get_configs is not implemented yet.")
+
+    def update_configs(self, configs: tuple[tuple[str, str]]) -> None:
+        """
+        Update the configurations linked to the workload.
+
+        Args:
+            configs (tuple): A tuple containing the alias and
+                name of the configurations.
+        """
+        raise NotImplementedError("update_configs is not implemented yet.")
 
     def _add_mask(self, mask: str) -> None:
         """
@@ -465,6 +478,16 @@ class WorkloadBuilder:
         """
         self.tags.append((key, value))
         return self
+
+    def add_config(self, alias: str, name: str) -> None:
+        """
+        Link a configuration to the workload.
+
+        Args:
+            alias (str): The alias of the configuration.
+            name (str): The name of the configuration.
+        """
+        raise NotImplementedError("add_config is not implemented yet.")
 
     def build(self) -> Workload:
         """

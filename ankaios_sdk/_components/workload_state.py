@@ -102,6 +102,7 @@ class WorkloadStateEnum(Enum):
             KeyError: If the field name does not correspond to
                 any enumeration member.
         """
+        # camelCase to SNAKE_CASE
         if field == "agentDisconnected":
             return WorkloadStateEnum.AGENT_DISCONNECTED
         if field == "notScheduled":
@@ -176,65 +177,12 @@ class WorkloadSubStateEnum(Enum):
             ValueError: If the field does not correspond to
                 any enumeration member.
         """
-        proto_mapper = {}
-        if state == WorkloadStateEnum.AGENT_DISCONNECTED:
-            proto_mapper = {
-                _ank_base.AGENT_DISCONNECTED:
-                    WorkloadSubStateEnum.AGENT_DISCONNECTED
-            }
-        elif state == WorkloadStateEnum.PENDING:
-            proto_mapper = {
-                _ank_base.PENDING_INITIAL:
-                    WorkloadSubStateEnum.PENDING_INITIAL,
-                _ank_base.PENDING_WAITING_TO_START:
-                    WorkloadSubStateEnum.PENDING_WAITING_TO_START,
-                _ank_base.PENDING_STARTING:
-                    WorkloadSubStateEnum.PENDING_STARTING,
-                _ank_base.PENDING_STARTING_FAILED:
-                    WorkloadSubStateEnum.PENDING_STARTING_FAILED
-            }
-        elif state == WorkloadStateEnum.RUNNING:
-            proto_mapper = {
-                _ank_base.RUNNING_OK: WorkloadSubStateEnum.RUNNING_OK
-            }
-        elif state == WorkloadStateEnum.STOPPING:
-            proto_mapper = {
-                _ank_base.STOPPING: WorkloadSubStateEnum.STOPPING,
-                _ank_base.STOPPING_WAITING_TO_STOP:
-                    WorkloadSubStateEnum.STOPPING_WAITING_TO_STOP,
-                _ank_base.STOPPING_REQUESTED_AT_RUNTIME:
-                    WorkloadSubStateEnum.STOPPING_REQUESTED_AT_RUNTIME,
-                _ank_base.STOPPING_DELETE_FAILED:
-                    WorkloadSubStateEnum.STOPPING_DELETE_FAILED
-            }
-        elif state == WorkloadStateEnum.SUCCEEDED:
-            proto_mapper = {
-                _ank_base.SUCCEEDED_OK:
-                    WorkloadSubStateEnum.SUCCEEDED_OK
-            }
-        elif state == WorkloadStateEnum.FAILED:
-            proto_mapper = {
-                _ank_base.FAILED_EXEC_FAILED:
-                    WorkloadSubStateEnum.FAILED_EXEC_FAILED,
-                _ank_base.FAILED_UNKNOWN:
-                    WorkloadSubStateEnum.FAILED_UNKNOWN,
-                _ank_base.FAILED_LOST:
-                    WorkloadSubStateEnum.FAILED_LOST
-            }
-        elif state == WorkloadStateEnum.NOT_SCHEDULED:
-            proto_mapper = {
-                _ank_base.NOT_SCHEDULED:
-                    WorkloadSubStateEnum.NOT_SCHEDULED
-            }
-        elif state == WorkloadStateEnum.REMOVED:
-            proto_mapper = {
-                _ank_base.REMOVED:
-                    WorkloadSubStateEnum.REMOVED
-            }
-        if field not in proto_mapper:
+        # SNAKE_CASE to CamelCase
+        state_name = "".join([elem.title() for elem in state.name.split("_")])
+        if field not in getattr(_ank_base, state_name).values():
             raise ValueError("No corresponding WorkloadSubStateEnum "
                              + f"value for enum: {field}")
-        return proto_mapper[field]
+        return WorkloadSubStateEnum[getattr(_ank_base, state_name).Name(field)]
 
     def _sub_state2ank_base(self) -> _ank_base:
         """

@@ -343,43 +343,48 @@ def test_get_workload():
         mock_state_get_workload.assert_called_once_with("nginx")
 
 
-def test_set_config():
+def test_configs():
     """
-    Test the set config methods of the Ankaios class.
+    Test the configs methods of the Ankaios class.
     """
     ankaios = Ankaios()
 
-    with patch("builtins.open", mock_open()) as mock_file, \
-            patch("ankaios_sdk.Ankaios.set_config") as mock_set_config:
-        mock_file().read.return_value = {'config_test': 'value'}
+    # Note for the set from file tests:
+    # with patch("builtins.open", mock_open()) as mock_file, \
+    #         patch("ankaios_sdk.Ankaios.set_config") as mock_set_config:
+    #     mock_file().read.return_value = {'config_test': 'value'}
+    #     ankaios.set_config_from_file(name="config_test",
+    #                                  config_path=r"path/to/config")
+
+    #     mock_file.assert_called_with(
+    #         r"path/to/config", "r", encoding="utf-8"
+    #         )
+    #     mock_file().read.assert_called_once()
+    #     mock_set_config.assert_called_once_with(
+    #         "config_test", {'config_test': 'value'}
+    #     )
+
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        ankaios.set_configs_from_file(configs_path=r"path/to/configs")
+
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        ankaios.set_configs(configs={'name': 'config'})
+
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.set_config_from_file(name="config_test",
                                      config_path=r"path/to/config")
-
-        mock_file.assert_called_with(r"path/to/config", "r", encoding="utf-8")
-        mock_file().read.assert_called_once()
-        mock_set_config.assert_called_once_with(
-            "config_test", {'config_test': 'value'}
-        )
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.set_config(name="config_test", config={'config_test': 'value'})
 
-
-def test_get_config():
-    """
-    Test the get config method of the Ankaios class.
-    """
-    ankaios = Ankaios()
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        ankaios.get_configs()
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.get_config(name="config_test")
 
-
-def test_delete_config():
-    """
-    Test the delete config method of the Ankaios class.
-    """
-    ankaios = Ankaios()
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        ankaios.delete_configs()
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.delete_config(name="config_test")

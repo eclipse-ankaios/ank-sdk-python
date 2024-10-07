@@ -36,7 +36,9 @@ def builder():
     return WorkloadBuilder()
 
 
-def test_workload_fields(builder):  # pylint: disable=redefined-outer-name
+def test_workload_fields(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
     """
     Test setting various fields of the WorkloadBuilder instance.
 
@@ -62,7 +64,9 @@ def test_workload_fields(builder):  # pylint: disable=redefined-outer-name
     assert builder.wl_restart_policy == "NEVER"
 
 
-def test_add_dependency(builder):  # pylint: disable=redefined-outer-name
+def test_add_dependency(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
     """
     Test adding dependencies to the WorkloadBuilder instance.
 
@@ -71,15 +75,21 @@ def test_add_dependency(builder):  # pylint: disable=redefined-outer-name
     """
     assert len(builder.dependencies) == 0
 
-    assert builder.add_dependency("workload_test", "RUNNING") == builder
-    assert builder.dependencies == {"workload_test": "RUNNING"}
+    assert builder.add_dependency(
+        "workload_test", "ADD_COND_RUNNING"
+        ) == builder
+    assert builder.dependencies == {"workload_test": "ADD_COND_RUNNING"}
 
-    assert builder.add_dependency("workload_test_other", "RUNNING") == builder
-    assert builder.dependencies == {"workload_test": "RUNNING",
-                                    "workload_test_other": "RUNNING"}
+    assert builder.add_dependency(
+        "workload_test_other", "ADD_COND_RUNNING"
+        ) == builder
+    assert builder.dependencies == {"workload_test": "ADD_COND_RUNNING",
+                                    "workload_test_other": "ADD_COND_RUNNING"}
 
 
-def test_add_tag(builder):  # pylint: disable=redefined-outer-name
+def test_add_tag(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
     """
     Test adding tags to the WorkloadBuilder instance.
 
@@ -95,7 +105,22 @@ def test_add_tag(builder):  # pylint: disable=redefined-outer-name
     assert builder.tags == [("key_test", "abc"), ("key_test", "bcd")]
 
 
-def test_build(builder):  # pylint: disable=redefined-outer-name
+def test_add_config(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
+    """
+    Test adding configurations to the WorkloadBuilder instance.
+
+    Args:
+        builder (WorkloadBuilder): The WorkloadBuilder fixture.
+    """
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        builder.add_config(alias="alias_test", name="config_test")
+
+
+def test_build(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
     """
     Test building a Workload instance from the WorkloadBuilder instance.
 
@@ -131,7 +156,7 @@ def test_build(builder):  # pylint: disable=redefined-outer-name
 
     workload = builder.runtime_config("config_test") \
         .restart_policy("NEVER") \
-        .add_dependency("workload_test_other", "RUNNING") \
+        .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key_test", "abc") \
         .build()
 

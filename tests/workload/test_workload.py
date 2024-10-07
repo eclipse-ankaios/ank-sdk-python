@@ -42,7 +42,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .runtime("runtime_test") \
         .restart_policy("NEVER") \
         .runtime_config("config_test") \
-        .add_dependency("workload_test_other", "RUNNING") \
+        .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key1", "value1") \
         .add_tag("key2", "value2") \
         .build()
@@ -71,7 +71,9 @@ def test_builder(workload):  # pylint: disable=redefined-outer-name
     assert isinstance(builder, WorkloadBuilder)
 
 
-def test_update_fields(workload):  # pylint: disable=redefined-outer-name
+def test_update_fields(
+        workload: Workload
+        ):  # pylint: disable=redefined-outer-name
     """
     Test updating various fields of the Workload instance.
 
@@ -104,7 +106,9 @@ def test_update_fields(workload):  # pylint: disable=redefined-outer-name
     assert workload._workload.restartPolicy == _ank_base.ON_FAILURE
 
 
-def test_dependencies(workload):  # pylint: disable=redefined-outer-name
+def test_dependencies(
+        workload: Workload
+        ):  # pylint: disable=redefined-outer-name
     """
     Test adding and updating dependencies of the Workload instance.
 
@@ -114,12 +118,12 @@ def test_dependencies(workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_dependencies()) == 1
 
     with pytest.raises(ValueError):
-        workload.add_dependency("other_workload_test", "DANCING")
+        workload.add_dependency("other_workload_test", "ADD_COND_DANCING")
 
-    workload.add_dependency("other_workload_test", "SUCCEEDED")
+    workload.add_dependency("other_workload_test", "ADD_COND_SUCCEEDED")
     assert len(workload.get_dependencies()) == 2
 
-    workload.add_dependency("another_workload_test", "FAILED")
+    workload.add_dependency("another_workload_test", "ADD_COND_FAILED")
 
     deps = workload.get_dependencies()
     assert len(deps) == 3
@@ -129,7 +133,7 @@ def test_dependencies(workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_dependencies()) == 2
 
 
-def test_tags(workload):  # pylint: disable=redefined-outer-name
+def test_tags(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test adding and updating tags of the Workload instance.
 
@@ -149,7 +153,24 @@ def test_tags(workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_tags()) == 2
 
 
-def test_to_proto(workload):  # pylint: disable=redefined-outer-name
+def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
+    """
+    Test adding and updating configurations of the Workload instance.
+
+    Args:
+        workload (Workload): The Workload fixture.
+    """
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        workload.add_config(alias="alias_test", name="config_test")
+
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        workload.get_configs()
+
+    with pytest.raises(NotImplementedError, match="not implemented yet"):
+        workload.update_configs(configs=[["alias_test", "config_test"]])
+
+
+def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test converting the Workload instance to protobuf message.
 
@@ -170,7 +191,9 @@ def test_to_proto(workload):  # pylint: disable=redefined-outer-name
     ])
 
 
-def test_from_proto(workload):  # pylint: disable=redefined-outer-name
+def test_from_proto(
+        workload: Workload
+        ):  # pylint: disable=redefined-outer-name
     """
     Test converting theprotobuf message to a Workload instance.
 
@@ -184,7 +207,7 @@ def test_from_proto(workload):  # pylint: disable=redefined-outer-name
     assert str(workload) == str(new_workload)
 
 
-def test_from_dict(workload):  # pylint: disable=redefined-outer-name
+def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test creating a Workload instance from a dictionary.
 
@@ -197,7 +220,7 @@ def test_from_dict(workload):  # pylint: disable=redefined-outer-name
         "runtime": "runtime_test",
         "restartPolicy": "NEVER",
         "runtimeConfig": "config_test",
-        "dependencies": {"workload_test_other": "RUNNING"},
+        "dependencies": {"workload_test_other": "ADD_COND_RUNNING"},
         "tags": {"key1": "value1", "key2": "value2"}
     }
 
@@ -218,12 +241,12 @@ def test_from_dict(workload):  # pylint: disable=redefined-outer-name
     ("update_runtime_config", {"config": "config_test"},
         "desiredState.workloads.workload_test.runtimeConfig"),
     ("add_dependency", {"workload_name": "workload_test_other",
-                        "condition": "RUNNING"},
+                        "condition": "ADD_COND_RUNNING"},
         "desiredState.workloads.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
         "desiredState.workloads.workload_test.tags"),
 ])
-def test_mask_generation(function_name, data, mask):
+def test_mask_generation(function_name: str, data: dict, mask: str):
     """
     Test the generation of masks when updating fields of the Workload instance.
 

@@ -54,7 +54,7 @@ def generate_protos():
 
 
 setup(
-    name=PROJECT_NAME,
+    name=PROJECT_NAME.replace("_", "-"),
     version="0.1.0",
     license="Apache-2.0",
     author="Elektrobit Automotive GmbH and Ankaios contributors",
