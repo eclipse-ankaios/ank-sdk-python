@@ -45,6 +45,10 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key1", "value1") \
         .add_tag("key2", "value2") \
+        .add_allow_rule("Write",
+                        ["desiredState.workloads.another_workload"]) \
+        .add_deny_rule("Read",
+                       ["workloadStates.agent_Test.another_workload"]) \
         .build()
 
 
@@ -153,6 +157,43 @@ def test_tags(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_tags()) == 2
 
 
+def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
+    """
+    Test adding and updating allow and deny rules of the Workload instance.
+
+    Args:
+        workload (Workload): The Workload fixture.
+    """
+    assert len(workload.get_allow_rules()) == 1
+    assert len(workload.get_deny_rules()) == 1
+
+    with pytest.raises(ValueError):
+        workload.add_allow_rule("Invalid", ["mask"])
+
+    with pytest.raises(ValueError):
+        workload.add_deny_rule("Invalid", ["mask"])
+
+    workload.add_allow_rule(
+        "Write", ["desiredState.workloads.another_workload"]
+        )
+    assert len(workload.get_allow_rules()) == 2
+
+    workload.add_deny_rule(
+        "Read", ["workloadStates.agent_Test.another_workload"]
+        )
+    assert len(workload.get_deny_rules()) == 2
+
+    rules = workload.get_allow_rules()
+    rules = rules[1:]
+    workload.update_allow_rules(rules)
+    assert len(workload.get_allow_rules()) == 1
+
+    rules = workload.get_deny_rules()
+    rules = rules[1:]
+    workload.update_deny_rules(rules)
+    assert len(workload.get_deny_rules()) == 1
+
+
 def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test adding and updating configurations of the Workload instance.
@@ -221,7 +262,22 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
         "restartPolicy": "NEVER",
         "runtimeConfig": "config_test",
         "dependencies": {"workload_test_other": "ADD_COND_RUNNING"},
-        "tags": {"key1": "value1", "key2": "value2"}
+        "tags": [
+            {"key": "key1", "value": "value1"},
+            {"key": "key2", "value": "value2"},
+            ],
+        "controlInterfaceAccess": {
+            "allowRules": [{
+                "type": "StateRule",
+                "operation": "Write",
+                "filterMask": ["desiredState.workloads.another_workload"]
+                }],
+            "denyRules": [{
+                "type": "StateRule",
+                "operation": "Read",
+                "filterMask": ["workloadStates.agent_Test.another_workload"]
+                }]
+        }
     }
 
     new_workload = Workload._from_dict("workload_test", workload_dict)
@@ -245,6 +301,10 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
         "desiredState.workloads.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
         "desiredState.workloads.workload_test.tags"),
+    ("add_allow_rule", {"operation": "Write", "filter_masks": ["mask"]},
+        "desiredState.workloads.workload_test.controlInterfaceAccess"),
+    ("add_deny_rule", {"operation": "Write", "filter_masks": ["mask"]},
+        "desiredState.workloads.workload_test.controlInterfaceAccess"),
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """

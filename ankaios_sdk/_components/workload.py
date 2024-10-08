@@ -59,6 +59,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 from .._protos import _ank_base
 
 
+# pylint: disable=too-many-public-methods
 class Workload:
     """
     A class to represent a workload.
@@ -107,8 +108,7 @@ class Workload:
             name (str): The workload name to update.
         """
         self.name = name
-        if self._main_mask not in self.masks:
-            self._add_mask(self._main_mask)
+        self._add_mask(self._main_mask)
 
     def update_agent_name(self, agent_name: str) -> None:
         """
@@ -118,8 +118,7 @@ class Workload:
             agent_name (str): The agent name to update.
         """
         self._workload.agent = agent_name
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.agent")
+        self._add_mask(f"{self._main_mask}.agent")
 
     def update_runtime(self, runtime: str) -> None:
         """
@@ -129,8 +128,7 @@ class Workload:
             runtime (str): The runtime to update.
         """
         self._workload.runtime = runtime
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.runtime")
+        self._add_mask(f"{self._main_mask}.runtime")
 
     def update_runtime_config(self, config: str) -> None:
         """
@@ -140,8 +138,7 @@ class Workload:
             config (str): The runtime configuration to update.
         """
         self._workload.runtimeConfig = config
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.runtimeConfig")
+        self._add_mask(f"{self._main_mask}.runtimeConfig")
 
     def update_runtime_config_from_file(self, config_file: str) -> None:
         """
@@ -168,8 +165,7 @@ class Workload:
             raise ValueError("Invalid restart policy. Supported values: "
                              + ", ".join(_ank_base.RestartPolicy.keys()) + ".")
         self._workload.restartPolicy = _ank_base.RestartPolicy.Value(policy)
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.restartPolicy")
+        self._add_mask(f"{self._main_mask}.restartPolicy")
 
     def add_dependency(self, workload_name: str, condition: str) -> None:
         """
@@ -189,8 +185,7 @@ class Workload:
                              + ", ".join(_ank_base.AddCondition.keys()) + ".")
         self._workload.dependencies.dependencies[workload_name] = \
             _ank_base.AddCondition.Value(condition)
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.dependencies")
+        self._add_mask(f"{self._main_mask}.dependencies")
 
     def get_dependencies(self) -> dict:
         """
@@ -227,8 +222,7 @@ class Workload:
         """
         tag = _ank_base.Tag(key=key, value=value)
         self._workload.tags.tags.append(tag)
-        if self._main_mask not in self.masks:
-            self._add_mask(f"{self._main_mask}.tags")
+        self._add_mask(f"{self._main_mask}.tags")
 
     def get_tags(self) -> list[tuple[str, str]]:
         """
@@ -253,6 +247,146 @@ class Workload:
             self._workload.tags.tags.pop()
         for key, value in tags:
             self.add_tag(key, value)
+
+    def add_allow_rule(
+            self, operation: str, filter_masks: list[str]
+            ) -> None:
+        """
+        Add an allow rule to the workload.
+
+        Args:
+            operation (str): The operation the rule allows.
+                Allowed values: 'Nothing', 'Write', 'Read', 'ReadWrite'.
+            filter_masks (list): The list of filter masks.
+
+        Raises:
+            ValueError: If an invalid operation is provided
+        """
+        enum_mapper = {
+            "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
+            "Write": _ank_base.ReadWriteEnum.RW_WRITE,
+            "Read": _ank_base.ReadWriteEnum.RW_READ,
+            "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
+        }
+        if operation not in enum_mapper:
+            raise ValueError(
+                f"Invalid operation {operation}. "
+                + "Supported values: "
+                + ", ".join(enum_mapper.keys()) + "."
+                )
+        self._workload.controlInterfaceAccess.allowRules.append(
+            _ank_base.AccessRightsRule(
+                stateRule=_ank_base.StateRule(
+                    operation=enum_mapper[operation],
+                    filterMasks=filter_masks
+                )
+            )
+        )
+        self._add_mask(f"{self._main_mask}.controlInterfaceAccess")
+
+    def get_allow_rules(self) -> list[tuple[str, list[str]]]:
+        """
+        Return the allow rules of the workload.
+
+        Returns:
+            list: A list of tuples containing operation and filter masks.
+        """
+        enum_mapper = {
+            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
+            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
+            _ank_base.ReadWriteEnum.RW_READ: "Read",
+            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
+        }
+        rules = []
+        for rule in self._workload.controlInterfaceAccess.allowRules:
+            rules.append((
+                enum_mapper[rule.stateRule.operation],
+                rule.stateRule.filterMasks
+            ))
+        return rules
+
+    def update_allow_rules(self, rules: list[tuple[str, list[str]]]) -> None:
+        """
+        Update the allow rules of the workload.
+
+        Args:
+            rules (list): A list of tuples containing
+                operation and filter masks.
+        """
+        while len(self._workload.controlInterfaceAccess.allowRules) > 0:
+            self._workload.controlInterfaceAccess.allowRules.pop()
+        for operation, filter_masks in rules:
+            self.add_allow_rule(operation, filter_masks)
+
+    def add_deny_rule(
+            self, operation: str, filter_masks: list[str]
+            ) -> None:
+        """
+        Add a deny rule to the workload.
+
+        Args:
+            operation (str): The operation the rule denies.
+                Allowed values: 'Nothing', 'Write', 'Read', 'ReadWrite'.
+            filter_masks (list): The list of filter masks.
+
+        Raises:
+            ValueError: If an invalid operation is provided
+        """
+        enum_mapper = {
+            "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
+            "Write": _ank_base.ReadWriteEnum.RW_WRITE,
+            "Read": _ank_base.ReadWriteEnum.RW_READ,
+            "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
+        }
+        if operation not in enum_mapper:
+            raise ValueError(
+                f"Invalid operation {operation}. "
+                + "Supported values: "
+                + ", ".join(enum_mapper.keys()) + "."
+                )
+        self._workload.controlInterfaceAccess.denyRules.append(
+            _ank_base.AccessRightsRule(
+                stateRule=_ank_base.StateRule(
+                    operation=enum_mapper[operation],
+                    filterMasks=filter_masks
+                )
+            )
+        )
+        self._add_mask(f"{self._main_mask}.controlInterfaceAccess")
+
+    def get_deny_rules(self) -> list[tuple[str, list[str]]]:
+        """
+        Return the deny rules of the workload.
+
+        Returns:
+            list: A list of tuples containing operation and filter masks.
+        """
+        enum_mapper = {
+            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
+            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
+            _ank_base.ReadWriteEnum.RW_READ: "Read",
+            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
+        }
+        rules = []
+        for rule in self._workload.controlInterfaceAccess.denyRules:
+            rules.append((
+                enum_mapper[rule.stateRule.operation],
+                rule.stateRule.filterMasks
+            ))
+        return rules
+
+    def update_deny_rules(self, rules: list[tuple[str, list[str]]]) -> None:
+        """
+        Update the deny rules of the workload.
+
+        Args:
+            rules (list): A list of tuples containing
+                operation and filter masks.
+        """
+        while len(self._workload.controlInterfaceAccess.denyRules) > 0:
+            self._workload.controlInterfaceAccess.denyRules.pop()
+        for operation, filter_masks in rules:
+            self.add_deny_rule(operation, filter_masks)
 
     def add_config(self, alias: str, name: str) -> None:
         """
@@ -290,9 +424,10 @@ class Workload:
         Args:
             mask (str): The mask to add.
         """
-        if mask not in self.masks:
+        if self._main_mask not in self.masks and mask not in self.masks:
             self.masks.append(mask)
 
+    # pylint: disable=too-many-branches
     @staticmethod
     def _from_dict(workload_name: str, dict_workload: dict) -> "Workload":
         """
@@ -318,8 +453,26 @@ class Workload:
             for dep_key, dep_value in dict_workload["dependencies"].items():
                 workload = workload.add_dependency(dep_key, dep_value)
         if "tags" in dict_workload:
-            for tag_key, tag_value in dict_workload["tags"].items():
-                workload = workload.add_tag(tag_key, tag_value)
+            for tag in dict_workload["tags"]:
+                workload = workload.add_tag(tag["key"], tag["value"])
+        if "controlInterfaceAccess" in dict_workload:
+            if "allowRules" in dict_workload["controlInterfaceAccess"]:
+                for rule in dict_workload[
+                        "controlInterfaceAccess"][
+                        "allowRules"
+                        ]:
+                    workload = workload.add_allow_rule(
+                        rule["operation"], rule["filterMask"]
+                    )
+            if "denyRules" in dict_workload["controlInterfaceAccess"]:
+                for rule in dict_workload[
+                        "controlInterfaceAccess"][
+                        "denyRules"
+                        ]:
+                    workload = workload.add_deny_rule(
+                        rule["operation"], rule["filterMask"]
+                    )
+
         return workload.build()
 
     def _to_proto(self) -> _ank_base.Workload:
@@ -343,6 +496,7 @@ class Workload:
         self.masks = []
 
 
+# pylint: disable=too-many-instance-attributes
 class WorkloadBuilder:
     """
     A builder class to create a Workload object.
@@ -367,6 +521,8 @@ class WorkloadBuilder:
         self.wl_restart_policy = None
         self.dependencies = {}
         self.tags = []
+        self.allow_rules = []
+        self.deny_rules = []
 
     def workload_name(self, workload_name: str) -> "WorkloadBuilder":
         """
@@ -479,6 +635,38 @@ class WorkloadBuilder:
         self.tags.append((key, value))
         return self
 
+    def add_allow_rule(
+            self, operation: str, filter_masks: list[str]
+            ) -> "WorkloadBuilder":
+        """
+        Add an allow rule to the workload.
+
+        Args:
+            operation (str): The operation the rule allows.
+            filter_masks (list): The list of filter masks.
+
+        Returns:
+            WorkloadBuilder: The builder object.
+        """
+        self.allow_rules.append((operation, filter_masks))
+        return self
+
+    def add_deny_rule(
+            self, operation: str, filter_masks: list[str]
+            ) -> "WorkloadBuilder":
+        """
+        Add a deny rule to the workload.
+
+        Args:
+            operation (str): The operation the rule denies.
+            filter_masks (list): The list of filter masks.
+
+        Returns:
+            WorkloadBuilder: The builder object.
+        """
+        self.deny_rules.append((operation, filter_masks))
+        return self
+
     def add_config(self, alias: str, name: str) -> None:
         """
         Link a configuration to the workload.
@@ -526,5 +714,9 @@ class WorkloadBuilder:
             workload.update_dependencies(self.dependencies)
         if len(self.tags) > 0:
             workload.update_tags(self.tags)
+        if len(self.allow_rules) > 0:
+            workload.update_allow_rules(self.allow_rules)
+        if len(self.deny_rules) > 0:
+            workload.update_deny_rules(self.deny_rules)
 
         return workload

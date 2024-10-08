@@ -105,6 +105,26 @@ def test_add_tag(
     assert builder.tags == [("key_test", "abc"), ("key_test", "bcd")]
 
 
+def test_add_rule(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
+    """
+    Test adding rules to the WorkloadBuilder instance.
+
+    Args:
+        builder (WorkloadBuilder): The WorkloadBuilder fixture.
+    """
+    assert len(builder.allow_rules) == 0
+
+    assert builder.add_allow_rule("Write", ["mask"]) == builder
+    assert builder.allow_rules == [("Write", ["mask"])]
+
+    assert len(builder.deny_rules) == 0
+
+    assert builder.add_deny_rule("Read", ["mask"]) == builder
+    assert builder.deny_rules == [("Read", ["mask"])]
+
+
 def test_add_config(
         builder: WorkloadBuilder
         ):  # pylint: disable=redefined-outer-name
