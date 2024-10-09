@@ -16,22 +16,35 @@
 This module defines the Request class for creating and handling
 requests to the Ankaios system.
 
-Classes:
-    Request: Represents a request to the Ankaios system and provides
-        methods to get and set the state of the system.
+Classes
+-------
 
-Usage:
-    - Create a Request for updating the state:
+- Request:
+    Represents a request to the Ankaios system and provides \
+    methods to get and set the state of the system.
+
+Usage
+-----
+
+- Create a Request for updating the state:
+    .. code-block:: python
+
         request = Request(request_type="update_state")
         request.set_complete_state(complete_state)
 
-    - Create a Request for getting the state:
+- Create a Request for getting the state:
+    .. code-block:: python
+
         request = Request(request_type="get_state")
 
-    - Get the request ID:
+- Get the request ID:
+    .. code-block:: python
+
         request_id = request.get_id()
 
-    - Add a mask to the request:
+- Add a mask to the request:
+    .. code-block:: python
+
         request.add_mask("desiredState.workloads")
 """
 

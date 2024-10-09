@@ -14,3 +14,6 @@ reports/
 ankaios_sdk.egg-info
 build/
 dist/
+
+# Docs build dir
+docs/build/

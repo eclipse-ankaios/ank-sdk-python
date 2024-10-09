@@ -15,21 +15,34 @@
 """
 This module defines the Manifest class for handling ankaios manifests.
 
-Classes:
-    - Manifest: Represents a workload manifest and provides methods to
-        validate and load it.
+Classes
+-------
 
-Usage:
-    - Load a manifest from a file:
+- Manifest:
+    Represents a workload manifest and provides methods \
+    to validate and load it.
+
+Usage
+-----
+
+- Load a manifest from a file:
+    .. code-block:: python
+
         manifest = Manifest.from_file("path/to/manifest.yaml")
 
-    - Load a manifest from a string:
-        manifest = Manifest.from_string("apiVersion: 1.0\nworkloads: {}")
+- Load a manifest from a string:
+    .. code-block:: python
 
-    - Load a manifest from a dictionary:
+        manifest = Manifest.from_string("apiVersion: 1.0\\nworkloads: {}")
+
+- Load a manifest from a dictionary:
+    .. code-block:: python
+
         manifest = Manifest.from_dict({"apiVersion": "1.0", "workloads": {}})
 
-    - Generate a CompleteState instance from the manifest:
+- Generate a CompleteState instance from the manifest:
+    .. code-block:: python
+
         complete_state = manifest.generate_complete_state()
 """
 

@@ -16,19 +16,21 @@
 This module initializes the ankaios_sdk package by importing all
 necessary components.
 
-Imports:
-    Workload component: responsible for defining the
-        workload of the system.
-    WorkloadState component: responsible for accessing
-        the state of the workload.
-    CompleteState component: responsible for accessing
-        the complete state of the system.
-    Request component: responsible for defining a request
-        to be sent to the system.
-    Response component: responsible for defining a response
-        from the system.
-    Manifest component: responsible for defining a manifest
-        object.
+Imports
+-------
+
+- Workload component:
+    responsible for defining the workload of the system.
+- WorkloadState component:
+    responsible for accessing the state of the workload.
+- CompleteState component:
+    responsible for accessing the complete state of the system.
+- Request component:
+    responsible for defining a request to be sent to the system.
+- Response component:
+    responsible for defining a response from the system.
+- Manifest component:
+    responsible for defining a manifest object.
 """
 
 from .workload import *

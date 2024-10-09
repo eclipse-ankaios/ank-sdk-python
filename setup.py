@@ -15,14 +15,14 @@
 import os
 from setuptools import setup, find_packages
 
-PROJECT_NAME = "ankaios_sdk"
+PROJECT_DIR = "ankaios_sdk"
 
 
 def generate_protos():
     """Generate python protobuf files from the proto files."""
     from grpc_tools import protoc
 
-    protos_dir = f"{PROJECT_NAME}/_protos"
+    protos_dir = f"{PROJECT_DIR}/_protos"
     proto_files = ["ank_base.proto", "control_api.proto"]
 
     for proto_file in proto_files:
@@ -54,11 +54,6 @@ def generate_protos():
 
 
 setup(
-    name=PROJECT_NAME.replace("_", "-"),
-    version="0.1.0",
-    license="Apache-2.0",
-    author="Elektrobit Automotive GmbH and Ankaios contributors",
-    # author_email="",
     description="Eclipse Ankaios Python SDK - provides a convenient Python interface for interacting with the Ankaios platform.",
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
@@ -92,6 +87,14 @@ setup(
             'pytest-cov',
             'pylint',
             'pycodestyle',
+        ],
+        # Documentation dependencies
+        'docs': [
+            'sphinx',
+            'sphinx-rtd-theme',
+            'sphinx-autodoc-typehints',
+            'sphinx-mdinclude',
+            'google-api-python-client',
         ],
     },
 )

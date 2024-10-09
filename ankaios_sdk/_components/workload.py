@@ -16,42 +16,57 @@
 This script defines the Workload and WorkloadBuilder classes for
 creating and managing workloads.
 
-Classes:
-    - Workload: Represents a workload with various attributes and
-        methods to update them.
-    - WorkloadBuilder: A builder class to create a Workload object
-        with a fluent interface.
+Classes
+--------
 
-Usage:
-    - Create a workload using the WorkloadBuilder:
-        workload = Workload.builder() \
-            .workload_name("nginx") \
-            .agent_name("agent_A") \
-            .runtime("podman") \
-            .restart_policy("NEVER") \
-            .runtime_config("image: docker.io/library/nginx\n"
-                            + "commandOptions: [\"-p\", \"8080:80\"]") \
-            .add_dependency("other_workload", "ADD_COND_RUNNING") \
-            .add_tag("key1", "value1") \
-            .add_tag("key2", "value2") \
+- Workload:
+    Represents a workload with various attributes and methods to update them.
+- WorkloadBuilder:
+    A builder class to create a Workload object with a fluent interface.
+
+Usage
+------
+
+- Create a workload using the WorkloadBuilder:
+    .. code-block:: python
+
+        workload = Workload.builder()
+            .workload_name("nginx")
+            .agent_name("agent_A")
+            .runtime("podman")
+            .restart_policy("NEVER")
+            .runtime_config("image: docker.io/library/nginx\\n"
+                            + "commandOptions: [\"-p\", \"8080:80\"]")
+            .add_dependency("other_workload", "ADD_COND_RUNNING")
+            .add_tag("key1", "value1")
+            .add_tag("key2", "value2")
             .build()
 
-    - Update fields of the workload:
+- Update fields of the workload:
+    .. code-block:: python
+
         workload.update_agent_name("agent_B")
 
-    - Update dependencies:
+- Update dependencies:
+    .. code-block:: python
+
         deps = workload.get_dependencies()
         deps["other_workload"] = "ADD_COND_SUCCEEDED"
         workload.update_dependencies(deps)
 
-    - Update tags:
+- Update tags:
+    .. code-block:: python
+
         tags = workload.get_tags()
         tags.pop("key1")
         workload.update_tags(tags)
 
-    - Print the updated workload:
+- Print the updated workload:
+    .. code-block:: python
+
         print(workload)
 """
+
 
 __all__ = ["Workload", "WorkloadBuilder"]
 
@@ -70,6 +85,7 @@ class Workload:
     def __init__(self, name: str) -> None:
         """
         Initialize a Workload object.
+
         The Workload object should be created using the
         Workload.builder() method.
 
@@ -153,7 +169,7 @@ class Workload:
     def update_restart_policy(self, policy: str) -> None:
         """
         Set the restart policy for the workload.
-        Supported values: 'NEVER', 'ON_FAILURE', 'ALWAYS'.
+        Supported values: `NEVER`, `ON_FAILURE`, `ALWAYS`.
 
         Args:
             policy (str): The restart policy to update.
@@ -170,8 +186,8 @@ class Workload:
     def add_dependency(self, workload_name: str, condition: str) -> None:
         """
         Add a dependency to the workload.
-        Supported values: 'ADD_COND_RUNNING', 'ADD_COND_SUCCEEDED',
-        'ADD_COND_FAILED'.
+        Supported values: `ADD_COND_RUNNING`, `ADD_COND_SUCCEEDED`,
+        `ADD_COND_FAILED`.
 
         Args:
             workload_name (str): The name of the dependent workload.
@@ -192,7 +208,7 @@ class Workload:
         Return the dependencies of the workload.
 
         Returns:
-            dict: A dictionary of dependencies with workload names
+            dict: A dictionary of dependencies with workload names \
                 as keys and conditions as values.
         """
         deps = dict(self._workload.dependencies.dependencies)
@@ -253,10 +269,10 @@ class Workload:
             ) -> None:
         """
         Add an allow rule to the workload.
+        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
             operation (str): The operation the rule allows.
-                Allowed values: 'Nothing', 'Write', 'Read', 'ReadWrite'.
             filter_masks (list): The list of filter masks.
 
         Raises:
@@ -323,10 +339,10 @@ class Workload:
             ) -> None:
         """
         Add a deny rule to the workload.
+        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
             operation (str): The operation the rule denies.
-                Allowed values: 'Nothing', 'Write', 'Read', 'ReadWrite'.
             filter_masks (list): The list of filter masks.
 
         Raises:

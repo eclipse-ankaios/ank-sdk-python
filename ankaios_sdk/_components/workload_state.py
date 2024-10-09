@@ -18,25 +18,39 @@ of workloads. It provides functionality to interpret and manage the states
 and sub-states of workloads, including converting between different
 representations and handling collections of workload states.
 
-Classes:
-    - WorkloadExecutionState: Represents the execution state and
-        sub-state of a workload.
-    - WorkloadInstanceName: Represents the name of a workload instance.
-    - WorkloadState: Represents the state of a workload
-        (execution state and name).
-    - WorkloadStateCollection: A collection of workload states.
+Classes
+-------
 
-Enums:
-    - WorkloadStateEnum: Enumeration for different states of a workload.
-    - WorkloadSubStateEnum: Enumeration for different sub-states of a workload.
+- WorkloadExecutionState
+    Represents the execution state and sub-state of a workload.
+- WorkloadInstanceName:
+    Represents the name of a workload instance.
+- WorkloadState:
+    Represents the state of a workload (execution state and name).
+- WorkloadStateCollection:
+    A collection of workload states.
 
-Usage:
-    - Get all workload states:
+Enums
+-----
+
+- WorkloadStateEnum:
+    Enumeration for different states of a workload.
+- WorkloadSubStateEnum:
+    Enumeration for different sub-states of a workload.
+
+Usage
+-----
+
+- Get all workload states:
+    .. code-block:: python
+
         workload_state_collection = WorkloadStateCollection()
         list_of_workload_states = workload_state_collection.get_as_list()
         dict_of_workload_states = workload_state_collection.get_as_dict()
 
-    - Unpack a workload state:
+- Unpack a workload state:
+    .. code-block:: python
+
         workload_state = WorkloadState()
         agent_name = workload_state.workload_instance_name.agent_name
         workload_name = workload_state.workload_instance_name.workload_name
@@ -55,27 +69,23 @@ from .._protos import _ank_base
 
 
 class WorkloadStateEnum(Enum):
-    """
-    Enumeration for different states of a workload.
-
-    Attributes:
-        AgentDisconnected (int): The agent is disconnected.
-        Pending (int): The workload is pending.
-        Running (int): The workload is running.
-        Stopping (int): The workload is stopping.
-        Succeeded (int): The workload has succeeded.
-        Failed (int): The workload has failed.
-        NotScheduled (int): The workload is not scheduled.
-        Removed (int): The workload has been removed.
-    """
+    """ Enumeration for different states of a workload. """
     AGENT_DISCONNECTED: int = 0
+    "(int): The agent is disconnected."
     PENDING: int = 1
+    "(int): The workload is pending."
     RUNNING: int = 2
+    "(int): The workload is running."
     STOPPING: int = 3
+    "(int): The workload is stopping."
     SUCCEEDED: int = 4
+    "(int): The workload has succeeded."
     FAILED: int = 5
+    "(int): The workload has failed."
     NOT_SCHEDULED: int = 6
+    "(int): The workload is not scheduled."
     REMOVED: int = 7
+    "(int): The workload has been removed."
 
     def __str__(self) -> str:
         """
@@ -111,44 +121,39 @@ class WorkloadStateEnum(Enum):
 
 
 class WorkloadSubStateEnum(Enum):
-    """
-    Enumeration for different sub-states of a workload.
-
-    Attributes:
-        AGENT_DISCONNECTED (int): The agent is disconnected.
-        PENDING_INITIAL (int): The workload is in the initial pending state.
-        PENDING_WAITING_TO_START (int): The workload is waiting to start.
-        PENDING_STARTING (int): The workload is starting.
-        PENDING_STARTING_FAILED (int): The workload failed to start.
-        RUNNING_OK (int): The workload is running successfully.
-        STOPPING (int): The workload is stopping.
-        STOPPING_WAITING_TO_STOP (int): The workload is waiting to stop.
-        STOPPING_REQUESTED_AT_RUNTIME (int): The workload stop was
-            requested at runtime.
-        STOPPING_DELETE_FAILED (int): The workload stop failed to delete.
-        SUCCEEDED_OK (int): The workload succeeded successfully.
-        FAILED_EXEC_FAILED (int): The workload failed due to execution failure.
-        FAILED_UNKNOWN (int): The workload failed due to an unknown reason.
-        FAILED_LOST (int): The workload failed because it was lost.
-        NOT_SCHEDULED (int): The workload is not scheduled.
-        REMOVED (int): The workload has been removed.
-    """
+    """ Enumeration for different sub-states of a workload. """
     AGENT_DISCONNECTED: int = 0
+    "(int): The agent is disconnected."
     PENDING_INITIAL: int = 1
+    "(int): The workload is in the initial pending state."
     PENDING_WAITING_TO_START: int = 2
+    "(int): The workload is waiting to start."
     PENDING_STARTING: int = 3
+    "(int): The workload is starting."
     PENDING_STARTING_FAILED: int = 4
+    "(int): The workload failed to start."
     RUNNING_OK: int = 5
+    "(int): The workload is running successfully."
     STOPPING: int = 6
+    "(int): The workload is stopping."
     STOPPING_WAITING_TO_STOP: int = 7
+    "(int): The workload is waiting to stop."
     STOPPING_REQUESTED_AT_RUNTIME: int = 8
+    "(int): The workload stop was requested at runtime."
     STOPPING_DELETE_FAILED: int = 9
+    "(int): The workload stop failed to delete."
     SUCCEEDED_OK: int = 10
+    "(int): The workload succeeded successfully."
     FAILED_EXEC_FAILED: int = 11
+    "(int): The workload failed due to execution failure."
     FAILED_UNKNOWN: int = 12
+    "(int): The workload failed due to an unknown reason."
     FAILED_LOST: int = 13
+    "(int): The workload failed because it was lost."
     NOT_SCHEDULED: int = 14
+    "(int): The workload is not scheduled."
     REMOVED: int = 15
+    "(int): The workload has been removed."
 
     def __str__(self) -> str:
         """

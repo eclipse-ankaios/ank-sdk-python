@@ -16,9 +16,13 @@
 This module contains the ankaios_sdk protobuf components.
 It contains the proto files and the generated protobuf classes.
 
-Imports:
-    ank_base_pb2: Used for general grpc messages.
-    control_api_pb2: Used for exchanging messages with the control interface.
+Imports
+-------
+
+- ank_base_pb2:
+    Used for general grpc messages.
+- control_api_pb2:
+    Used for exchanging messages with the control interface.
 """
 
 try:

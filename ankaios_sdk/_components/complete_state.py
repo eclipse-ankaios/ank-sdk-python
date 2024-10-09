@@ -16,29 +16,48 @@
 This script defines the CompleteState class for managing
 the state of the system.
 
-Classes:
-    - CompleteState: Represents the complete state of the system.
+Classes
+-------
 
-Usage:
-    - Create a CompleteState instance:
+- CompleteState:
+    Represents the complete state of the system.
+
+Usage
+-----
+
+- Create a CompleteState instance:
+    .. code-block:: python
+
         complete_state = CompleteState()
 
-    - Get the API version of the complete state:
+- Get the API version of the complete state:
+    .. code-block:: python
+
         api_version = complete_state.get_api_version()
 
-    - Add a workload to the complete state:
+- Add a workload to the complete state:
+    .. code-block:: python
+
         complete_state.set_workload(workload)
 
-    - Get a workload from the complete state:
+- Get a workload from the complete state:
+    .. code-block:: python
+
         workload = complete_state.get_workload("nginx")
 
-    - Get a list of workloads from the complete state:
+- Get a list of workloads from the complete state:
+    .. code-block:: python
+
         workloads = complete_state.get_workloads()
 
-    - Get the connected agents:
+- Get the connected agents:
+    .. code-block:: python
+
         agents = complete_state.get_agents()
 
-    - Get the workload states:
+- Get the workload states:
+    .. code-block:: python
+
         workload_states = complete_state.get_workload_states()
 """
 

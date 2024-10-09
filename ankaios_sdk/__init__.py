@@ -13,12 +13,25 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains the ankaios_sdk package.
-It exposes to the user all the classes available in the SDK.
+Ankaios Python SDK
 
-Imports:
-    Ankaios: The main SDK class.
-    All the other classes, available in the _components folder.
+Classes
+-------
+
+- Ankaios:
+    The main SDK class.
+- Workload:
+    Represents a workload.
+- WorkloadBuilder:
+    A builder class for workloads.
+- WorkloadState:
+    Represents the state of a workload.
+- WorkloadStateCollection:
+    A collection of workload states.
+- Manifest:
+    Represents a workload manifest.
+- CompleteState:
+    Represents the complete state of the system.
 """
 
 from .ankaios import *

@@ -16,43 +16,76 @@
 This script defines the Ankaios class for interacting with the
 Ankaios control interface.
 
-Classes:
-    - Ankaios: Handles the interaction with the Ankaios control interface.
+Classes
+-------
 
-Usage:
-    - Create an Ankaios object and connect to the control interface:
+- Ankaios:
+    Handles the interaction with the Ankaios control interface.
+
+Enums
+-----
+
+- AnkaiosLogLevel:
+    Represents the log levels for the Ankaios class.
+
+Usage
+-----
+
+- Create an Ankaios object and connect to the control interface:
+    .. code-block:: python
+
         with Ankaios() as ankaios:
             pass
 
-    - Apply a manifest:
+- Apply a manifest:
+    .. code-block:: python
+
         ankaios.apply_manifest(manifest)
 
-    - Delete a manifest:
+- Delete a manifest:
+    .. code-block:: python
+
         ankaios.delete_manifest(manifest)
 
-    - Run a workload:
+- Run a workload:
+    .. code-block:: python
+
         ankaios.run_workload(workload)
 
-    - Delete a workload:
+- Delete a workload:
+    .. code-block:: python
+
         ankaios.delete_workload(workload_name)
 
-    - Get a workload:
+- Get a workload:
+    .. code-block:: python
+
         workload = ankaios.get_workload(workload_name)
 
-    - Get the state:
+- Get the state:
+    .. code-block:: python
+
         state = ankaios.get_state()
 
-    - Get the agents:
+- Get the agents:
+    .. code-block:: python
+
         agents = ankaios.get_agents()
 
-    - Get the workload states:
+- Get the workload states:
+    .. code-block:: python
+
         workload_states = ankaios.get_workload_states()
 
-    - Get the workload states on an agent:
+- Get the workload states on an agent:
+    .. code-block:: python
+
         workload_states = ankaios.get_workload_states_on_agent(agent_name)
 
-    - Get the workload states on a workload name:
-        workload_states = \
+- Get the workload states on a workload name:
+    .. code-block:: python
+
+        workload_states =
             ankaios.get_workload_states_on_workload_name(workload_name)
 """
 
@@ -71,21 +104,17 @@ from ._components import Workload, CompleteState, Request, Response, \
 
 
 class AnkaiosLogLevel(Enum):
-    """
-    Ankaios log levels.
-
-    Attributes:
-        FATAL (int): Fatal log level.
-        ERROR (int): Error log level.
-        WARN (int): Warning log level.
-        INFO (int): Info log level.
-        DEBUG (int): Debug log level.
-    """
+    """ Ankaios log levels. """
     FATAL = logging.FATAL
+    "(int): Fatal log level."
     ERROR = logging.ERROR
+    "(int): Error log level."
     WARN = logging.WARN
+    "(int): Warning log level."
     INFO = logging.INFO
+    "(int): Info log level."
     DEBUG = logging.DEBUG
+    "(int): Debug log level."
 
 
 # pylint: disable=too-many-public-methods
@@ -96,14 +125,14 @@ class Ankaios:
     by sending requests.
 
     Attributes:
-        ANKAIOS_CONTROL_INTERFACE_BASE_PATH (str): The base path for the
-            Ankaios control interface.
-        DEFAULT_TIMEOUT (int): The default timeout, if not manually provided.
         logger (logging.Logger): The logger for the Ankaios class.
         path (str): The path to the control interface.
     """
     ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
+    "(str): The base path for the Ankaios control interface."
+
     DEFAULT_TIMEOUT = 5.0
+    "(float): The default timeout, if not manually provided."
 
     def __init__(self) -> None:
         """Initialize the Ankaios object."""

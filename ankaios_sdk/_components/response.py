@@ -16,16 +16,26 @@
 This script defines the Response and ResponseEvent classes,
 used for receiving messages from the control interface.
 
-Classes:
-    - Response: Represents a response from the control interface.
-    - ResponseEvent: Represents an event used to wait for a response.
+Classes
+--------
 
-Usage:
-    - Get response content:
+- Response:
+    Represents a response from the control interface.
+- ResponseEvent:
+    Represents an event used to wait for a response.
+
+Usage
+------
+
+- Get response content:
+    .. code-block:: python
+
         response = Response()
         (content_type, content) = response.get_content()
 
-    - Check if the request_id matches:
+- Check if the request_id matches:
+    .. code-block:: python
+
         response = Response()
         if response.check_request_id("1234"):
             print("Request ID matches")
