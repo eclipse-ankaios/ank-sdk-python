@@ -108,6 +108,7 @@ setup(
     setup_requires=[
         "protobuf==5.27.2",
         "grpcio-tools>=1.56.2",
+        "requests",
     ],
     extras_require={
         # Development dependencies
