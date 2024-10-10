@@ -90,7 +90,7 @@ Usage
     .. code-block:: python
 
         workload_states =
-            ankaios.get_workload_states_on_workload_name(workload_name)
+            ankaios.get_workload_states_for_name(workload_name)
 """
 
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
@@ -706,13 +706,13 @@ class Ankaios:
             state = self.get_state(timeout, ["workloadStates." + agent_name])
         return state.get_workload_states() if state is not None else None
 
-    def get_workload_states_on_workload_name(self, workload_name: str,
-                                             state: CompleteState = None,
-                                             timeout: float = DEFAULT_TIMEOUT
-                                             ) -> WorkloadStateCollection:
+    def get_workload_states_for_name(self, workload_name: str,
+                                     state: CompleteState = None,
+                                     timeout: float = DEFAULT_TIMEOUT
+                                     ) -> WorkloadStateCollection:
         """
-        Get the workload states on a specific workload name from the requested
-        complete state.
+        Get the workload states for a specific workload name from the
+        requested complete state.
         If a state is not provided, it will be requested.
 
         Args:

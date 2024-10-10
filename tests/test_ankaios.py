@@ -490,9 +490,9 @@ def test_get_workload_states_on_agent():
         mock_state_get_workload_states.assert_called_once()
 
 
-def test_get_workload_states_on_workload_name():
+def test_get_workload_states_for_name():
     """
-    Test the get workload states on workload name method of the Ankaios class.
+    Test the get workload states for workload name method of the Ankaios class.
     """
     ankaios = Ankaios()
 
@@ -500,7 +500,7 @@ def test_get_workload_states_on_workload_name():
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
-        ankaios.get_workload_states_on_workload_name("nginx")
+        ankaios.get_workload_states_for_name("nginx")
         mock_get_state.assert_called_once_with(
             Ankaios.DEFAULT_TIMEOUT, ["workloadStates.nginx"]
         )
@@ -509,7 +509,7 @@ def test_get_workload_states_on_workload_name():
     with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
-        ankaios.get_workload_states_on_workload_name(
+        ankaios.get_workload_states_for_name(
             "nginx", state=CompleteState()
         )
         mock_get_state.assert_not_called()
