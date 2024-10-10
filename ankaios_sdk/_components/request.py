@@ -127,6 +127,18 @@ class Request:
         elif self._request_type == "get_state":
             self._request.completeStateRequest.fieldMask.append(mask)
 
+    def set_masks(self, masks: list) -> None:
+        """
+        Sets the update masks for the request.
+
+        Args:
+            masks (list): The masks to set for the request.
+        """
+        if self._request_type == "update_state":
+            self._request.updateStateRequest.updateMask[:] = masks
+        elif self._request_type == "get_state":
+            self._request.completeStateRequest.fieldMask[:] = masks
+
     def _to_proto(self) -> _ank_base.Request:
         """
         Converts the Request object to a proto message.

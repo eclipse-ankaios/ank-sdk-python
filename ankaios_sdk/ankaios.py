@@ -40,22 +40,26 @@ Usage
 - Apply a manifest:
     .. code-block:: python
 
-        ankaios.apply_manifest(manifest)
+        if ankaios.apply_manifest(manifest):
+            print("Manifest applied successfully.")
 
 - Delete a manifest:
     .. code-block:: python
 
-        ankaios.delete_manifest(manifest)
+        if ankaios.delete_manifest(manifest):
+            print("Manifest deleted successfully.")
 
 - Run a workload:
     .. code-block:: python
 
-        ankaios.run_workload(workload)
+        if ankaios.run_workload(workload):
+            print("Workload started successfully.")
 
 - Delete a workload:
     .. code-block:: python
 
-        ankaios.delete_workload(workload_name)
+        if ankaios.delete_workload(workload_name):
+            print("Workload deleted successfully.")
 
 - Get a workload:
     .. code-block:: python
@@ -120,9 +124,9 @@ class AnkaiosLogLevel(Enum):
 # pylint: disable=too-many-public-methods
 class Ankaios:
     """
-    A class to interact with the Ankaios control interface. It provides
-    the functionality to interact with the Ankaios control interface
-    by sending requests.
+    This class is used to interact with the Ankaios using an intuitive API.
+    The class automatically handles the session creation and the requests
+    and responses sent and received over the Ankaios Control Interface.
 
     Attributes:
         logger (logging.Logger): The logger for the Ankaios class.
@@ -153,7 +157,7 @@ class Ankaios:
         Returns:
             Ankaios: The Ankaios object.
         """
-        self.connect()
+        self._connect()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
@@ -168,7 +172,7 @@ class Ankaios:
         if exc_type is not None:  # pragma: no cover
             self.logger.error("An exception occurred: %s, %s, %s",
                               exc_type, exc_value, traceback)
-        self.disconnect()
+        self._disconnect()
 
     def _create_logger(self) -> None:
         """Create a logger with custom format and default log level."""
@@ -308,7 +312,7 @@ class Ankaios:
         """
         self.logger.setLevel(level.value)
 
-    def connect(self) -> None:
+    def _connect(self) -> None:
         """
         Connect to the control interface by starting to read
         from the input fifo.
@@ -324,7 +328,7 @@ class Ankaios:
         )
         self._read_thread.start()
 
-    def disconnect(self) -> None:
+    def _disconnect(self) -> None:
         """
         Disconnect from the control interface by stopping to read
         from the input fifo.
@@ -337,24 +341,27 @@ class Ankaios:
         self._connected = False
         self._read_thread.join()
 
-    def apply_manifest(self, manifest: Manifest) -> None:
+    def apply_manifest(self, manifest: Manifest) -> bool:
         """
         Send a request to apply a manifest.
 
         Args:
             manifest (Manifest): The manifest object to be applied.
+
+        Returns:
+            bool: True if the manifest was applied successfully,
+                False otherwise.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(manifest.generate_complete_state())
-        for mask in manifest._calculate_masks():
-            request.add_mask(mask)
+        request.set_masks(manifest._calculate_masks())
 
         # Send request
         try:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return
+            return False
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -367,25 +374,30 @@ class Ankaios:
                 + "%s deleted workloads.",
                 content["added_workloads"], content["deleted_workloads"]
             )
+            return True
+        return False
 
-    def delete_manifest(self, manifest: Manifest) -> None:
+    def delete_manifest(self, manifest: Manifest) -> bool:
         """
         Send a request to delete a manifest.
 
         Args:
             manifest (Manifest): The manifest object to be deleted.
+
+        Returns:
+            bool: True if the manifest was deleted successfully,
+                False otherwise.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
-        for mask in manifest._calculate_masks():
-            request.add_mask(mask)
+        request.set_masks(manifest._calculate_masks())
 
         # Send request
         try:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return
+            return False
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -398,13 +410,18 @@ class Ankaios:
                 + "%s deleted workloads.",
                 content["added_workloads"], content["deleted_workloads"]
             )
+            return True
+        return False
 
-    def run_workload(self, workload: Workload) -> None:
+    def run_workload(self, workload: Workload) -> bool:
         """
         Send a request to run a workload.
 
         Args:
             workload (Workload): The workload object to be run.
+
+        Returns:
+            bool: True if the workload was run successfully, False otherwise.
         """
         complete_state = CompleteState()
         complete_state.set_workload(workload)
@@ -412,15 +429,14 @@ class Ankaios:
         # Create the request
         request = Request(request_type="update_state")
         request.set_complete_state(complete_state)
-        for mask in workload.masks:
-            request.add_mask(mask)
+        request.set_masks(workload.masks)
 
         # Send request
         try:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return
+            return False
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -433,13 +449,19 @@ class Ankaios:
                 + "%s deleted workloads.",
                 content["added_workloads"], content["deleted_workloads"]
             )
+            return True
+        return False
 
-    def delete_workload(self, workload_name: str) -> None:
+    def delete_workload(self, workload_name: str) -> bool:
         """
         Send a request to delete a workload.
 
         Args:
             workload_name (str): The name of the workload to be deleted.
+
+        Returns:
+            bool: True if the workload was deleted successfully,
+                False otherwise.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
@@ -449,7 +471,7 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return
+            return False
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -462,6 +484,8 @@ class Ankaios:
                 + "%s deleted workloads.",
                 content["added_workloads"], content["deleted_workloads"]
             )
+            return True
+        return False
 
     def get_workload(self, workload_name: str,
                      state: CompleteState = None,
@@ -484,7 +508,7 @@ class Ankaios:
             )
         return state.get_workload(workload_name) if state is not None else None
 
-    def set_configs_from_file(self, configs_path: str) -> None:
+    def set_configs_from_file(self, configs_path: str) -> bool:
         """
         Set the configs from a file.
         The configs file should have a dictionary as the top level object.
@@ -492,6 +516,9 @@ class Ankaios:
 
         Args:
             config_path (str): The path to the configs file.
+
+        Returns:
+            bool: True if the configs were set successfully, False otherwise.
         """
         # with open(configs_path, "r", encoding="utf-8") as f:
         #     configs = f.read()
@@ -500,16 +527,19 @@ class Ankaios:
             "set_configs_from_file is not implemented yet."
             )
 
-    def set_configs(self, configs: dict) -> None:
+    def set_configs(self, configs: dict) -> bool:
         """
         Set the configs. The names will be the keys of the dictionary.
 
         Args:
             configs (dict): The configs dictionary.
+
+        Returns:
+            bool: True if the configs were set successfully, False otherwise.
         """
         raise NotImplementedError("set_configs is not implemented yet.")
 
-    def set_config_from_file(self, name: str, config_path: str) -> None:
+    def set_config_from_file(self, name: str, config_path: str) -> bool:
         """
         Set the config from a file, with the provided name.
         If the config exists, it will be replaced.
@@ -517,12 +547,15 @@ class Ankaios:
         Args:
             name (str): The name of the config.
             config_path (str): The path to the config file.
+
+        Returns:
+            bool: True if the config was set successfully, False otherwise.
         """
         raise NotImplementedError(
             "set_config_from_file is not implemented yet."
             )
 
-    def set_config(self, name: str, config: Union[dict, list, str]) -> None:
+    def set_config(self, name: str, config: Union[dict, list, str]) -> bool:
         """
         Set the config with the provided name.
         If the config exists, it will eb replaced.
@@ -530,6 +563,9 @@ class Ankaios:
         Args:
             name (str): The name of the config.
             config (Union[dict, list, str]): The config dictionary.
+
+        Returns:
+            bool: True if the config was set successfully, False otherwise.
         """
         raise NotImplementedError("set_config is not implemented yet.")
 
@@ -554,39 +590,45 @@ class Ankaios:
         """
         raise NotImplementedError("get_config is not implemented yet.")
 
-    def delete_configs(self) -> None:
+    def delete_configs(self) -> bool:
         """
         Delete all the configs.
+
+        Returns:
+            bool: True if the configs were deleted successfully,
+                False otherwise.
         """
         raise NotImplementedError("delete_configs is not implemented yet.")
 
-    def delete_config(self, name: str) -> None:
+    def delete_config(self, name: str) -> bool:
         """
         Delete the config.
 
         Args:
             name (str): The name of the config.
+
+        Returns:
+            bool: True if the config was deleted successfully, False otherwise.
         """
         raise NotImplementedError("delete_config is not implemented yet.")
 
     def get_state(self, timeout: float = DEFAULT_TIMEOUT,
-                  field_mask: list[str] = None) -> CompleteState:
+                  field_masks: list[str] = None) -> CompleteState:
         """
         Send a request to get the complete state.
 
         Args:
             timeout (float): The maximum time to wait for the response,
                 in seconds.
-            field_mask (list[str]): The list of field masks to filter
+            field_masks (list[str]): The list of field masks to filter
                 the state.
 
         Returns:
             CompleteState: The complete state object.
         """
         request = Request(request_type="get_state")
-        if field_mask is not None:
-            for mask in field_mask:
-                request.add_mask(mask)
+        if field_masks is not None:
+            request.set_masks(field_masks)
         try:
             response = self._send_request(request, timeout)
         except TimeoutError as e:

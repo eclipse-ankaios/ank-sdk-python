@@ -60,7 +60,7 @@ def test_connection():
         mock_thread_instance = MagicMock()
         mock_thread.return_value = mock_thread_instance
 
-        ankaios.connect()
+        ankaios._connect()
         mock_thread.assert_called_once_with(
             target=ankaios._read_from_control_interface
         )
@@ -68,14 +68,14 @@ def test_connection():
         assert ankaios._connected
 
         with pytest.raises(ValueError, match="Already connected."):
-            ankaios.connect()
+            ankaios._connect()
 
-        ankaios.disconnect()
+        ankaios._disconnect()
         mock_thread_instance.join.assert_called_once()
         assert not ankaios._connected
 
         with pytest.raises(ValueError, match="Already disconnected."):
-            ankaios.disconnect()
+            ankaios._disconnect()
 
         with Ankaios() as ank:
             assert ank._connected
@@ -97,10 +97,10 @@ def test_read_from_control_interface():
         ankaios = Ankaios()
 
         # will call _read_from_control_interface
-        ankaios.connect()
+        ankaios._connect()
 
         # will stop the thread after reading the message
-        ankaios.disconnect()
+        ankaios._disconnect()
 
         mock_file.assert_called_once_with(
             f"{Ankaios.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
@@ -117,10 +117,10 @@ def test_read_from_control_interface():
         ankaios._responses["1234"] = ResponseEvent()
 
         # will call _read_from_control_interface
-        ankaios.connect()
+        ankaios._connect()
 
         # will stop the thread after reading the message
-        ankaios.disconnect()
+        ankaios._disconnect()
 
         mock_file.assert_called_once_with(
             f"{Ankaios.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
@@ -207,21 +207,21 @@ def test_apply_manifest():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ankaios.apply_manifest(manifest)
+        assert ankaios.apply_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        ankaios.apply_manifest(manifest)
+        assert not ankaios.apply_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
     # Test timeout
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.side_effect = TimeoutError()
-        ankaios.apply_manifest(manifest)
+        assert not ankaios.apply_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -238,21 +238,21 @@ def test_delete_manifest():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ankaios.delete_manifest(manifest)
+        assert ankaios.delete_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        ankaios.delete_manifest(manifest)
+        assert not ankaios.delete_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
     # Test timeout
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.side_effect = TimeoutError()
-        ankaios.delete_manifest(manifest)
+        assert not ankaios.delete_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -269,21 +269,21 @@ def test_run_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ankaios.run_workload(workload)
+        assert ankaios.run_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        ankaios.run_workload(workload)
+        assert not ankaios.run_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
     # Test timeout
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.side_effect = TimeoutError()
-        ankaios.run_workload(workload)
+        assert not ankaios.run_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -299,21 +299,21 @@ def test_delete_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ankaios.delete_workload("nginx")
+        assert ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        ankaios.delete_workload("nginx")
+        assert not ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
     # Test timeout
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.side_effect = TimeoutError()
-        ankaios.delete_workload("nginx")
+        assert not ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -408,7 +408,7 @@ def test_get_state():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        result = ankaios.get_state(field_mask=["invalid_mask"])
+        result = ankaios.get_state(field_masks=["invalid_mask"])
         mock_send_request.assert_called_once()
         assert result is None
         ankaios.logger.error.assert_called()
