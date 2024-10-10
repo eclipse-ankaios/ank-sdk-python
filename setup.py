@@ -14,8 +14,35 @@
 
 import os
 from setuptools import setup, find_packages
+import configparser
 
 PROJECT_DIR = "ankaios_sdk"
+ANKAIOS_RELEASE_LINK = "https://github.com/eclipse-ankaios/ankaios/releases/download/v{version}/{file}"
+PROTO_FILES = ["ank_base.proto", "control_api.proto"]
+
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.dirname(__file__), 'setup.cfg'))
+
+
+def extract_the_proto_files():
+    """ Download the proto files from the ankaios release branch. """
+    import requests
+
+    ankaios_version = config['metadata']['ankaios_version']
+
+    for file in PROTO_FILES:
+        file_url = ANKAIOS_RELEASE_LINK.format(version=ankaios_version, file=file)
+        file_path = f"{PROJECT_DIR}/_protos/{file}"
+        if os.path.exists(file_path):
+            continue
+        try:
+            response = requests.get(file_url)
+            response.raise_for_status()
+            with open(file_path, 'w', encoding="utf-8") as f:
+                f.write(response.text)
+        except requests.exceptions.RequestException as e:
+            print(f"Error: Failed to download {file} from {file_url}.")
+            raise e
 
 
 def generate_protos():
@@ -23,10 +50,12 @@ def generate_protos():
     from grpc_tools import protoc
 
     protos_dir = f"{PROJECT_DIR}/_protos"
-    proto_files = ["ank_base.proto", "control_api.proto"]
+    proto_files = PROTO_FILES
 
     for proto_file in proto_files:
         proto_path = os.path.join(protos_dir, proto_file)
+        if not os.path.exists(proto_path):
+            raise Exception(f"Error: {proto_file} not found.")
         output_file = proto_path.replace('.proto', '_pb2.py')
 
         if not os.path.exists(output_file) or os.path.getmtime(proto_path) > os.path.getmtime(output_file):
@@ -100,4 +129,5 @@ setup(
 )
 
 
+extract_the_proto_files()
 generate_protos()
