@@ -26,6 +26,14 @@
    Ankaios Github <https://github.com/eclipse-ankaios/ankaios>
    Ankaios Python SDK Github <https://github.com/eclipse-ankaios/ank-sdk-python>
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Other:
+
+   contributing
+   code_of_conduct
+   License <https://github.com/GabyUnalaq/ank-sdk-python/blob/main/LICENSE>
+
 Indices and tables
 ==================
 

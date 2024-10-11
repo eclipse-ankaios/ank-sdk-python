@@ -44,14 +44,31 @@ autodoc_member_order = 'bysource'
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-# -- Prepare the ReadMe file - skip the image ----------------------------------
+# -- Prepare the Contributing file - coc link -----------------------------------------
+contrib_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CONTRIBUTING.md'))
+contrib_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'CONTRIBUTING.md'))
+with open(contrib_in, 'r') as f:
+    contrib = f.readlines()
+
+for i, line in enumerate(contrib):
+    if "./CODE_OF_CONDUCT.md" in line:
+        contrib[i] = line.replace("./CODE_OF_CONDUCT.md", "./code_of_conduct.html")
+        break
+with open(contrib_out, 'w') as f:
+    f.writelines(contrib)
+
+# -- Prepare the ReadMe file - skip the image and the contributing + license -------------
 read_me_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'README.md'))
 read_me_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'README.md'))
 with open(read_me_in, 'r') as f:
     readme = f.readlines()
 
+start = stop = 0
 for i, line in enumerate(readme):
     if "</picture>" in line:
-        with open(read_me_out, 'w') as f:
-            f.writelines(readme[(i+1):])
+        start = i+1
+    if "## Contributing" in line:
+        stop = i
         break
+with open(read_me_out, 'w') as f:
+    f.writelines(readme[start:stop])

@@ -40,8 +40,7 @@ pip install -e .[dev]
 ## Usage
 
 After installation, you can use the Ankaios SDK to configure and run workloads and request
-the state of the Ankaios system and the connected agents. For more information, you can check
-the documentation (TBD).
+the state of the Ankaios system and the connected agents.
 
 Example:
 ```python
