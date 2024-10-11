@@ -171,3 +171,38 @@ jobs:
         with:
           name: codestyle-report
           path: reports/codestyle
+
+  docs:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Generate documentation
+        run: |
+          cd docs
+          make html
+          cd ..
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_html
+          path: docs/build/html

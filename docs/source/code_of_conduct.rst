@@ -1,1 +1,1 @@
-.. mdinclude:: ../../CODE_OF_CONDUCT.md
+.. mdinclude:: ../build/CODE_OF_CONDUCT.md

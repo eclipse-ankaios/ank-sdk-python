@@ -8,7 +8,7 @@ pip install .[docs]
 cd docs
 
 # make html
-sphinx-build -b html source build
+sphinx-build -b html source build -W --keep-going
 
 cd ..
 

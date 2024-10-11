@@ -57,6 +57,18 @@ for i, line in enumerate(contrib):
 with open(contrib_out, 'w') as f:
     f.writelines(contrib)
 
+
+# -- Prepare the Code of Conduct file - foot note warning -----------------------------------------
+coc_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CODE_OF_CONDUCT.md'))
+coc_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'CODE_OF_CONDUCT.md'))
+with open(coc_in, 'r') as f:
+    coc = f.readlines()
+for i, line in enumerate(coc):
+    if "Committers[^1]" in line:
+        coc[i] = line.replace("Committers[^1]", "Committers")
+with open(coc_out, 'w') as f:
+    f.writelines(coc[:-2])
+
 # -- Prepare the ReadMe file - skip the image and the contributing + license -------------
 read_me_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'README.md'))
 read_me_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'README.md'))
