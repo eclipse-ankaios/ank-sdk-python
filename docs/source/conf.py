@@ -7,11 +7,14 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+BUILD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build'))
+
 # -- Read the setup.cfg file -------------------------------------------------
 import configparser
 
 config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), '..', '..', 'setup.cfg'))
+config.read(os.path.join(ROOT_DIR, 'setup.cfg'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -45,13 +48,12 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 # -- Ensure that the build dir exists -----------------------------------------
-build_dir_path = os.path.join(os.path.dirname(__file__), '..', 'build')
-if not os.path.exists(build_dir_path):
-    os.makedirs(build_dir_path)
+if not os.path.exists(BUILD_DIR):
+    os.makedirs(BUILD_DIR)
 
 # -- Prepare the Contributing file - coc link -----------------------------------------
-contrib_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CONTRIBUTING.md'))
-contrib_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'CONTRIBUTING.md'))
+contrib_in = os.path.abspath(os.path.join(ROOT_DIR, 'CONTRIBUTING.md'))
+contrib_out = os.path.abspath(os.path.join(BUILD_DIR, 'CONTRIBUTING.md'))
 with open(contrib_in, 'r') as f:
     contrib = f.readlines()
 
@@ -64,8 +66,8 @@ with open(contrib_out, 'w') as f:
 
 
 # -- Prepare the Code of Conduct file - foot note warning -----------------------------------------
-coc_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CODE_OF_CONDUCT.md'))
-coc_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'CODE_OF_CONDUCT.md'))
+coc_in = os.path.abspath(os.path.join(ROOT_DIR, 'CODE_OF_CONDUCT.md'))
+coc_out = os.path.abspath(os.path.join(BUILD_DIR, 'CODE_OF_CONDUCT.md'))
 with open(coc_in, 'r') as f:
     coc = f.readlines()
 for i, line in enumerate(coc):
@@ -75,8 +77,8 @@ with open(coc_out, 'w') as f:
     f.writelines(coc[:-2])
 
 # -- Prepare the ReadMe file - skip the image and the contributing + license -------------
-read_me_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'README.md'))
-read_me_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'README.md'))
+read_me_in = os.path.abspath(os.path.join(ROOT_DIR, 'README.md'))
+read_me_out = os.path.abspath(os.path.join(BUILD_DIR, 'README.md'))
 with open(read_me_in, 'r') as f:
     readme = f.readlines()
 
