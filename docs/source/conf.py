@@ -44,6 +44,11 @@ autodoc_member_order = 'bysource'
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
+# -- Ensure that the build dir exists -----------------------------------------
+build_dir_path = os.path.join(os.path.dirname(__file__), '..', 'build')
+if not os.path.exists(build_dir_path):
+    os.makedirs(build_dir_path)
+
 # -- Prepare the Contributing file - coc link -----------------------------------------
 contrib_in = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'CONTRIBUTING.md'))
 contrib_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build', 'CONTRIBUTING.md'))
