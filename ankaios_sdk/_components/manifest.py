@@ -47,6 +47,7 @@ Usage
 """
 
 import yaml
+from ..exceptions import InvalidManifestException
 from .complete_state import CompleteState
 
 
@@ -66,9 +67,7 @@ class Manifest():
             ValueError: If the manifest data is invalid.
         """
         self._manifest: dict = manifest
-
-        if not self.check():
-            raise ValueError("Invalid manifest")
+        self.check()
 
     @staticmethod
     def from_file(file_path: str) -> 'Manifest':
@@ -123,17 +122,17 @@ class Manifest():
         """
         return Manifest(manifest)
 
-    def check(self) -> bool:
+    def check(self) -> None:
         """
         Validates the manifest data.
 
-        Returns:
-            bool: True if the manifest data is valid, False otherwise.
+        Raises:
+            InvalidManifestException: If the manifest is invalid.
         """
         if "apiVersion" not in self._manifest.keys():
-            return False
+            raise InvalidManifestException("apiVersion is missing.")
         if "workloads" not in self._manifest.keys():
-            return False
+            raise InvalidManifestException("workloads is missing.")
         wl_allowed_keys = ["runtime", "agent", "restartPolicy",
                            "runtimeConfig", "dependencies", "tags",
                            "controlInterfaceAccess"]
@@ -142,12 +141,13 @@ class Manifest():
             # Check allowed keys
             for key in self._manifest["workloads"][wl_name].keys():
                 if key not in wl_allowed_keys:
-                    return False
+                    raise InvalidManifestException(
+                        f"Invalid key in workload {wl_name}: {key}")
             # Check mandatory keys
             for key in wl_mandatory_keys:
                 if key not in self._manifest["workloads"][wl_name].keys():
-                    return False
-        return True
+                    raise InvalidManifestException(
+                        f"Mandatory key {key} missing in workload {wl_name}")
 
     def _calculate_masks(self) -> list[str]:
         """

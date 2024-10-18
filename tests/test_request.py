@@ -17,7 +17,7 @@ This module contains unit tests for the Request class in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk import Request, CompleteState
+from ankaios_sdk import Request, CompleteState, RequestException
 from tests.workload.test_workload import generate_test_workload
 
 
@@ -41,7 +41,7 @@ def test_general_functionality():
     """
     Test general functionality of the Request class.
     """
-    with pytest.raises(ValueError, match="Invalid request type."):
+    with pytest.raises(RequestException, match="Invalid request type."):
         Request("invalid")
 
     request = Request("update_state")
@@ -63,7 +63,7 @@ def test_update_state():
     assert request._request.updateStateRequest.updateMask == ["test_mask"]
 
     with pytest.raises(
-            ValueError,
+            RequestException,
             match="Complete state can only be set for an update state request."
             ):
         Request("get_state").set_complete_state(CompleteState())

@@ -25,7 +25,7 @@ Helper Functions:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder
+from ankaios_sdk import Workload, WorkloadBuilder, WorkloadFieldException
 from ankaios_sdk._protos import _ank_base
 
 
@@ -104,7 +104,7 @@ def test_update_fields(
         workload.update_runtime_config_from_file("new_config_test_from_file")
         assert workload._workload.runtimeConfig == "new_config_test_from_file"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(WorkloadFieldException):
         workload.update_restart_policy("INVALID_POLICY")
     workload.update_restart_policy("ON_FAILURE")
     assert workload._workload.restartPolicy == _ank_base.ON_FAILURE
@@ -123,7 +123,7 @@ def test_dependencies(
     assert len(deps) == 1
     deps["other_workload_test"] = "ADD_COND_SUCCEEDED"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(WorkloadFieldException):
         workload.update_dependencies(
             {"other_workload_test": "ADD_COND_DANCING"}
             )
@@ -168,10 +168,10 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(allow_rules) == 1
     assert len(deny_rules) == 1
 
-    with pytest.raises(ValueError):
+    with pytest.raises(WorkloadFieldException):
         workload.update_allow_rules([("Invalid", ["mask"])])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(WorkloadFieldException):
         workload.update_deny_rules([("Invalid", ["mask"])])
 
     allow_rules.append(("Write", ["desiredState.workloads.another_workload"]))

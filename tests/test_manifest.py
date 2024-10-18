@@ -18,7 +18,7 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Manifest, CompleteState
+from ankaios_sdk import Manifest, CompleteState, InvalidManifestException
 
 
 MANIFEST_CONTENT = """apiVersion: v0.1
@@ -80,7 +80,7 @@ def test_from_dict():
     manifest = Manifest.from_dict(MANIFEST_DICT)
     assert manifest._manifest == MANIFEST_DICT
 
-    with pytest.raises(ValueError, match="Invalid manifest"):
+    with pytest.raises(InvalidManifestException):
         _ = Manifest.from_dict({})
 
 
@@ -89,22 +89,27 @@ def test_check():
     Test the check method of the Manifest class,
     ensuring it correctly validates the manifest data and handles errors.
     """
-    manifest = Manifest(MANIFEST_DICT)
-    assert manifest.check()
+    with patch("ankaios_sdk.InvalidManifestException") as mock_exception:
+        _ = Manifest(MANIFEST_DICT)
+        assert not mock_exception.called
 
-    with pytest.raises(ValueError, match="Invalid manifest"):
-        manifest = Manifest({})
+    with pytest.raises(InvalidManifestException,
+                       match="apiVersion is missing."):
+        _ = Manifest({})
 
-    with pytest.raises(ValueError, match="Invalid manifest"):
-        manifest = Manifest({'apiVersion': 'v0.1'})
+    with pytest.raises(InvalidManifestException,
+                       match="workloads is missing."):
+        _ = Manifest({'apiVersion': 'v0.1'})
 
-    with pytest.raises(ValueError, match="Invalid manifest"):
-        manifest = Manifest({'apiVersion': 'v0.1', 'workloads':
-                             {'nginx_test': {}}})
+    with pytest.raises(InvalidManifestException,
+                       match="Mandatory key"):
+        _ = Manifest({'apiVersion': 'v0.1', 'workloads':
+                      {'nginx_test': {}}})
 
-    with pytest.raises(ValueError, match="Invalid manifest"):
-        manifest = Manifest({'apiVersion': 'v0.1', 'workloads':
-                             {'nginx_test': {'invalid_key': ''}}})
+    with pytest.raises(InvalidManifestException,
+                       match="Invalid key"):
+        _ = Manifest({'apiVersion': 'v0.1', 'workloads':
+                      {'nginx_test': {'invalid_key': ''}}})
 
 
 def test_calculate_masks():

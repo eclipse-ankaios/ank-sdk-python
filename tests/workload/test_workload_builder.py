@@ -22,7 +22,7 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder
+from ankaios_sdk import Workload, WorkloadBuilder, WorkloadBuilderException
 from ankaios_sdk._protos import _ank_base
 
 
@@ -149,28 +149,28 @@ def test_build(
         builder (WorkloadBuilder): The WorkloadBuilder fixture.
     """
     with pytest.raises(
-            ValueError,
+            WorkloadBuilderException,
             match="Workload can not be built without a name."
             ):
         builder.build()
     builder = builder.workload_name("workload_test")
 
     with pytest.raises(
-            ValueError,
+            WorkloadBuilderException,
             match="Workload can not be built without an agent name."
             ):
         builder.build()
     builder = builder.agent_name("agent_Test")
 
     with pytest.raises(
-            ValueError,
+            WorkloadBuilderException,
             match="Workload can not be built without a runtime."
             ):
         builder.build()
     builder = builder.runtime("runtime_test")
 
     with pytest.raises(
-            ValueError,
+            WorkloadBuilderException,
             match="Workload can not be built without a runtime configuration."
             ):
         builder.build()

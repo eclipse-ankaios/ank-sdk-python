@@ -72,6 +72,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 
 
 from .._protos import _ank_base
+from ..exceptions import WorkloadFieldException, WorkloadBuilderException
 
 
 # pylint: disable=too-many-public-methods
@@ -175,11 +176,12 @@ class Workload:
             policy (str): The restart policy to update.
 
         Raises:
-            ValueError: If an invalid restart policy is provided.
+            WorkloadFieldException: If an invalid restart policy is provided.
         """
         if policy not in _ank_base.RestartPolicy.keys():
-            raise ValueError("Invalid restart policy. Supported values: "
-                             + ", ".join(_ank_base.RestartPolicy.keys()) + ".")
+            raise WorkloadFieldException(
+                "restart policy", policy, _ank_base.RestartPolicy.keys()
+            )
         self._workload.restartPolicy = _ank_base.RestartPolicy.Value(policy)
         self._add_mask(f"{self._main_mask}.restartPolicy")
 
@@ -207,15 +209,15 @@ class Workload:
                 workload names and condition as values.
 
         Raises:
-            ValueError: If an invalid condition is provided.
+            WorkloadFieldException: If an invalid condition is provided.
         """
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
             if condition not in _ank_base.AddCondition.keys():
-                raise ValueError(
-                    f"Invalid condition for workload {workload_name}. "
-                    + "Supported values: "
-                    + ", ".join(_ank_base.AddCondition.keys()) + ".")
+                raise WorkloadFieldException(
+                    "dependency condition", condition,
+                    _ank_base.AddCondition.keys()
+                )
             self._workload.dependencies.dependencies[workload_name] = \
                 _ank_base.AddCondition.Value(condition)
         self._add_mask(f"{self._main_mask}.dependencies")
@@ -277,7 +279,7 @@ class Workload:
             _ank_base.AccessRightsRule: The access rights rule generated.
 
         Raises:
-            ValueError: If an invalid operation is provided.
+            WorkloadFieldException: If an invalid operation is provided.
         """
         enum_mapper = {
             "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
@@ -286,11 +288,9 @@ class Workload:
             "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
         }
         if operation not in enum_mapper:
-            raise ValueError(
-                f"Invalid operation {operation}. "
-                + "Supported values: "
-                + ", ".join(enum_mapper.keys()) + "."
-                )
+            raise WorkloadFieldException(
+                "rule operation", operation, enum_mapper.keys()
+            )
         return _ank_base.AccessRightsRule(
             stateRule=_ank_base.StateRule(
                 operation=enum_mapper[operation],
@@ -343,7 +343,7 @@ class Workload:
                 operation and filter masks.
 
         Raises:
-            ValueError: If an invalid operation is provided
+            WorkloadFieldException: If an invalid operation is provided
         """
         while len(self._workload.controlInterfaceAccess.allowRules) > 0:
             self._workload.controlInterfaceAccess.allowRules.pop()
@@ -375,7 +375,7 @@ class Workload:
                 operation and filter masks.
 
         Raises:
-            ValueError: If an invalid operation is provided
+            WorkloadFieldException: If an invalid operation is provided
         """
         while len(self._workload.controlInterfaceAccess.denyRules) > 0:
             self._workload.controlInterfaceAccess.denyRules.pop()
@@ -684,22 +684,23 @@ class WorkloadBuilder:
             Workload: The built Workload object.
 
         Raises:
-            ValueError: If required fields are not set.
+            WorkloadBuilderException: If required fields are not set.
         """
         if self.wl_name is None:
-            raise ValueError("Workload can not be built without a name.")
+            raise WorkloadBuilderException(
+                "Workload can not be built without a name.")
 
         workload = Workload(self.wl_name)
 
         if self.wl_agent_name is None:
-            raise ValueError("Workload can not be built without an "
-                             + "agent name.")
+            raise WorkloadBuilderException(
+                "Workload can not be built without an agent name.")
         if self.wl_runtime is None:
-            raise ValueError("Workload can not be built without a "
-                             + "runtime.")
+            raise WorkloadBuilderException(
+                "Workload can not be built without a runtime.")
         if self.wl_runtime_config is None:
-            raise ValueError("Workload can not be built without a "
-                             + "runtime configuration.")
+            raise WorkloadBuilderException(
+                "Workload can not be built without a runtime configuration.")
 
         workload.update_agent_name(self.wl_agent_name)
         workload.update_runtime(self.wl_runtime)

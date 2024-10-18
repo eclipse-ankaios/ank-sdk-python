@@ -18,7 +18,7 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
-from ankaios_sdk import Response, CompleteState
+from ankaios_sdk import Response, CompleteState, ResponseException
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
@@ -93,11 +93,11 @@ def test_initialisation():
     assert str(deleted_workloads[0]) == "old_nginx.54321.agent_A"
 
     # Test invalid buffer
-    with pytest.raises(ValueError, match="Invalid response, parsing error"):
+    with pytest.raises(ResponseException, match="Parsing error"):
         _ = Response(b"invalid_buffer{")
 
     # Test invalid response type
-    with pytest.raises(ValueError, match="Invalid response type"):
+    with pytest.raises(ResponseException, match="Invalid response type"):
         response = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
 
 

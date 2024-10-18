@@ -18,6 +18,7 @@
    manifest
    request
    response
+   exceptions
 
 .. toctree::
    :maxdepth: 2

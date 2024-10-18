@@ -52,6 +52,7 @@ __all__ = ["Request"]
 
 import uuid
 from .._protos import _ank_base
+from ..exceptions import RequestException
 from .complete_state import CompleteState
 
 
@@ -68,15 +69,15 @@ class Request:
                 either "update_state" or "get_state".
 
         Raises:
-            ValueError: If the request type is invalid.
+            RequestException: If the request type is invalid.
         """
         self._request = _ank_base.Request()
         self._request.requestId = str(uuid.uuid4())
         self._request_type = request_type
 
         if request_type not in ["update_state", "get_state"]:
-            raise ValueError("Invalid request type. Supported values: "
-                             + "'update_state', 'get_state'.")
+            raise RequestException("Invalid request type. Supported values: "
+                                   + "'update_state', 'get_state'.")
 
     def __str__(self) -> str:
         """
@@ -105,11 +106,11 @@ class Request:
                 set for the request.
 
         Raises:
-            ValueError: If the request type is not "update_state".
+            RequestException: If the request type is not "update_state".
         """
         if self._request_type != "update_state":
-            raise ValueError("Complete state can only be set "
-                             + "for an update state request.")
+            raise RequestException("Complete state can only be set "
+                                   + "for an update state request.")
 
         self._request.updateStateRequest.newState.CopyFrom(
             complete_state._to_proto()

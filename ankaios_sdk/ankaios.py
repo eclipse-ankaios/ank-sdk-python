@@ -117,13 +117,15 @@ __all__ = ["Ankaios", "AnkaiosLogLevel"]
 
 import logging
 import time
-from typing import Optional, Union
+from typing import Union
 from enum import Enum
 import threading
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint
 
 from ._protos import _control_api
+from .exceptions import AnkaiosConnectionException, AnkaiosException, \
+                        ResponseException
 from ._components import Workload, CompleteState, Request, Response, \
                          ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
@@ -191,11 +193,16 @@ class Ankaios:
             exc_type (type): The exception type.
             exc_value (Exception): The exception instance.
             traceback (traceback): The traceback object.
+
+        Raises:
+            AnkaiosConnectionException: If an exception occurred.
         """
+        self._disconnect()
         if exc_type is not None:  # pragma: no cover
             self.logger.error("An exception occurred: %s, %s, %s",
                               exc_type, exc_value, traceback)
-        self._disconnect()
+            raise AnkaiosConnectionException(
+                f"An exception occurred: {exc_type}, {exc_value}, {traceback}")
 
     def _create_logger(self) -> None:
         """Create a logger with custom format and default log level."""
@@ -213,6 +220,10 @@ class Ankaios:
         This is meant to be run in a separate thread.
         It reads the response from the control interface and saves it in the
         responses dictionary, by triggering the corresponding ResponseEvent.
+
+        Raises:
+            AnkaiosConnectionException: If an error occurs
+                while reading the fifo.
         """
         try:
             # pylint: disable=consider-using-with
@@ -246,7 +257,7 @@ class Ankaios:
 
                 try:
                     response = Response(bytes(msg_buf))
-                except ValueError as e:  # pragma: no cover
+                except ResponseException as e:  # pragma: no cover
                     self.logger.error("Error while reading: %s", e)
                     continue
 
@@ -273,11 +284,15 @@ class Ankaios:
                 in seconds.
 
         Returns:
-            Response: The response object.
+            AnkaiosConnectionException: The response object.
+
+        Raises:
+            AnkaiosConnectionException: If reading from the control interface
+                is not started.
         """
         if not self._connected:
-            raise ValueError("Reading from the control interface "
-                             + "is not started.")
+            raise AnkaiosConnectionException(
+                "Reading from the control interface is not started.")
 
         with self._responses_lock:
             if request_id in self._responses:
@@ -316,9 +331,14 @@ class Ankaios:
 
         Returns:
             Response: The response object.
+
+        Raises:
+            AnkaiosConnectionException: If not connected.
         """
         if not self._connected:
-            raise ValueError("Cannot request if not connected.")
+            raise AnkaiosConnectionException(
+                "Cannot request if not connected."
+                )
         self._write_to_pipe(request)
 
         try:
@@ -342,10 +362,10 @@ class Ankaios:
         from the input fifo.
 
         Raises:
-            ValueError: If already connected.
+            AnkaiosConnectionException: If already connected.
         """
         if self._connected:
-            raise ValueError("Already connected.")
+            raise AnkaiosConnectionException("Already connected.")
         self._connected = True
         self._read_thread = threading.Thread(
             target=self._read_from_control_interface
@@ -358,14 +378,14 @@ class Ankaios:
         from the input fifo.
 
         Raises:
-            ValueError: If already disconnected.
+            AnkaiosConnectionException: If already disconnected.
         """
         if not self._connected:
-            raise ValueError("Already disconnected.")
+            raise AnkaiosConnectionException("Already disconnected.")
         self._connected = False
         self._read_thread.join()
 
-    def apply_manifest(self, manifest: Manifest) -> Optional[dict]:
+    def apply_manifest(self, manifest: Manifest) -> dict:
         """
         Send a request to apply a manifest.
 
@@ -374,7 +394,11 @@ class Ankaios:
 
         Returns:
             dict: a dict with the added and deleted workloads.
-            None: If the manifest was not applied successfully.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred while applying
+                the manifest.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(manifest.generate_complete_state())
@@ -385,24 +409,23 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return None
+            raise e
 
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == "error":
             self.logger.error("Error while trying to apply manifest: %s",
                               content)
-        elif content_type == "update_state_success":
-            self.logger.info(
-                "Update successfull: %s added workloads, "
-                + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
-            )
-            return content
-        return None
+            raise AnkaiosException(f"Received error: {content}")
+        self.logger.info(
+            "Update successfull: %s added workloads, "
+            + "%s deleted workloads.",
+            len(content["added_workloads"]),
+            len(content["deleted_workloads"])
+        )
+        return content
 
-    def delete_manifest(self, manifest: Manifest) -> Optional[dict]:
+    def delete_manifest(self, manifest: Manifest) -> dict:
         """
         Send a request to delete a manifest.
 
@@ -411,7 +434,11 @@ class Ankaios:
 
         Returns:
             dict: a dict with the added and deleted workloads.
-            None: If the manifest was not deleted successfully.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred while deleting
+                the manifest.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
@@ -422,24 +449,23 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return None
+            raise e
 
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == "error":
             self.logger.error("Error while trying to delete manifest: %s",
                               content)
-        elif content_type == "update_state_success":
-            self.logger.info(
-                "Update successfull: %s added workloads, "
-                + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
-            )
-            return content
-        return None
+            raise AnkaiosException(f"Received error: {content}")
+        self.logger.info(
+            "Update successfull: %s added workloads, "
+            + "%s deleted workloads.",
+            len(content["added_workloads"]),
+            len(content["deleted_workloads"])
+        )
+        return content
 
-    def run_workload(self, workload: Workload) -> Optional[dict]:
+    def run_workload(self, workload: Workload) -> dict:
         """
         Send a request to run a workload.
 
@@ -448,7 +474,10 @@ class Ankaios:
 
         Returns:
             dict: a dict with the added and deleted workloads.
-            None: If the workload was not run successfully.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred while running the workload.
         """
         complete_state = CompleteState()
         complete_state.set_workload(workload)
@@ -463,24 +492,23 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return None
+            raise e
 
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == "error":
             self.logger.error("Error while trying to run workload: %s",
                               content)
-        elif content_type == "update_state_success":
-            self.logger.info(
-                "Update successfull: %s added workloads, "
-                + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
-            )
-            return content
-        return None
+            raise AnkaiosException(f"Received error: {content}")
+        self.logger.info(
+            "Update successfull: %s added workloads, "
+            + "%s deleted workloads.",
+            len(content["added_workloads"]),
+            len(content["deleted_workloads"])
+        )
+        return content
 
-    def delete_workload(self, workload_name: str) -> Optional[dict]:
+    def delete_workload(self, workload_name: str) -> dict:
         """
         Send a request to delete a workload.
 
@@ -489,7 +517,10 @@ class Ankaios:
 
         Returns:
             dict: a dict with the added and deleted workloads.
-            None: If the workload was not deleted successfully.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred while deleting the workload.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
@@ -499,43 +530,41 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return None
+            raise e
 
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == "error":
             self.logger.error("Error while trying to delete workload: %s",
                               content)
-        elif content_type == "update_state_success":
-            self.logger.info(
-                "Update successfull: %s added workloads, "
-                + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
-            )
-            return content
-        return None
+            raise AnkaiosException(f"Received error: {content}")
+        self.logger.info(
+            "Update successfull: %s added workloads, "
+            + "%s deleted workloads.",
+            len(content["added_workloads"]),
+            len(content["deleted_workloads"])
+        )
+        return content
 
-    def get_workload(self, workload_name: str,
-                     state: CompleteState = None,
-                     timeout: float = DEFAULT_TIMEOUT) -> Workload:
+    def get_workload_with_instance_name(
+            self, instance_name: WorkloadInstanceName,
+            timeout: float = DEFAULT_TIMEOUT
+            ) -> Workload:
         """
-        Get the workload from the requested complete state.
+        Get the workload from the requested complete state, filtered
+        with the provided instance name.
 
         Args:
-            workload_name (str): The name of the workload.
-            state (CompleteState): The complete state to get the workload from.
+            instance_name (instance_name): The instance name of the workload.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
         Returns:
             Workload: The workload object.
         """
-        if state is None:
-            state = self.get_state(
-                timeout, [f"desiredState.workloads.{workload_name}"]
-            )
-        return state.get_workload(workload_name) if state is not None else None
+        return self.get_state(
+            timeout, [f"desiredState.workloads.{str(instance_name)}"]
+        ).get_workloads()[0]
 
     def set_configs(self, configs: dict) -> bool:
         """
@@ -607,7 +636,7 @@ class Ankaios:
         raise NotImplementedError("delete_config is not implemented yet.")
 
     def get_state(self, timeout: float = DEFAULT_TIMEOUT,
-                  field_masks: list[str] = None) -> Optional[CompleteState]:
+                  field_masks: list[str] = None) -> CompleteState:
         """
         Send a request to get the complete state.
 
@@ -619,7 +648,10 @@ class Ankaios:
 
         Returns:
             CompleteState: The complete state object.
-            None: If the state was not retrieved successfully.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred while getting the state.
         """
         request = Request(request_type="get_state")
         if field_masks is not None:
@@ -628,20 +660,20 @@ class Ankaios:
             response = self._send_request(request, timeout)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return None
+            raise e
 
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == "error":
             self.logger.error("Error while trying to get the state: %s",
                               content)
-            return None
+            raise AnkaiosException(f"Received error: {content}")
 
         return content
 
     def get_agents(
             self, timeout: float = DEFAULT_TIMEOUT
-            ) -> Optional[list[str]]:
+            ) -> list[str]:
         """
         Get the agents from the requested complete state.
 
@@ -651,14 +683,12 @@ class Ankaios:
 
         Returns:
             list[str]: The list of agent names.
-            None: If the state was not retrieved successfully.
         """
-        state = self.get_state(timeout)
-        return state.get_agents() if state is not None else None
+        return self.get_state(timeout).get_agents()
 
     def get_workload_states(self,
                             timeout: float = DEFAULT_TIMEOUT
-                            ) -> Optional[WorkloadStateCollection]:
+                            ) -> WorkloadStateCollection:
         """
         Get the workload states from the requested complete state.
 
@@ -668,16 +698,14 @@ class Ankaios:
 
         Returns:
             WorkloadStateCollection: The collection of workload states.
-            None: If the state was not retrieved successfully.
         """
-        state = self.get_state(timeout)
-        return state.get_workload_states() if state is not None else None
+        return self.get_state(timeout).get_workload_states()
 
     def get_execution_state_for_instance_name(
             self,
             instance_name: WorkloadInstanceName,
             timeout: float = DEFAULT_TIMEOUT
-            ) -> Optional[WorkloadExecutionState]:
+            ) -> WorkloadExecutionState:
         """
         Get the workload states for a specific workload instance name from the
         requested complete state.
@@ -690,22 +718,25 @@ class Ankaios:
 
         Returns:
             WorkloadExecutionState: The specified workload's execution state.
-            None: If the state was not retrieved successfully.
+
+        Raises:
+            AnkaiosException: If the workload state was not
+                retrieved successfully.
         """
         state = self.get_state(timeout, [instance_name.get_filter_mask()])
-        if state is not None:
-            workload_states = state.get_workload_states().get_as_list()
-            if len(workload_states) != 1:
-                self.logger.error("Expected exactly one workload state "
-                                  + "for instance name %s, but got %s",
-                                  instance_name, len(workload_states))
-                return None
-            return workload_states[0].execution_state
-        return None
+        workload_states = state.get_workload_states().get_as_list()
+        if len(workload_states) != 1:
+            self.logger.error("Expected exactly one workload state "
+                              + "for instance name %s, but got %s",
+                              instance_name, len(workload_states))
+            raise AnkaiosException(
+                "Expected exactly one workload state for instance name "
+                + f"{instance_name}, but got {len(workload_states)}")
+        return workload_states[0].execution_state
 
     def get_workload_states_on_agent(self, agent_name: str,
                                      timeout: float = DEFAULT_TIMEOUT
-                                     ) -> Optional[WorkloadStateCollection]:
+                                     ) -> WorkloadStateCollection:
         """
         Get the workload states on a specific agent from the requested
         complete state.
@@ -717,14 +748,13 @@ class Ankaios:
 
         Returns:
             WorkloadStateCollection: The collection of workload states.
-            None: If the state was not retrieved successfully
         """
         state = self.get_state(timeout, ["workloadStates." + agent_name])
-        return state.get_workload_states() if state is not None else None
+        return state.get_workload_states()
 
     def get_workload_states_for_name(self, workload_name: str,
                                      timeout: float = DEFAULT_TIMEOUT
-                                     ) -> Optional[WorkloadStateCollection]:
+                                     ) -> WorkloadStateCollection:
         """
         Get the workload states for a specific workload name from the
         requested complete state.
@@ -736,13 +766,10 @@ class Ankaios:
 
         Returns:
             WorkloadStateCollection: The collection of workload states.
-            None: If the state was not retrieved successfully.
         """
         state = self.get_state(
             timeout, ["workloadStates"]
         )
-        if state is None:
-            return None
         workload_states = state.get_workload_states().get_as_list()
         workload_states_for_name = WorkloadStateCollection()
         for workload_state in workload_states:
@@ -754,7 +781,7 @@ class Ankaios:
                                          instance_name: WorkloadInstanceName,
                                          state: WorkloadStateEnum,
                                          timeout: float = DEFAULT_TIMEOUT
-                                         ) -> bool:
+                                         ) -> None:
         """
         Waits for the workload to reach the specified state.
 
@@ -765,8 +792,8 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
-        Returns:
-            bool: True if the workload reached the state, False otherwise.
+        Raises:
+            TimeoutError: If the state was not reached in time.
         """
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -774,6 +801,8 @@ class Ankaios:
                 instance_name
             )
             if workload_state is not None and workload_state.state == state:
-                return True
+                return
             time.sleep(0.1)
-        return False
+        raise TimeoutError(
+            "Timeout while waiting for workload to reach state."
+            )

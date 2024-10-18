@@ -46,6 +46,7 @@ __all__ = ["Response", "ResponseEvent"]
 from typing import Union
 from threading import Event
 from .._protos import _control_api
+from ..exceptions import ResponseException
 from .complete_state import CompleteState
 from .workload_state import WorkloadInstanceName
 
@@ -81,14 +82,14 @@ class Response:
         Parses the received message buffer into a protobuf response message.
 
         Raises:
-            ValueError: If there is an error parsing the message buffer.
+            ResponseException: If there is an error parsing the message buffer.
         """
         from_ankaios = _control_api.FromAnkaios()
         try:
             # Deserialize the received proto msg
             from_ankaios.ParseFromString(self.buffer)
         except Exception as e:
-            raise ValueError(f"Invalid response, parsing error: '{e}'") from e
+            raise ResponseException(f"Parsing error: '{e}'") from e
         self._response = from_ankaios.response
 
     def _from_proto(self) -> None:
@@ -98,7 +99,7 @@ class Response:
         or an update state success.
 
         Raises:
-            ValueError: If the response type is invalid.
+            ResponseException: If the response type is invalid.
         """
         if self._response.HasField("error"):
             self.content_type = "error"
@@ -131,7 +132,7 @@ class Response:
                     )
                 )
         else:
-            raise ValueError("Invalid response type.")
+            raise ResponseException("Invalid response type.")
 
     def get_request_id(self) -> str:
         """
