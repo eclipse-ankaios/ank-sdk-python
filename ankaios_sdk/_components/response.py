@@ -47,6 +47,7 @@ from typing import Union
 from threading import Event
 from .._protos import _control_api
 from .complete_state import CompleteState
+from .workload_state import WorkloadInstanceName
 
 
 class Response:
@@ -107,13 +108,28 @@ class Response:
             self.content = CompleteState()
             self.content._from_proto(self._response.completeState)
         elif self._response.HasField("UpdateStateSuccess"):
+            update_state_msg = self._response.UpdateStateSuccess
             self.content_type = "update_state_success"
             self.content = {
-                "added_workloads":
-                    self._response.UpdateStateSuccess.addedWorkloads,
-                "deleted_workloads":
-                    self._response.UpdateStateSuccess.deletedWorkloads,
+                "added_workloads": [],
+                "deleted_workloads": [],
             }
+            for workload in update_state_msg.addedWorkloads:
+                workload_name, workload_id, agent_name = \
+                    workload.split(".")
+                self.content["added_workloads"].append(
+                    WorkloadInstanceName(
+                        agent_name, workload_name, workload_id
+                    )
+                )
+            for workload in update_state_msg.deletedWorkloads:
+                workload_name, workload_id, agent_name = \
+                    workload.split(".")
+                self.content["deleted_workloads"].append(
+                    WorkloadInstanceName(
+                        agent_name, workload_name, workload_id
+                    )
+                )
         else:
             raise ValueError("Invalid response type.")
 
@@ -143,8 +159,9 @@ class Response:
         Gets the content of the response.
 
         Returns:
-            (tuple[str, Union[str, CompleteState, dict]]): A tuple containing
-                the content type and the content of the response.
+            tuple[str, str]: in case of an error response.
+            tuple[str, CompleteState]: in case of a complete state response.
+            tuple[str, dict]: in case of an update state success response.
         """
         return (self.content_type, self.content)
 

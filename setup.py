@@ -102,29 +102,29 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "protobuf==5.27.2",
-        "PyYAML",
+        "protobuf==5.27.2",  # Protocol Buffers
+        "PyYAML",  # Used to parse manifest files
     ],
     setup_requires=[
-        "protobuf==5.27.2",
-        "grpcio-tools>=1.56.2",
-        "requests",
+        "protobuf==5.27.2",  # Protocol Buffers
+        "grpcio-tools>=1.56.2",  # Needed for an OS independent protoc
+        "requests",  # Used to download the proto files
     ],
     extras_require={
         # Development dependencies
         'dev': [
-            'pytest',
-            'pytest-cov',
-            'pylint',
-            'pycodestyle',
+            'pytest',  # Testing framework
+            'pytest-cov',  # Coverage plugin
+            'pylint',  # Linter
+            'pycodestyle',  # Style guide checker
         ],
         # Documentation dependencies
         'docs': [
-            'sphinx',
-            'sphinx-rtd-theme',
-            'sphinx-autodoc-typehints',
-            'sphinx-mdinclude',
-            'google-api-python-client',
+            'sphinx',  # Documentation generator
+            'sphinx-rtd-theme',  # Read the Docs theme
+            'sphinx-autodoc-typehints',  # Type hints support
+            'sphinx-mdinclude',  # Markdown include support
+            'google-api-python-client',  # Required for the Google API docstring extension
         ],
     },
 )

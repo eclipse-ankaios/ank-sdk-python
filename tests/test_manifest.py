@@ -100,6 +100,10 @@ def test_check():
 
     with pytest.raises(ValueError, match="Invalid manifest"):
         manifest = Manifest({'apiVersion': 'v0.1', 'workloads':
+                             {'nginx_test': {}}})
+
+    with pytest.raises(ValueError, match="Invalid manifest"):
+        manifest = Manifest({'apiVersion': 'v0.1', 'workloads':
                              {'nginx_test': {'invalid_key': ''}}})
 
 

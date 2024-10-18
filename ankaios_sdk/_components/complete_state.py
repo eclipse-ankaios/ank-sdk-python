@@ -14,13 +14,13 @@
 
 """
 This script defines the CompleteState class for managing
-the state of the system.
+the state of the Ankaios cluster.
 
 Classes
 -------
 
 - CompleteState:
-    Represents the complete state of the system.
+    Represents the complete state of the Ankaios cluster.
 
 Usage
 -----
@@ -45,7 +45,7 @@ Usage
 
         workload = complete_state.get_workload("nginx")
 
-- Get a list of workloads from the complete state:
+- Get the entire list of workloads from the complete state:
     .. code-block:: python
 
         workloads = complete_state.get_workloads()
@@ -68,16 +68,16 @@ from .workload import Workload
 from .workload_state import WorkloadStateCollection
 
 
-DEFAULT_API_VERSION = "v0.1"
+SUPPORTED_API_VERSION = "v0.1"
 
 
 class CompleteState:
     """
     A class to represent the complete state.
     """
-    def __init__(self, api_version: str = DEFAULT_API_VERSION) -> None:
+    def __init__(self, api_version: str = SUPPORTED_API_VERSION) -> None:
         """
-        Initializes a CompleteState instance with the given API version.
+        Initializes an empty CompleteState instance with the given API version.
 
         Args:
             api_version (str): The API version to set for the complete state.

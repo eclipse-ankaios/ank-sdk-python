@@ -23,6 +23,7 @@ Fixtures:
 from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import Workload, WorkloadBuilder
+from ankaios_sdk._protos import _ank_base
 
 
 @pytest.fixture
@@ -178,7 +179,28 @@ def test_build(
         .restart_policy("NEVER") \
         .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key_test", "abc") \
+        .add_allow_rule("Write", ["mask"]) \
         .build()
 
     assert workload is not None
     assert isinstance(workload, Workload)
+
+    assert workload.name == "workload_test"
+    assert workload._workload.agent == "agent_Test"
+    assert workload._workload.runtime == "runtime_test"
+    assert workload._workload.runtimeConfig == "config_test"
+    assert workload._workload.restartPolicy == _ank_base.RestartPolicy.NEVER
+    assert workload._workload.dependencies == _ank_base.Dependencies(
+        dependencies={"workload_test_other":
+                      _ank_base.AddCondition.ADD_COND_RUNNING}
+        )
+    assert workload._workload.tags == _ank_base.Tags(
+        tags=[_ank_base.Tag(key="key_test", value="abc")]
+        )
+    assert workload._workload.controlInterfaceAccess.allowRules == [
+        _ank_base.AccessRightsRule(
+            stateRule=_ank_base.StateRule(
+                operation=_ank_base.ReadWriteEnum.RW_WRITE,
+                filterMasks=["mask"]
+            )
+        )]

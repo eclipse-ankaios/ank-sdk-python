@@ -137,9 +137,15 @@ class Manifest():
         wl_allowed_keys = ["runtime", "agent", "restartPolicy",
                            "runtimeConfig", "dependencies", "tags",
                            "controlInterfaceAccess"]
+        wl_mandatory_keys = ["runtime", "runtimeConfig", "agent"]
         for wl_name in self._manifest["workloads"]:
+            # Check allowed keys
             for key in self._manifest["workloads"][wl_name].keys():
                 if key not in wl_allowed_keys:
+                    return False
+            # Check mandatory keys
+            for key in wl_mandatory_keys:
+                if key not in self._manifest["workloads"][wl_name].keys():
                     return False
         return True
 

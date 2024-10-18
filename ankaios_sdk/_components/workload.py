@@ -183,26 +183,6 @@ class Workload:
         self._workload.restartPolicy = _ank_base.RestartPolicy.Value(policy)
         self._add_mask(f"{self._main_mask}.restartPolicy")
 
-    def add_dependency(self, workload_name: str, condition: str) -> None:
-        """
-        Add a dependency to the workload.
-        Supported values: `ADD_COND_RUNNING`, `ADD_COND_SUCCEEDED`,
-        `ADD_COND_FAILED`.
-
-        Args:
-            workload_name (str): The name of the dependent workload.
-            condition (str): The condition for the dependency.
-
-        Raises:
-            ValueError: If an invalid condition is provided.
-        """
-        if condition not in _ank_base.AddCondition.keys():
-            raise ValueError("Invalid condition. Supported values: "
-                             + ", ".join(_ank_base.AddCondition.keys()) + ".")
-        self._workload.dependencies.dependencies[workload_name] = \
-            _ank_base.AddCondition.Value(condition)
-        self._add_mask(f"{self._main_mask}.dependencies")
-
     def get_dependencies(self) -> dict:
         """
         Return the dependencies of the workload.
@@ -216,17 +196,29 @@ class Workload:
             deps[dep] = _ank_base.AddCondition.Name(deps[dep])
         return deps
 
-    def update_dependencies(self, dependencies: dict) -> None:
+    def update_dependencies(self, dependencies: dict[str, str]) -> None:
         """
         Update the dependencies of the workload.
+        Supported conditions: `ADD_COND_RUNNING`, `ADD_COND_SUCCEEDED`,
+        `ADD_COND_FAILED`.
 
         Args:
             dependencies (dict): A dictionary of dependencies with
-                workload names and values.
+                workload names and condition as values.
+
+        Raises:
+            ValueError: If an invalid condition is provided.
         """
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
-            self.add_dependency(workload_name, condition)
+            if condition not in _ank_base.AddCondition.keys():
+                raise ValueError(
+                    f"Invalid condition for workload {workload_name}. "
+                    + "Supported values: "
+                    + ", ".join(_ank_base.AddCondition.keys()) + ".")
+            self._workload.dependencies.dependencies[workload_name] = \
+                _ank_base.AddCondition.Value(condition)
+        self._add_mask(f"{self._main_mask}.dependencies")
 
     def add_tag(self, key: str, value: str) -> None:
         """
@@ -238,7 +230,8 @@ class Workload:
         """
         tag = _ank_base.Tag(key=key, value=value)
         self._workload.tags.tags.append(tag)
-        self._add_mask(f"{self._main_mask}.tags")
+        if f"{self._main_mask}.tags" not in self.masks:
+            self._add_mask(f"{self._main_mask}.tags.{key}")
 
     def get_tags(self) -> list[tuple[str, str]]:
         """
@@ -262,21 +255,29 @@ class Workload:
         while len(self._workload.tags.tags) > 0:
             self._workload.tags.tags.pop()
         for key, value in tags:
-            self.add_tag(key, value)
+            tag = _ank_base.Tag(key=key, value=value)
+            self._workload.tags.tags.append(tag)
+        self.masks = [mask for mask in self.masks if not mask.startswith(
+            f"{self._main_mask}.tags"
+            )]
+        self._add_mask(f"{self._main_mask}.tags")
 
-    def add_allow_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> None:
+    def _generate_access_right_rule(self,
+                                    operation: str,
+                                    filter_masks: list[str]
+                                    ) -> _ank_base.AccessRightsRule:
         """
-        Add an allow rule to the workload.
-        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
+        Generate an access rights rule for the workload.
 
         Args:
             operation (str): The operation the rule allows.
             filter_masks (list): The list of filter masks.
 
+        Returns:
+            _ank_base.AccessRightsRule: The access rights rule generated.
+
         Raises:
-            ValueError: If an invalid operation is provided
+            ValueError: If an invalid operation is provided.
         """
         enum_mapper = {
             "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
@@ -290,15 +291,35 @@ class Workload:
                 + "Supported values: "
                 + ", ".join(enum_mapper.keys()) + "."
                 )
-        self._workload.controlInterfaceAccess.allowRules.append(
-            _ank_base.AccessRightsRule(
-                stateRule=_ank_base.StateRule(
-                    operation=enum_mapper[operation],
-                    filterMasks=filter_masks
-                )
+        return _ank_base.AccessRightsRule(
+            stateRule=_ank_base.StateRule(
+                operation=enum_mapper[operation],
+                filterMasks=filter_masks
             )
         )
-        self._add_mask(f"{self._main_mask}.controlInterfaceAccess")
+
+    def _access_right_rule_to_str(self, rule: _ank_base.AccessRightsRule
+                                  ) -> tuple[str, list[str]]:
+        """
+        Convert an access rights rule to a tuple.
+
+        Args:
+            rule (_ank_base.AccessRightsRule): The access
+                rights rule to convert.
+
+        Returns:
+            tuple: A tuple containing operation and filter masks.
+        """
+        enum_mapper = {
+            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
+            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
+            _ank_base.ReadWriteEnum.RW_READ: "Read",
+            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
+        }
+        return (
+            enum_mapper[rule.stateRule.operation],
+            rule.stateRule.filterMasks
+        )
 
     def get_allow_rules(self) -> list[tuple[str, list[str]]]:
         """
@@ -307,68 +328,30 @@ class Workload:
         Returns:
             list: A list of tuples containing operation and filter masks.
         """
-        enum_mapper = {
-            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
-            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
-            _ank_base.ReadWriteEnum.RW_READ: "Read",
-            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
-        }
         rules = []
         for rule in self._workload.controlInterfaceAccess.allowRules:
-            rules.append((
-                enum_mapper[rule.stateRule.operation],
-                rule.stateRule.filterMasks
-            ))
+            rules.append(self._access_right_rule_to_str(rule))
         return rules
 
     def update_allow_rules(self, rules: list[tuple[str, list[str]]]) -> None:
         """
         Update the allow rules of the workload.
+        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
             rules (list): A list of tuples containing
                 operation and filter masks.
-        """
-        while len(self._workload.controlInterfaceAccess.allowRules) > 0:
-            self._workload.controlInterfaceAccess.allowRules.pop()
-        for operation, filter_masks in rules:
-            self.add_allow_rule(operation, filter_masks)
-
-    def add_deny_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> None:
-        """
-        Add a deny rule to the workload.
-        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
-
-        Args:
-            operation (str): The operation the rule denies.
-            filter_masks (list): The list of filter masks.
 
         Raises:
             ValueError: If an invalid operation is provided
         """
-        enum_mapper = {
-            "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
-            "Write": _ank_base.ReadWriteEnum.RW_WRITE,
-            "Read": _ank_base.ReadWriteEnum.RW_READ,
-            "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
-        }
-        if operation not in enum_mapper:
-            raise ValueError(
-                f"Invalid operation {operation}. "
-                + "Supported values: "
-                + ", ".join(enum_mapper.keys()) + "."
-                )
-        self._workload.controlInterfaceAccess.denyRules.append(
-            _ank_base.AccessRightsRule(
-                stateRule=_ank_base.StateRule(
-                    operation=enum_mapper[operation],
-                    filterMasks=filter_masks
-                )
+        while len(self._workload.controlInterfaceAccess.allowRules) > 0:
+            self._workload.controlInterfaceAccess.allowRules.pop()
+        for operation, filter_masks in rules:
+            self._workload.controlInterfaceAccess.allowRules.append(
+                self._generate_access_right_rule(operation, filter_masks)
             )
-        )
-        self._add_mask(f"{self._main_mask}.controlInterfaceAccess")
+        self._add_mask(f"{self._main_mask}.controlInterfaceAccess.allowRules")
 
     def get_deny_rules(self) -> list[tuple[str, list[str]]]:
         """
@@ -377,32 +360,30 @@ class Workload:
         Returns:
             list: A list of tuples containing operation and filter masks.
         """
-        enum_mapper = {
-            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
-            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
-            _ank_base.ReadWriteEnum.RW_READ: "Read",
-            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
-        }
         rules = []
         for rule in self._workload.controlInterfaceAccess.denyRules:
-            rules.append((
-                enum_mapper[rule.stateRule.operation],
-                rule.stateRule.filterMasks
-            ))
+            rules.append(self._access_right_rule_to_str(rule))
         return rules
 
     def update_deny_rules(self, rules: list[tuple[str, list[str]]]) -> None:
         """
         Update the deny rules of the workload.
+        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
             rules (list): A list of tuples containing
                 operation and filter masks.
+
+        Raises:
+            ValueError: If an invalid operation is provided
         """
         while len(self._workload.controlInterfaceAccess.denyRules) > 0:
             self._workload.controlInterfaceAccess.denyRules.pop()
         for operation, filter_masks in rules:
-            self.add_deny_rule(operation, filter_masks)
+            self._workload.controlInterfaceAccess.denyRules.append(
+                self._generate_access_right_rule(operation, filter_masks)
+            )
+        self._add_mask(f"{self._main_mask}.controlInterfaceAccess.denyRules")
 
     def add_config(self, alias: str, name: str) -> None:
         """

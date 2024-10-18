@@ -7,9 +7,9 @@
 # Ankaios Python SDK for Eclipse Ankaios
 
 Eclipse Ankaios provides workload and container orchestration for automotive
-High Performance Computing Software (HPCs). While it can be used for various
-fields of applications, it is developed from scratch for automotive use cases
-and provides a slim yet powerful solution to manage containerized applications.
+High Performance Computers (HPCs). While it can be used for various fields of
+applications, it is developed from scratch for automotive use cases and provides
+a slim yet powerful solution to manage containerized applications.
 
 The Python SDK provides easy access from the container (workload) point-of-view
 to manage the Ankaios system. A workload can use the Python SDK to run other workloads
@@ -58,27 +58,40 @@ with Ankaios() as ankaios:
     .build()
 
   # Run the workload
-  ankaios.run_workload(workload)
+  ret = ankaios.run_workload(workload)
 
-  # Request the state of the system, filtered with the current workload
+  # Check if the workload is scheduled and get the WorkloadInstanceName
+  if ret is not None:
+    workload_instance_name = ret["added_workloads"][0]
+  
+  # Wait until the workload raches the running state
+  ret = ankaios.wait_for_workload_to_reach_state(
+    workload_instance_name,
+    state=WorkloadStateEnum.RUNNING,
+    timeout=5
+    )
+  if ret:
+    print("Workload reached the RUNNING state.")
+
+  # Request the workload state based on the workload instance name
+  ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
+  if ret is not None:
+    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.info}")
+
+  # Request the state of the system, filtered with the agent name
   complete_state = ankaios.get_state(
     timeout=5,
-    field_mask=["workloadStates.agent_A.dynamic_nginx"])
+    field_mask=["workloadStates.agent_A"])
 
   # Get the workload states present in the complete_state
   workload_states_dict = complete_state.get_workload_states().get_as_dict()
 
-  # Get the state of the desired workload
-  dynamic_nginx_state = workload_states_dict["agent_A"]["dynamic_nginx"].values()[0]
-
-  # Check state
-  if dynamic_nginx_state.state == WorkloadStateEnum.RUNNING and
-    dynamic_nginx_state.substate == WorkloadSubStateEnum.RUNNING_OK:
-    print("Workload started running succesfully")
-  elif dynamic_nginx_state.state == WorkloadStateEnum.FAILED:
-    print("Workload failed with the following substate: {}".format(
-      dynamic_nginx_state.substate.name
-    ))
+  # Print the states of the workloads:
+  for workload_name in workload_states_dict["agent_A"]:
+    for workload_id in workload_states_dict["agent_A"][workload_name]:
+      print(f"Workload {workload_name} with id {workload_id} has the state "
+            + str(workload_states_dict["agent_A"] \
+                 [workload_name][workload_id].state))
 ```
 
 ## Contributing

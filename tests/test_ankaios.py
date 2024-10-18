@@ -21,7 +21,8 @@ import logging
 from unittest.mock import patch, mock_open, MagicMock
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
-    Manifest, CompleteState
+    Manifest, CompleteState, WorkloadInstanceName, WorkloadStateCollection, \
+    WorkloadStateEnum
 from tests.workload.test_workload import generate_test_workload
 from tests.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
@@ -349,30 +350,8 @@ def test_configs():
     """
     ankaios = Ankaios()
 
-    # Note for the set from file tests:
-    # with patch("builtins.open", mock_open()) as mock_file, \
-    #         patch("ankaios_sdk.Ankaios.set_config") as mock_set_config:
-    #     mock_file().read.return_value = {'config_test': 'value'}
-    #     ankaios.set_config_from_file(name="config_test",
-    #                                  config_path=r"path/to/config")
-
-    #     mock_file.assert_called_with(
-    #         r"path/to/config", "r", encoding="utf-8"
-    #         )
-    #     mock_file().read.assert_called_once()
-    #     mock_set_config.assert_called_once_with(
-    #         "config_test", {'config_test': 'value'}
-    #     )
-
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.set_configs_from_file(configs_path=r"path/to/configs")
-
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.set_configs(configs={'name': 'config'})
-
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.set_config_from_file(name="config_test",
-                                     config_path=r"path/to/config")
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.set_config(name="config_test", config={'config_test': 'value'})
@@ -384,7 +363,7 @@ def test_configs():
         ankaios.get_config(name="config_test")
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.delete_configs()
+        ankaios.delete_all_configs()
 
     with pytest.raises(NotImplementedError, match="not implemented yet"):
         ankaios.delete_config(name="config_test")
@@ -436,13 +415,6 @@ def test_get_agents():
         mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
         mock_state_get_agents.assert_called_once()
 
-    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
-            patch("ankaios_sdk.CompleteState.get_agents") \
-            as mock_state_get_agents:
-        ankaios.get_agents(state=CompleteState())
-        mock_get_state.assert_not_called()
-        mock_state_get_agents.assert_called_once()
-
 
 def test_get_workload_states():
     """
@@ -458,12 +430,57 @@ def test_get_workload_states():
         mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
         mock_state_get_workload_states.assert_called_once()
 
+
+def test_get_workload_states_for_instance_name():
+    """
+    Test the get workload states for instance name method of the Ankaios class.
+    """
+    ankaios = Ankaios()
+    ankaios.logger = MagicMock()
+    workload_instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+
+    # State is None
     with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
-        ankaios.get_workload_states(state=CompleteState())
-        mock_get_state.assert_not_called()
+        mock_get_state.return_value = None
+        assert ankaios.get_execution_state_for_instance_name(
+            workload_instance_name
+            ) is None
+        mock_get_state.assert_called_once_with(
+            Ankaios.DEFAULT_TIMEOUT, [workload_instance_name.get_filter_mask()]
+        )
+        mock_state_get_workload_states.assert_not_called()
+
+    # State does not contain the required workload state
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_workload_states") \
+            as mock_state_get_workload_states:
+        mock_get_state.return_value = CompleteState()
+        assert ankaios.get_execution_state_for_instance_name(
+            workload_instance_name
+            ) is None
         mock_state_get_workload_states.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # State contains the required workload state
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_workload_states") \
+            as mock_state_get_workload_states, \
+            patch("ankaios_sdk.WorkloadStateCollection.get_as_list") \
+            as mock_state_get_as_list:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_workload_states.return_value = WorkloadStateCollection()
+        workload_state = MagicMock()
+        workload_state.execution_state = MagicMock()
+        mock_state_get_as_list.return_value = [workload_state]
+        assert ankaios.get_execution_state_for_instance_name(
+            workload_instance_name
+            ) == workload_state.execution_state
 
 
 def test_get_workload_states_on_agent():
@@ -482,13 +499,6 @@ def test_get_workload_states_on_agent():
         )
         mock_state_get_workload_states.assert_called_once()
 
-    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
-            patch("ankaios_sdk.CompleteState.get_workload_states") \
-            as mock_state_get_workload_states:
-        ankaios.get_workload_states_on_agent("agent_A", state=CompleteState())
-        mock_get_state.assert_not_called()
-        mock_state_get_workload_states.assert_called_once()
-
 
 def test_get_workload_states_for_name():
     """
@@ -496,21 +506,71 @@ def test_get_workload_states_for_name():
     """
     ankaios = Ankaios()
 
+    # Invalid state
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_workload_states") \
+            as mock_state_get_workload_states:
+        mock_get_state.return_value = None
+        assert ankaios.get_workload_states_for_name("nginx") is None
+        mock_get_state.assert_called_once_with(
+            Ankaios.DEFAULT_TIMEOUT, ["workloadStates"]
+        )
+
+    # Valid state, workload not found
     with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
-        ankaios.get_workload_states_for_name("nginx")
+        ret = ankaios.get_workload_states_for_name("nginx")
+        assert isinstance(ret, WorkloadStateCollection)
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT, ["workloadStates.nginx"]
+            Ankaios.DEFAULT_TIMEOUT, ["workloadStates"]
         )
         mock_state_get_workload_states.assert_called_once()
 
+    # Valid state, workload found
     with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
-        ankaios.get_workload_states_for_name(
-            "nginx", state=CompleteState()
+        mock_get_state.return_value = CompleteState()
+        wl_state_collection = WorkloadStateCollection()
+        wl_state = MagicMock()
+        wl_state.name = "nginx"
+        wl_state_collection.add_workload_state(wl_state)
+        mock_state_get_workload_states.return_value = wl_state_collection
+        ret = ankaios.get_workload_states_for_name("nginx")
+        assert isinstance(ret, WorkloadStateCollection)
+        assert wl_state in ret.get_as_list()
+
+
+def test_wait_for_workload_to_reach_state():
+    """
+    Test the wait for workload to reach state method of the Ankaios class.
+    """
+    ankaios = Ankaios()
+    instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios.get_execution_state_for_instance_name") \
+            as mock_get_state:
+        mock_get_state.return_value = MagicMock()
+        mock_get_state().state = WorkloadStateEnum.FAILED
+        assert not ankaios.wait_for_workload_to_reach_state(
+            instance_name, WorkloadStateEnum.RUNNING,
+            timeout=0.01
         )
-        mock_get_state.assert_not_called()
-        mock_state_get_workload_states.assert_called_once()
+        mock_get_state.assert_called()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios.get_execution_state_for_instance_name") \
+            as mock_get_state:
+        mock_get_state.return_value = MagicMock()
+        mock_get_state().state = WorkloadStateEnum.RUNNING
+        assert ankaios.wait_for_workload_to_reach_state(
+            instance_name, WorkloadStateEnum.RUNNING
+        )
+        mock_get_state.assert_called()

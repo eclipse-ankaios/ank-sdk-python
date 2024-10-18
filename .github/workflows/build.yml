@@ -64,7 +64,7 @@ jobs:
           pip install .[dev]
 
       - name: Run unit tests
-        run: python3 run_tests.py --utest
+        run: python3 run_checks.py --utest
         continue-on-error: true
 
       - name: Upload unit test report
@@ -97,7 +97,7 @@ jobs:
           pip install .[dev]
 
       - name: Run coverage
-        run: python3 run_tests.py --cov
+        run: python3 run_checks.py --cov
         continue-on-error: true
 
       - name: Upload coverage report
@@ -130,7 +130,7 @@ jobs:
           pip install .[dev]
 
       - name: Run lint
-        run: python3 run_tests.py --lint
+        run: python3 run_checks.py --lint
         continue-on-error: true
 
       - name: Upload lint report
@@ -163,7 +163,7 @@ jobs:
           pip install .[dev]
 
       - name: Run pep8 codestyle check
-        run: python3 run_tests.py --pep8
+        run: python3 run_checks.py --pep8
         continue-on-error: true
 
       - name: Upload codestyle report

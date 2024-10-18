@@ -63,7 +63,7 @@ __all__ = ["WorkloadStateCollection", "WorkloadState",
            "WorkloadInstanceName", "WorkloadExecutionState",
            "WorkloadStateEnum", "WorkloadSubStateEnum"]
 
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 from enum import Enum
 from .._protos import _ank_base
 
@@ -279,6 +279,23 @@ class WorkloadInstanceName:
         self.workload_name = workload_name
         self.workload_id = workload_id
 
+    def __eq__(self, other: "WorkloadInstanceName") -> bool:
+        """
+        Checks if two workload instance names are equal.
+
+        Args:
+            other (WorkloadInstanceName): The instance name to compare with.
+
+        Returns:
+            bool: True if the workload instance names are equal,
+                False otherwise.
+        """
+        if isinstance(other, WorkloadInstanceName):
+            return (self.agent_name == other.agent_name
+                    and self.workload_name == other.workload_name
+                    and self.workload_id == other.workload_id)
+        return NotImplemented
+
     def __str__(self) -> str:
         """
         Returns the string representation of the workload instance name.
@@ -286,7 +303,17 @@ class WorkloadInstanceName:
         Returns:
             str: The string representation of the workload instance name.
         """
-        return f"{self.agent_name}.{self.workload_name}.{self.workload_id}"
+        return f"{self.workload_name}.{self.workload_id}.{self.agent_name}"
+
+    def get_filter_mask(self) -> str:
+        """
+        Returns the filter mask for the workload instance name.
+
+        Returns:
+            str: The filter mask for the workload instance name.
+        """
+        return f"workloadStates.{self.agent_name}." \
+               + f"{self.workload_name}.{self.workload_id}"
 
 
 # pylint: disable=too-few-public-methods
@@ -343,10 +370,10 @@ class WorkloadStateCollection:
 
     def get_as_dict(self) -> WorkloadStatesMap:
         """
-        Returns the workload states as a list.
+        Returns the workload states as a dict.
 
         Returns:
-            list[WorkloadState]: A list of workload states.
+            WorkloadStatesMap: A dict of workload states.
         """
         return_dict = self.WorkloadStatesMap()
         for state in self._workload_states:
@@ -373,6 +400,24 @@ class WorkloadStateCollection:
             list[WorkloadState]: A list of workload states.
         """
         return self._workload_states
+
+    def get_for_instance_name(self, instance_name: WorkloadInstanceName
+                              ) -> Optional[WorkloadState]:
+        """
+        Returns the workload state for the given workload instance name.
+
+        Args:
+            instance_name (WorkloadInstanceName): The workload instance name
+                to look up.
+
+        Returns:
+            WorkloadState: The workload state for the given instance name.
+            None: If no workload state was found.
+        """
+        for state in self._workload_states:
+            if state.workload_instance_name == instance_name:
+                return state
+        return None
 
     def _from_proto(self, state: _ank_base.WorkloadStatesMap) -> None:
         """

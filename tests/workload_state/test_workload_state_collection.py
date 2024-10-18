@@ -18,7 +18,7 @@ class in the ankaios_sdk.
 """
 
 from ankaios_sdk import WorkloadStateCollection, WorkloadState, \
-    WorkloadExecutionState
+    WorkloadExecutionState, WorkloadInstanceName
 from ankaios_sdk._protos import _ank_base
 
 
@@ -61,6 +61,20 @@ def test_get():
         workload_states_dict["agent_Test"]["workload_Test"]["1234"],
         WorkloadExecutionState
     )
+
+    # Test get_for_instance_name
+    workload_instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+    assert workload_state_collection.get_for_instance_name(
+        workload_instance_name
+    ) == workload_state
+    workload_instance_name.workload_id = "5678"
+    assert workload_state_collection.get_for_instance_name(
+        workload_instance_name
+    ) is None
 
 
 def test_from_proto():

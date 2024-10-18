@@ -40,26 +40,35 @@ Usage
 - Apply a manifest:
     .. code-block:: python
 
-        if ankaios.apply_manifest(manifest):
+        ret = ankaios.apply_manifest(manifest)
+        if ret is not None:
             print("Manifest applied successfully.")
+            print(ret["added_workloads"])
+            print(ret["deleted_workloads"])
 
 - Delete a manifest:
     .. code-block:: python
 
-        if ankaios.delete_manifest(manifest):
+        ret = ankaios.delete_manifest(manifest)
+        if ret is not None:
             print("Manifest deleted successfully.")
+            print(ret["deleted_workloads"])
 
 - Run a workload:
     .. code-block:: python
 
-        if ankaios.run_workload(workload):
+        ret = ankaios.run_workload(workload)
+        if ret is not None:
             print("Workload started successfully.")
+            print(ret["added_workloads"])
 
 - Delete a workload:
     .. code-block:: python
 
-        if ankaios.delete_workload(workload_name):
+        ret = ankaios.delete_workload(workload_name)
+        if ret is not None:
             print("Workload deleted successfully.")
+            print(ret["deleted_workloads"])
 
 - Get a workload:
     .. code-block:: python
@@ -81,22 +90,34 @@ Usage
 
         workload_states = ankaios.get_workload_states()
 
-- Get the workload states on an agent:
+- Get the workload states:
     .. code-block:: python
 
-        workload_states = ankaios.get_workload_states_on_agent(agent_name)
+        workload_states = ankaios.get_workload_states()
 
-- Get the workload states on a workload name:
+- Get the workload execution state for instance name:
     .. code-block:: python
 
-        workload_states =
-            ankaios.get_workload_states_for_name(workload_name)
+        ret = ankaios.get_execution_state_for_instance_name(instance_name)
+        if ret is not None:
+            print(f"State: {ret.state}, substate: {ret.substate}")
+
+- Wait for a workload to reach a state:
+    .. code-block:: python
+
+        ret = ankaios.wait_for_workload_to_reach_state(
+            instance_name,
+            WorkloadStateEnum.RUNNING
+        )
+        if ret:
+            print(f"State reached.")
 """
 
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
 
 import logging
-from typing import Union
+import time
+from typing import Optional, Union
 from enum import Enum
 import threading
 from google.protobuf.internal.encoder import _VarintBytes
@@ -104,7 +125,9 @@ from google.protobuf.internal.decoder import _DecodeVarint
 
 from ._protos import _control_api
 from ._components import Workload, CompleteState, Request, Response, \
-                         ResponseEvent, WorkloadStateCollection, Manifest
+                         ResponseEvent, WorkloadStateCollection, Manifest, \
+                         WorkloadInstanceName, WorkloadStateEnum, \
+                         WorkloadExecutionState
 
 
 class AnkaiosLogLevel(Enum):
@@ -191,16 +214,17 @@ class Ankaios:
         It reads the response from the control interface and saves it in the
         responses dictionary, by triggering the corresponding ResponseEvent.
         """
-        # pylint: disable=consider-using-with
-        f = open(f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
-
         try:
+            # pylint: disable=consider-using-with
+            input_fifo = open(
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
+
             while self._connected:
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
                 while True:
                     # Consume byte for byte
-                    next_byte = f.read(1)
+                    next_byte = input_fifo.read(1)
                     if not next_byte:  # pragma: no cover
                         break
                     varint_buffer += next_byte
@@ -215,7 +239,7 @@ class Ankaios:
                 msg_buf = bytearray()
                 for _ in range(msg_len):
                     # Read the message according to the length
-                    next_byte = f.read(1)
+                    next_byte = input_fifo.read(1)
                     if not next_byte:  # pragma: no cover
                         break
                     msg_buf += next_byte
@@ -236,7 +260,7 @@ class Ankaios:
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
         finally:
-            f.close()
+            input_fifo.close()
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -274,9 +298,9 @@ class Ankaios:
             request_to_ankaios = _control_api.ToAnkaios(
                 request=request._to_proto()
             )
-            # Send the byte length of the proto msg
+            # Adds the byte length of the proto msg
             f.write(_VarintBytes(request_to_ankaios.ByteSize()))
-            # Send the proto msg itself
+            # Adds the proto msg itself
             f.write(request_to_ankaios.SerializeToString())
             f.flush()
 
@@ -341,7 +365,7 @@ class Ankaios:
         self._connected = False
         self._read_thread.join()
 
-    def apply_manifest(self, manifest: Manifest) -> bool:
+    def apply_manifest(self, manifest: Manifest) -> Optional[dict]:
         """
         Send a request to apply a manifest.
 
@@ -349,8 +373,8 @@ class Ankaios:
             manifest (Manifest): The manifest object to be applied.
 
         Returns:
-            bool: True if the manifest was applied successfully,
-                False otherwise.
+            dict: a dict with the added and deleted workloads.
+            None: If the manifest was not applied successfully.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(manifest.generate_complete_state())
@@ -361,7 +385,7 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return False
+            return None
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -372,12 +396,13 @@ class Ankaios:
             self.logger.info(
                 "Update successfull: %s added workloads, "
                 + "%s deleted workloads.",
-                content["added_workloads"], content["deleted_workloads"]
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
             )
-            return True
-        return False
+            return content
+        return None
 
-    def delete_manifest(self, manifest: Manifest) -> bool:
+    def delete_manifest(self, manifest: Manifest) -> Optional[dict]:
         """
         Send a request to delete a manifest.
 
@@ -385,8 +410,8 @@ class Ankaios:
             manifest (Manifest): The manifest object to be deleted.
 
         Returns:
-            bool: True if the manifest was deleted successfully,
-                False otherwise.
+            dict: a dict with the added and deleted workloads.
+            None: If the manifest was not deleted successfully.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
@@ -397,7 +422,7 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return False
+            return None
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -408,12 +433,13 @@ class Ankaios:
             self.logger.info(
                 "Update successfull: %s added workloads, "
                 + "%s deleted workloads.",
-                content["added_workloads"], content["deleted_workloads"]
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
             )
-            return True
-        return False
+            return content
+        return None
 
-    def run_workload(self, workload: Workload) -> bool:
+    def run_workload(self, workload: Workload) -> Optional[dict]:
         """
         Send a request to run a workload.
 
@@ -421,7 +447,8 @@ class Ankaios:
             workload (Workload): The workload object to be run.
 
         Returns:
-            bool: True if the workload was run successfully, False otherwise.
+            dict: a dict with the added and deleted workloads.
+            None: If the workload was not run successfully.
         """
         complete_state = CompleteState()
         complete_state.set_workload(workload)
@@ -436,7 +463,7 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return False
+            return None
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -447,12 +474,13 @@ class Ankaios:
             self.logger.info(
                 "Update successfull: %s added workloads, "
                 + "%s deleted workloads.",
-                content["added_workloads"], content["deleted_workloads"]
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
             )
-            return True
-        return False
+            return content
+        return None
 
-    def delete_workload(self, workload_name: str) -> bool:
+    def delete_workload(self, workload_name: str) -> Optional[dict]:
         """
         Send a request to delete a workload.
 
@@ -460,8 +488,8 @@ class Ankaios:
             workload_name (str): The name of the workload to be deleted.
 
         Returns:
-            bool: True if the workload was deleted successfully,
-                False otherwise.
+            dict: a dict with the added and deleted workloads.
+            None: If the workload was not deleted successfully.
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
@@ -471,7 +499,7 @@ class Ankaios:
             response = self._send_request(request)
         except TimeoutError as e:
             self.logger.error("%s", e)
-            return False
+            return None
 
         # Interpret response
         (content_type, content) = response.get_content()
@@ -482,10 +510,11 @@ class Ankaios:
             self.logger.info(
                 "Update successfull: %s added workloads, "
                 + "%s deleted workloads.",
-                content["added_workloads"], content["deleted_workloads"]
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
             )
-            return True
-        return False
+            return content
+        return None
 
     def get_workload(self, workload_name: str,
                      state: CompleteState = None,
@@ -508,25 +537,6 @@ class Ankaios:
             )
         return state.get_workload(workload_name) if state is not None else None
 
-    def set_configs_from_file(self, configs_path: str) -> bool:
-        """
-        Set the configs from a file.
-        The configs file should have a dictionary as the top level object.
-        The names will be the keys of the dictionary.
-
-        Args:
-            config_path (str): The path to the configs file.
-
-        Returns:
-            bool: True if the configs were set successfully, False otherwise.
-        """
-        # with open(configs_path, "r", encoding="utf-8") as f:
-        #     configs = f.read()
-        #     self.set_configs(configs)
-        raise NotImplementedError(
-            "set_configs_from_file is not implemented yet."
-            )
-
     def set_configs(self, configs: dict) -> bool:
         """
         Set the configs. The names will be the keys of the dictionary.
@@ -539,26 +549,10 @@ class Ankaios:
         """
         raise NotImplementedError("set_configs is not implemented yet.")
 
-    def set_config_from_file(self, name: str, config_path: str) -> bool:
-        """
-        Set the config from a file, with the provided name.
-        If the config exists, it will be replaced.
-
-        Args:
-            name (str): The name of the config.
-            config_path (str): The path to the config file.
-
-        Returns:
-            bool: True if the config was set successfully, False otherwise.
-        """
-        raise NotImplementedError(
-            "set_config_from_file is not implemented yet."
-            )
-
     def set_config(self, name: str, config: Union[dict, list, str]) -> bool:
         """
         Set the config with the provided name.
-        If the config exists, it will eb replaced.
+        If the config exists, it will be replaced.
 
         Args:
             name (str): The name of the config.
@@ -590,7 +584,7 @@ class Ankaios:
         """
         raise NotImplementedError("get_config is not implemented yet.")
 
-    def delete_configs(self) -> bool:
+    def delete_all_configs(self) -> bool:
         """
         Delete all the configs.
 
@@ -598,7 +592,7 @@ class Ankaios:
             bool: True if the configs were deleted successfully,
                 False otherwise.
         """
-        raise NotImplementedError("delete_configs is not implemented yet.")
+        raise NotImplementedError("delete_all_configs is not implemented yet.")
 
     def delete_config(self, name: str) -> bool:
         """
@@ -613,7 +607,7 @@ class Ankaios:
         raise NotImplementedError("delete_config is not implemented yet.")
 
     def get_state(self, timeout: float = DEFAULT_TIMEOUT,
-                  field_masks: list[str] = None) -> CompleteState:
+                  field_masks: list[str] = None) -> Optional[CompleteState]:
         """
         Send a request to get the complete state.
 
@@ -625,6 +619,7 @@ class Ankaios:
 
         Returns:
             CompleteState: The complete state object.
+            None: If the state was not retrieved successfully.
         """
         request = Request(request_type="get_state")
         if field_masks is not None:
@@ -644,90 +639,141 @@ class Ankaios:
 
         return content
 
-    def get_agents(self, state: CompleteState = None,
-                   timeout: float = DEFAULT_TIMEOUT) -> list[str]:
+    def get_agents(
+            self, timeout: float = DEFAULT_TIMEOUT
+            ) -> Optional[list[str]]:
         """
         Get the agents from the requested complete state.
 
         Args:
-            state (CompleteState): The complete state to get the agents from.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
         Returns:
             list[str]: The list of agent names.
+            None: If the state was not retrieved successfully.
         """
-        if state is None:
-            state = self.get_state(timeout)
+        state = self.get_state(timeout)
         return state.get_agents() if state is not None else None
 
     def get_workload_states(self,
-                            state: CompleteState = None,
                             timeout: float = DEFAULT_TIMEOUT
-                            ) -> WorkloadStateCollection:
+                            ) -> Optional[WorkloadStateCollection]:
         """
         Get the workload states from the requested complete state.
-        If a state is not provided, it will be requested.
 
         Args:
-            state (CompleteState): The complete state to get
-                the workload states from.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
         Returns:
             WorkloadStateCollection: The collection of workload states.
+            None: If the state was not retrieved successfully.
         """
-        if state is None:
-            state = self.get_state(timeout)
+        state = self.get_state(timeout)
         return state.get_workload_states() if state is not None else None
 
+    def get_execution_state_for_instance_name(
+            self,
+            instance_name: WorkloadInstanceName,
+            timeout: float = DEFAULT_TIMEOUT
+            ) -> Optional[WorkloadExecutionState]:
+        """
+        Get the workload states for a specific workload instance name from the
+        requested complete state.
+
+        Args:
+            instance_name (WorkloadInstanceName): The instance name of the
+                workload.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Returns:
+            WorkloadExecutionState: The specified workload's execution state.
+            None: If the state was not retrieved successfully.
+        """
+        state = self.get_state(timeout, [instance_name.get_filter_mask()])
+        if state is not None:
+            workload_states = state.get_workload_states().get_as_list()
+            if len(workload_states) != 1:
+                self.logger.error("Expected exactly one workload state "
+                                  + "for instance name %s, but got %s",
+                                  instance_name, len(workload_states))
+                return None
+            return workload_states[0].execution_state
+        return None
+
     def get_workload_states_on_agent(self, agent_name: str,
-                                     state: CompleteState = None,
                                      timeout: float = DEFAULT_TIMEOUT
-                                     ) -> WorkloadStateCollection:
+                                     ) -> Optional[WorkloadStateCollection]:
         """
         Get the workload states on a specific agent from the requested
         complete state.
-        If a state is not provided, it will be requested.
 
         Args:
             agent_name (str): The name of the agent.
-            state (CompleteState): The complete state to get
-                the workload states from.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
         Returns:
-            WorkloadStateCollection: The collection of workload states on the
-                specified agent.
+            WorkloadStateCollection: The collection of workload states.
+            None: If the state was not retrieved successfully
         """
-        if state is None:
-            state = self.get_state(timeout, ["workloadStates." + agent_name])
+        state = self.get_state(timeout, ["workloadStates." + agent_name])
         return state.get_workload_states() if state is not None else None
 
     def get_workload_states_for_name(self, workload_name: str,
-                                     state: CompleteState = None,
                                      timeout: float = DEFAULT_TIMEOUT
-                                     ) -> WorkloadStateCollection:
+                                     ) -> Optional[WorkloadStateCollection]:
         """
         Get the workload states for a specific workload name from the
         requested complete state.
-        If a state is not provided, it will be requested.
 
         Args:
             workload_name (str): The name of the workload.
-            state (CompleteState): The complete state to get
-                the workload states from.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
         Returns:
-            WorkloadStateCollection: The collection of workload states on the
-                specified workload name.
+            WorkloadStateCollection: The collection of workload states.
+            None: If the state was not retrieved successfully.
         """
+        state = self.get_state(
+            timeout, ["workloadStates"]
+        )
         if state is None:
-            state = self.get_state(
-                timeout, ["workloadStates." + workload_name]
+            return None
+        workload_states = state.get_workload_states().get_as_list()
+        workload_states_for_name = WorkloadStateCollection()
+        for workload_state in workload_states:
+            if workload_state.name == workload_name:
+                workload_states_for_name.add_workload_state(workload_state)
+        return workload_states_for_name
+
+    def wait_for_workload_to_reach_state(self,
+                                         instance_name: WorkloadInstanceName,
+                                         state: WorkloadStateEnum,
+                                         timeout: float = DEFAULT_TIMEOUT
+                                         ) -> bool:
+        """
+        Waits for the workload to reach the specified state.
+
+        Args:
+            instance_name (WorkloadInstanceName): The instance name of the
+                workload.
+            state (WorkloadStateEnum): The state to wait for.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Returns:
+            bool: True if the workload reached the state, False otherwise.
+        """
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            workload_state = self.get_execution_state_for_instance_name(
+                instance_name
             )
-        return state.get_workload_states() if state is not None else None
+            if workload_state is not None and workload_state.state == state:
+                return True
+            time.sleep(0.1)
+        return False

@@ -119,22 +119,21 @@ def test_dependencies(
     Args:
         workload (Workload): The Workload fixture.
     """
-    assert len(workload.get_dependencies()) == 1
+    deps = workload.get_dependencies()
+    assert len(deps) == 1
+    deps["other_workload_test"] = "ADD_COND_SUCCEEDED"
 
     with pytest.raises(ValueError):
-        workload.add_dependency("other_workload_test", "ADD_COND_DANCING")
-
-    workload.add_dependency("other_workload_test", "ADD_COND_SUCCEEDED")
-    assert len(workload.get_dependencies()) == 2
-
-    workload.add_dependency("another_workload_test", "ADD_COND_FAILED")
-
-    deps = workload.get_dependencies()
-    assert len(deps) == 3
-    deps.pop("other_workload_test")
+        workload.update_dependencies(
+            {"other_workload_test": "ADD_COND_DANCING"}
+            )
 
     workload.update_dependencies(deps)
     assert len(workload.get_dependencies()) == 2
+
+    deps.pop("other_workload_test")
+    workload.update_dependencies(deps)
+    assert len(workload.get_dependencies()) == 1
 
 
 def test_tags(workload: Workload):  # pylint: disable=redefined-outer-name
@@ -164,34 +163,25 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     Args:
         workload (Workload): The Workload fixture.
     """
-    assert len(workload.get_allow_rules()) == 1
-    assert len(workload.get_deny_rules()) == 1
+    allow_rules = workload.get_allow_rules()
+    deny_rules = workload.get_deny_rules()
+    assert len(allow_rules) == 1
+    assert len(deny_rules) == 1
 
     with pytest.raises(ValueError):
-        workload.add_allow_rule("Invalid", ["mask"])
+        workload.update_allow_rules([("Invalid", ["mask"])])
 
     with pytest.raises(ValueError):
-        workload.add_deny_rule("Invalid", ["mask"])
+        workload.update_deny_rules([("Invalid", ["mask"])])
 
-    workload.add_allow_rule(
-        "Write", ["desiredState.workloads.another_workload"]
-        )
+    allow_rules.append(("Write", ["desiredState.workloads.another_workload"]))
+    deny_rules.append(("Read", ["workloadStates.agent_Test.another_workload"]))
+
+    workload.update_allow_rules(allow_rules)
+    workload.update_deny_rules(deny_rules)
+
     assert len(workload.get_allow_rules()) == 2
-
-    workload.add_deny_rule(
-        "Read", ["workloadStates.agent_Test.another_workload"]
-        )
     assert len(workload.get_deny_rules()) == 2
-
-    rules = workload.get_allow_rules()
-    rules = rules[1:]
-    workload.update_allow_rules(rules)
-    assert len(workload.get_allow_rules()) == 1
-
-    rules = workload.get_deny_rules()
-    rules = rules[1:]
-    workload.update_deny_rules(rules)
-    assert len(workload.get_deny_rules()) == 1
 
 
 def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
@@ -296,15 +286,19 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
         "desiredState.workloads.workload_test.restartPolicy"),
     ("update_runtime_config", {"config": "config_test"},
         "desiredState.workloads.workload_test.runtimeConfig"),
-    ("add_dependency", {"workload_name": "workload_test_other",
-                        "condition": "ADD_COND_RUNNING"},
+    ("update_dependencies", {"dependencies":
+                             {"workload_test_other": "ADD_COND_RUNNING"}},
         "desiredState.workloads.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
+        "desiredState.workloads.workload_test.tags.key1"),
+    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
         "desiredState.workloads.workload_test.tags"),
-    ("add_allow_rule", {"operation": "Write", "filter_masks": ["mask"]},
-        "desiredState.workloads.workload_test.controlInterfaceAccess"),
-    ("add_deny_rule", {"operation": "Write", "filter_masks": ["mask"]},
-        "desiredState.workloads.workload_test.controlInterfaceAccess"),
+    ("update_allow_rules", {"rules": [("Write", ["mask"])]},
+        "desiredState.workloads.workload_test."
+        + "controlInterfaceAccess.allowRules"),
+    ("update_deny_rules", {"rules": [("Write", ["mask"])]},
+        "desiredState.workloads.workload_test."
+        + "controlInterfaceAccess.denyRules"),
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """

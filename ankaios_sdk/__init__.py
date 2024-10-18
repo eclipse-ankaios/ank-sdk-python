@@ -31,7 +31,7 @@ Classes
 - Manifest:
     Represents a workload manifest.
 - CompleteState:
-    Represents the complete state of the system.
+    Represents the complete state of the Ankaios cluster.
 """
 
 from .ankaios import *

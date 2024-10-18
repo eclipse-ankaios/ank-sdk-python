@@ -13,13 +13,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Run tests for ankaios_sdk Python package.
-This script runs unit tests, coverage and pylint and
-saves the results in the reports directory.
+Run checks for ankaios_sdk Python package.
+This script runs unit tests, coverage, pylint and pycodestyle
+checks and saves the results in the reports directory.
 
 Example usage:
     # This will run the unit tests with the --full-trace option
-    python3 run_tests.py -u --full-trace
+    python3 run_checks.py -u --full-trace
 """
 
 import os

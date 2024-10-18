@@ -20,9 +20,9 @@ class in the ankaios_sdk.
 from ankaios_sdk import WorkloadInstanceName
 
 
-def test_creation():
+def test_methods():
     """
-    Test the creation of a WorkloadInstanceName instance,
+    Test the methods of a WorkloadInstanceName instance,
     ensuring it is correctly initialized with the provided attributes.
     """
     workload_instance_name = WorkloadInstanceName(
@@ -34,4 +34,26 @@ def test_creation():
     assert workload_instance_name.agent_name == "agent_Test"
     assert workload_instance_name.workload_name == "workload_Test"
     assert workload_instance_name.workload_id == "1234"
-    assert str(workload_instance_name) == "agent_Test.workload_Test.1234"
+    assert str(workload_instance_name) == "workload_Test.1234.agent_Test"
+    assert workload_instance_name.get_filter_mask() == \
+        "workloadStates.agent_Test.workload_Test.1234"
+
+
+def test_equality():
+    """
+    Test the equality of two WorkloadInstanceName instances.
+    """
+    workload_instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+    other_workload_instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+    assert workload_instance_name == other_workload_instance_name
+    other_workload_instance_name.workload_id = "5678"
+    assert workload_instance_name != other_workload_instance_name
+    assert workload_instance_name != ""
