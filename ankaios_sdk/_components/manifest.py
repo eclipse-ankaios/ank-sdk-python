@@ -135,7 +135,7 @@ class Manifest():
             raise InvalidManifestException("workloads is missing.")
         wl_allowed_keys = ["runtime", "agent", "restartPolicy",
                            "runtimeConfig", "dependencies", "tags",
-                           "controlInterfaceAccess"]
+                           "controlInterfaceAccess", "configs"]
         wl_mandatory_keys = ["runtime", "runtimeConfig", "agent"]
         for wl_name in self._manifest["workloads"]:
             # Check allowed keys

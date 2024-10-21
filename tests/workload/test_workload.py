@@ -49,6 +49,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
                         ["desiredState.workloads.another_workload"]) \
         .add_deny_rule("Read",
                        ["workloadStates.agent_Test.another_workload"]) \
+        .add_config("alias_test", "config1") \
         .build()
 
 
@@ -191,14 +192,16 @@ def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
     Args:
         workload (Workload): The Workload fixture.
     """
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        workload.add_config(alias="alias_test", name="config_test")
+    assert len(workload.get_configs()) == 1
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        workload.get_configs()
+    workload.add_config("alias_other", "config2")
+    configs = workload.get_configs()
+    assert len(configs) == 2
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        workload.update_configs(configs=[["alias_test", "config_test"]])
+    configs["alias_new"] = "config3"
+    workload.update_configs(configs)
+
+    assert len(workload.get_configs()) == 3
 
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
@@ -267,6 +270,9 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
                 "operation": "Read",
                 "filterMask": ["workloadStates.agent_Test.another_workload"]
                 }]
+            },
+        "configs": {
+            "alias_test": "config1"
         }
     }
 
@@ -299,6 +305,8 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
     ("update_deny_rules", {"rules": [("Write", ["mask"])]},
         "desiredState.workloads.workload_test."
         + "controlInterfaceAccess.denyRules"),
+    ("add_config", {"alias": "alias_test", "name": "config_test"},
+        "desiredState.workloads.workload_test.configs")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """

@@ -27,8 +27,13 @@ workloads:
     runtime: podman
     restartPolicy: NEVER
     agent: agent_A
+    configs:
+        ports: test_ports
     runtimeConfig: |
-      image: image/test"""
+      image: image/test
+configs:
+    test_ports:
+        port: \"8081\""""
 
 MANIFEST_DICT = {
     'apiVersion': 'v0.1',
@@ -37,7 +42,15 @@ MANIFEST_DICT = {
             'runtime': 'podman',
             'restartPolicy': 'NEVER',
             'agent': 'agent_A',
-            'runtimeConfig': 'image: image/test'
+            "configs": {
+                "ports": "test_ports"
+            },
+            'runtimeConfig': 'image: image/test\n'
+        }
+    },
+    'configs': {
+        "test_ports": {
+            "port": "8081"
         }
     }
 }

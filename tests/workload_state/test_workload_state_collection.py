@@ -18,7 +18,8 @@ class in the ankaios_sdk.
 """
 
 from ankaios_sdk import WorkloadStateCollection, WorkloadState, \
-    WorkloadExecutionState, WorkloadInstanceName
+    WorkloadExecutionState, WorkloadInstanceName, WorkloadStateEnum, \
+    WorkloadSubStateEnum
 from ankaios_sdk._protos import _ank_base
 
 
@@ -96,4 +97,18 @@ def test_from_proto():
     workload_state_collection = WorkloadStateCollection()
     workload_state_collection._from_proto(ank_workload_state)
     assert len(workload_state_collection._workload_states) == 1
-    assert len(workload_state_collection.get_as_list()) == 1
+    workload_states = workload_state_collection.get_as_list()
+    assert len(workload_states) == 1
+
+    assert workload_states[0].workload_instance_name.agent_name == \
+        "agent_Test"
+    assert workload_states[0].workload_instance_name.workload_name == \
+        "workload_Test"
+    assert workload_states[0].workload_instance_name.workload_id == \
+        "1234"
+    assert workload_states[0].execution_state.state == \
+        WorkloadStateEnum.PENDING
+    assert workload_states[0].execution_state.substate == \
+        WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    assert workload_states[0].execution_state.info == \
+        "Dummy information"

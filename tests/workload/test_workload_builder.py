@@ -135,8 +135,10 @@ def test_add_config(
     Args:
         builder (WorkloadBuilder): The WorkloadBuilder fixture.
     """
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        builder.add_config(alias="alias_test", name="config_test")
+    assert len(builder.configs) == 0
+
+    assert builder.add_config("alias_Test", "config1") == builder
+    assert builder.configs == {"alias_Test": "config1"}
 
 
 def test_build(

@@ -393,26 +393,34 @@ class Workload:
             alias (str): The alias of the configuration.
             name (str): The name of the configuration.
         """
-        raise NotImplementedError("add_config is not implemented yet.")
+        self._workload.configs.configs[alias] = name
+        # Currently the mask is for all configs, not for individual aliases
+        self._add_mask(f"{self._main_mask}.configs")
 
-    def get_configs(self) -> tuple[tuple[str, str]]:
+    def get_configs(self) -> dict[str, str]:
         """
         Return the configurations linked to the workload.
 
         Returns:
-            tuple: A tuple containing the alias and name of the configurations.
+            dict[str, str]: A dict containing the alias as key and name of the
+                configuration as value.
         """
-        raise NotImplementedError("get_configs is not implemented yet.")
+        config_mappings = {}
+        for alias, name in self._workload.configs.configs.items():
+            config_mappings[alias] = name
+        return config_mappings
 
-    def update_configs(self, configs: tuple[tuple[str, str]]) -> None:
+    def update_configs(self, configs: dict[str, str]) -> None:
         """
         Update the configurations linked to the workload.
 
         Args:
-            configs (tuple): A tuple containing the alias and
+            configs (dict[str, str]): A tuple containing the alias and
                 name of the configurations.
         """
-        raise NotImplementedError("update_configs is not implemented yet.")
+        self._workload.configs.configs.clear()
+        for alias, name in configs.items():
+            self.add_config(alias, name)
 
     def _add_mask(self, mask: str) -> None:
         """
@@ -469,6 +477,9 @@ class Workload:
                     workload = workload.add_deny_rule(
                         rule["operation"], rule["filterMask"]
                     )
+        if "configs" in dict_workload:
+            for alias, name in dict_workload["configs"].items():
+                workload = workload.add_config(alias, name)
 
         return workload.build()
 
@@ -520,6 +531,7 @@ class WorkloadBuilder:
         self.tags = []
         self.allow_rules = []
         self.deny_rules = []
+        self.configs = {}
 
     def workload_name(self, workload_name: str) -> "WorkloadBuilder":
         """
@@ -664,7 +676,7 @@ class WorkloadBuilder:
         self.deny_rules.append((operation, filter_masks))
         return self
 
-    def add_config(self, alias: str, name: str) -> None:
+    def add_config(self, alias: str, name: str) -> "WorkloadBuilder":
         """
         Link a configuration to the workload.
 
@@ -672,7 +684,8 @@ class WorkloadBuilder:
             alias (str): The alias of the configuration.
             name (str): The name of the configuration.
         """
-        raise NotImplementedError("add_config is not implemented yet.")
+        self.configs[alias] = name
+        return self
 
     def build(self) -> Workload:
         """
@@ -716,5 +729,7 @@ class WorkloadBuilder:
             workload.update_allow_rules(self.allow_rules)
         if len(self.deny_rules) > 0:
             workload.update_deny_rules(self.deny_rules)
+        if len(self.configs) > 0:
+            workload.update_configs(self.configs)
 
         return workload
