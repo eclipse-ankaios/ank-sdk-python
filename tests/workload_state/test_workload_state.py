@@ -17,7 +17,7 @@ This module contains unit tests for the WorkloadState
 class in the ankaios_sdk.
 """
 
-from ankaios_sdk import WorkloadState
+from ankaios_sdk import WorkloadState, WorkloadStateEnum, WorkloadSubStateEnum
 from ankaios_sdk._protos import _ank_base
 
 
@@ -36,4 +36,12 @@ def test_creation():
     )
     assert workload_state is not None
     assert workload_state.execution_state is not None
+    assert workload_state.execution_state.state == WorkloadStateEnum.PENDING
+    assert workload_state.execution_state.substate == \
+        WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    assert workload_state.execution_state.info == "Dummy information"
     assert workload_state.workload_instance_name is not None
+    assert workload_state.workload_instance_name.agent_name == "agent_Test"
+    assert workload_state.workload_instance_name.workload_name == \
+        "workload_Test"
+    assert workload_state.workload_instance_name.workload_id == "1234"

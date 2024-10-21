@@ -17,6 +17,7 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
 from ankaios_sdk import CompleteState, WorkloadStateCollection
+from ankaios_sdk._components.complete_state import SUPPORTED_API_VERSION
 from ankaios_sdk._protos import _ank_base
 from tests.workload.test_workload import generate_test_workload
 
@@ -39,8 +40,8 @@ def test_general_functionality():
     """
     Test general functionality of the CompleteState class.
     """
-    complete_state = CompleteState(api_version="v0.1")
-    assert complete_state.get_api_version() == "v0.1"
+    complete_state = CompleteState()
+    assert complete_state.get_api_version() == SUPPORTED_API_VERSION
     complete_state._set_api_version("v0.2")
     assert complete_state.get_api_version() == "v0.2"
     assert str(complete_state) == "desiredState {\n  apiVersion: \"v0.2\"\n}\n"
@@ -199,7 +200,7 @@ def test_proto():
     """
     Test converting the CompleteState instance to and from a protobuf message.
     """
-    complete_state = CompleteState(api_version="v0.1")
+    complete_state = CompleteState()
     wl_nginx = generate_test_workload("nginx_test")
     config = generate_test_config()
 

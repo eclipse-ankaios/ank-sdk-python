@@ -76,15 +76,12 @@ class CompleteState:
     """
     A class to represent the complete state.
     """
-    def __init__(self, api_version: str = SUPPORTED_API_VERSION) -> None:
+    def __init__(self) -> None:
         """
         Initializes an empty CompleteState instance with the given API version.
-
-        Args:
-            api_version (str): The API version to set for the complete state.
         """
         self._complete_state = _ank_base.CompleteState()
-        self._set_api_version(api_version)
+        self._set_api_version(SUPPORTED_API_VERSION)
         self._workloads: list[Workload] = []
         self._workload_state_collection = WorkloadStateCollection()
         self._configs = {}

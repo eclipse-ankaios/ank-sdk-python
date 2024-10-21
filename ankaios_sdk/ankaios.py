@@ -225,6 +225,8 @@ class Ankaios:
             AnkaiosConnectionException: If an error occurs
                 while reading the fifo.
         """
+        # pylint: disable=invalid-name
+        MOST_SIGNIFICANT_BIT_MASK = 0b10000000
         try:
             # pylint: disable=consider-using-with
             input_fifo = open(
@@ -239,9 +241,8 @@ class Ankaios:
                     if not next_byte:  # pragma: no cover
                         break
                     varint_buffer += next_byte
-                    # Stop if the most significant bit is 0
-                    # (indicating the last byte of the varint)
-                    if next_byte[0] & 0b10000000 == 0:
+                    # Check if we reached the last byte
+                    if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
