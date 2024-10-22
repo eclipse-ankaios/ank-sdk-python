@@ -64,7 +64,7 @@ with Ankaios() as ankaios:
   if ret is not None:
     workload_instance_name = ret["added_workloads"][0]
   
-  # Wait until the workload raches the running state
+  # Wait until the workload reaches the running state
   ret = ankaios.wait_for_workload_to_reach_state(
     workload_instance_name,
     state=WorkloadStateEnum.RUNNING,
