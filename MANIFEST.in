@@ -1,0 +1,8 @@
+# Include all .proto files in the _protos directory
+recursive-include ankaios_sdk/_protos *.proto
+
+# Include the README file
+include README.md
+
+# Include the license file
+include LICENSE

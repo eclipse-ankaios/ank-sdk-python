@@ -1,0 +1,11 @@
+[MASTER]
+ignore-patterns=
+    .*_pb2.py,
+    .*_pb2_grpc.py,
+
+[MESSAGES CONTROL]
+disable=
+    # classes from protos are not recognized by pylint
+    E1101,  # no-member
+    # Protected members are accessed throughout the project to be able to hide that functionality from the user.
+    W0212,  # protected-access

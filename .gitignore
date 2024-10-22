@@ -1,0 +1,19 @@
+# Python ignores
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Reports directory
+reports/
+
+# Tools caches
+.coverage
+.pytest_cache/
+
+# Build directory
+ankaios_sdk.egg-info
+build/
+dist/
+
+# Docs build dir
+docs/build/
