@@ -20,6 +20,7 @@ Exceptions
 - WorkloadFieldException: Raised when the workload field is invalid.
 - WorkloadBuilderException: Raised when the workload builder is invalid.
 - InvalidManifestException: Raised when the manifest file is invalid.
+- ConnectionClosedException: Raised when the connection is closed.
 - RequestException: Raised when the request is invalid.
 - ResponseException: Raised when the response is invalid.
 - AnkaiosConnectionException: Raised when an operation on the connection fails.

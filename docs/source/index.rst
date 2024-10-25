@@ -11,6 +11,7 @@
    :maxdepth: 2
    :caption: Contents:
 
+   getting_started
    ankaios
    complete_state
    workload
@@ -34,6 +35,7 @@
    contributing
    code_of_conduct
    License <https://github.com/eclipse-ankaios/ank-sdk-python/blob/main/LICENSE>
+   security
 
 Indices and tables
 ==================
