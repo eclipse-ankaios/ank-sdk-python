@@ -27,6 +27,7 @@ from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import Workload, WorkloadBuilder, WorkloadFieldException
 from ankaios_sdk._protos import _ank_base
+from ankaios_sdk.utils import WORKLOADS_PREFIX
 
 
 def generate_test_workload(workload_name: str = "workload_test") -> Workload:
@@ -46,7 +47,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_tag("key1", "value1") \
         .add_tag("key2", "value2") \
         .add_allow_rule("Write",
-                        ["desiredState.workloads.another_workload"]) \
+                        [f"{WORKLOADS_PREFIX}.another_workload"]) \
         .add_deny_rule("Read",
                        ["workloadStates.agent_Test.another_workload"]) \
         .add_config("alias_test", "config1") \
@@ -85,7 +86,7 @@ def test_update_fields(
     Args:
         workload (Workload): The Workload fixture.
     """
-    assert workload.masks == ["desiredState.workloads.workload_test"]
+    assert workload.masks == [f"{WORKLOADS_PREFIX}.workload_test"]
 
     workload.update_workload_name("new_workload_test")
     assert workload.name == "new_workload_test"
@@ -175,7 +176,7 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     with pytest.raises(WorkloadFieldException):
         workload.update_deny_rules([("Invalid", ["mask"])])
 
-    allow_rules.append(("Write", ["desiredState.workloads.another_workload"]))
+    allow_rules.append(("Write", [f"{WORKLOADS_PREFIX}.another_workload"]))
     deny_rules.append(("Read", ["workloadStates.agent_Test.another_workload"]))
 
     workload.update_allow_rules(allow_rules)
@@ -263,7 +264,7 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
             "allowRules": [{
                 "type": "StateRule",
                 "operation": "Write",
-                "filterMask": ["desiredState.workloads.another_workload"]
+                "filterMask": [f"{WORKLOADS_PREFIX}.another_workload"]
                 }],
             "denyRules": [{
                 "type": "StateRule",
@@ -283,30 +284,30 @@ def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
 
 @pytest.mark.parametrize("function_name, data, mask", [
     ("update_workload_name", {"name": "workload_test"},
-        "desiredState.workloads.workload_test"),
+        f"{WORKLOADS_PREFIX}.workload_test"),
     ("update_agent_name", {"agent_name": "agent_Test"},
-        "desiredState.workloads.workload_test.agent"),
+        f"{WORKLOADS_PREFIX}.workload_test.agent"),
     ("update_runtime", {"runtime": "runtime_test"},
-        "desiredState.workloads.workload_test.runtime"),
+        f"{WORKLOADS_PREFIX}.workload_test.runtime"),
     ("update_restart_policy", {"policy": "NEVER"},
-        "desiredState.workloads.workload_test.restartPolicy"),
+        f"{WORKLOADS_PREFIX}.workload_test.restartPolicy"),
     ("update_runtime_config", {"config": "config_test"},
-        "desiredState.workloads.workload_test.runtimeConfig"),
+        f"{WORKLOADS_PREFIX}.workload_test.runtimeConfig"),
     ("update_dependencies", {"dependencies":
                              {"workload_test_other": "ADD_COND_RUNNING"}},
-        "desiredState.workloads.workload_test.dependencies"),
+        f"{WORKLOADS_PREFIX}.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
-        "desiredState.workloads.workload_test.tags.key1"),
+        f"{WORKLOADS_PREFIX}.workload_test.tags.key1"),
     ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
-        "desiredState.workloads.workload_test.tags"),
+        f"{WORKLOADS_PREFIX}.workload_test.tags"),
     ("update_allow_rules", {"rules": [("Write", ["mask"])]},
-        "desiredState.workloads.workload_test."
+        f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.allowRules"),
     ("update_deny_rules", {"rules": [("Write", ["mask"])]},
-        "desiredState.workloads.workload_test."
+        f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
-        "desiredState.workloads.workload_test.configs")
+        f"{WORKLOADS_PREFIX}.workload_test.configs")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """

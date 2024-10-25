@@ -16,10 +16,11 @@
 This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
-from ankaios_sdk import CompleteState, WorkloadStateCollection
+from ankaios_sdk import CompleteState, WorkloadStateCollection, Manifest
 from ankaios_sdk._components.complete_state import SUPPORTED_API_VERSION
 from ankaios_sdk._protos import _ank_base
 from tests.workload.test_workload import generate_test_workload
+from tests.test_manifest import MANIFEST_DICT
 
 
 def generate_test_config():
@@ -157,43 +158,21 @@ def test_get_configs():
     assert complete_state.get_configs() == generate_test_config()
 
 
-def test_from_dict():
+def test_from_manifest():
     """
-    Test the from_dict method of the CompleteState class.
+    Test the from_manifest method of the CompleteState class.
     """
-    complete_state = CompleteState()
-    complete_state._from_dict({
-        "apiVersion": "v0.1",
-        "workloads": {
-            "nginx": {
-                "runtime": "podman",
-                "restartPolicy": "NEVER",
-                "agent": "agent_A",
-                "configs": {
-                    "ports": "test_ports"
-                },
-                "runtimeConfig": "config",
-            }
-        },
-        'configs': {
-            "test_ports": {
-                "port": "8081"
-            }
-        }
-    })
+    manifest = Manifest(MANIFEST_DICT)
+    complete_state = CompleteState.from_manifest(manifest)
     assert complete_state.get_api_version() == "v0.1"
-    assert len(complete_state.get_workloads()) == 1
+    workloads = complete_state.get_workloads()
+    assert len(workloads) == 1
+    assert workloads[0].name == "nginx_test"
     assert complete_state.get_configs() == {
         "test_ports": {
             "port": "8081"
         }
     }
-
-    complete_state._from_dict({
-        "apiVersion": "v0.2",
-    })
-    assert complete_state.get_api_version() == "v0.2"
-    assert len(complete_state.get_workloads()) == 0
 
 
 def test_proto():

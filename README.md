@@ -63,7 +63,12 @@ with Ankaios() as ankaios:
   # Check if the workload is scheduled and get the WorkloadInstanceName
   if ret is not None:
     workload_instance_name = ret["added_workloads"][0]
-  
+
+  # Request the workload state based on the workload instance name
+  ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
+  if ret is not None:
+    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.info}")
+
   # Wait until the workload reaches the running state
   ret = ankaios.wait_for_workload_to_reach_state(
     workload_instance_name,
@@ -72,11 +77,6 @@ with Ankaios() as ankaios:
     )
   if ret:
     print("Workload reached the RUNNING state.")
-
-  # Request the workload state based on the workload instance name
-  ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
-  if ret is not None:
-    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.info}")
 
   # Request the state of the system, filtered with the agent name
   complete_state = ankaios.get_state(

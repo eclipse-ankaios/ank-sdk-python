@@ -59,6 +59,11 @@ Usage
     .. code-block:: python
 
         workload_states = complete_state.get_workload_states()
+
+- Create a CompleteState instance from a Manifest:
+    .. code-block:: python
+
+        complete_state = CompleteState.from_manifest(manifest)
 """
 
 __all__ = ["CompleteState"]
@@ -67,9 +72,8 @@ from typing import Union
 from .._protos import _ank_base
 from .workload import Workload
 from .workload_state import WorkloadStateCollection
-
-
-SUPPORTED_API_VERSION = "v0.1"
+from .manifest import Manifest
+from ..utils import SUPPORTED_API_VERSION
 
 
 class CompleteState:
@@ -189,27 +193,30 @@ class CompleteState:
         """
         return self._configs
 
-    def _from_dict(self, dict_state: dict) -> None:
+    @staticmethod
+    def from_manifest(manifest: Manifest) -> 'CompleteState':
         """
-        Converts a dictionary to a CompleteState object.
+        Creates a CompleteState instance from a Manifest.
 
         Args:
-            dict_state (dict): The dictionary representing the complete state.
+            manifest (Manifest): The manifest to create the
+                complete state from.
         """
-        self._complete_state = _ank_base.CompleteState()
-        self._set_api_version(
-            dict_state.get("apiVersion", self.get_api_version())
+        state = CompleteState()
+        state._complete_state = _ank_base.CompleteState()
+        dict_state = manifest._manifest
+        state._set_api_version(
+            dict_state.get("apiVersion", state.get_api_version())
         )
-        self._workloads = []
-        if dict_state.get("workloads") is None:
-            return
+        state._workloads = []
         for workload_name, workload_dict in \
                 dict_state.get("workloads").items():
-            self._workloads.append(
+            state._workloads.append(
                 Workload._from_dict(workload_name, workload_dict)
             )
         if dict_state.get("configs") is not None:
-            self._configs = dict_state.get("configs")
+            state._configs = dict_state.get("configs")
+        return state
 
     def _to_proto(self) -> _ank_base.CompleteState:
         """

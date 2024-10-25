@@ -73,6 +73,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 
 from .._protos import _ank_base
 from ..exceptions import WorkloadFieldException, WorkloadBuilderException
+from ..utils import WORKLOADS_PREFIX
 
 
 # pylint: disable=too-many-public-methods
@@ -95,7 +96,7 @@ class Workload:
         """
         self._workload = _ank_base.Workload()
         self.name = name
-        self._main_mask = f"desiredState.workloads.{self.name}"
+        self._main_mask = f"{WORKLOADS_PREFIX}.{self.name}"
         self.masks = [self._main_mask]
 
     def __str__(self) -> str:
@@ -254,8 +255,7 @@ class Workload:
         Args:
             tags (list): A list of tuples containing tag keys and values.
         """
-        while len(self._workload.tags.tags) > 0:
-            self._workload.tags.tags.pop()
+        del self._workload.tags.tags[:]
         for key, value in tags:
             tag = _ank_base.Tag(key=key, value=value)
             self._workload.tags.tags.append(tag)
@@ -345,8 +345,7 @@ class Workload:
         Raises:
             WorkloadFieldException: If an invalid operation is provided
         """
-        while len(self._workload.controlInterfaceAccess.allowRules) > 0:
-            self._workload.controlInterfaceAccess.allowRules.pop()
+        del self._workload.controlInterfaceAccess.allowRules[:]
         for operation, filter_masks in rules:
             self._workload.controlInterfaceAccess.allowRules.append(
                 self._generate_access_right_rule(operation, filter_masks)
@@ -377,8 +376,7 @@ class Workload:
         Raises:
             WorkloadFieldException: If an invalid operation is provided
         """
-        while len(self._workload.controlInterfaceAccess.denyRules) > 0:
-            self._workload.controlInterfaceAccess.denyRules.pop()
+        del self._workload.controlInterfaceAccess.denyRules[:]
         for operation, filter_masks in rules:
             self._workload.controlInterfaceAccess.denyRules.append(
                 self._generate_access_right_rule(operation, filter_masks)

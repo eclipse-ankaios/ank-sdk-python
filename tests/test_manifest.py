@@ -18,7 +18,8 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Manifest, CompleteState, InvalidManifestException
+from ankaios_sdk import Manifest, InvalidManifestException
+from ankaios_sdk.utils import WORKLOADS_PREFIX
 
 
 MANIFEST_CONTENT = """apiVersion: v0.1
@@ -140,17 +141,6 @@ def test_calculate_masks():
     manifest = Manifest(manifest_dict)
     assert len(manifest._calculate_masks()) == 2
     assert manifest._calculate_masks() == [
-        "desiredState.workloads.nginx_test",
-        "desiredState.workloads.nginx_test_other"
+        f"{WORKLOADS_PREFIX}.nginx_test",
+        f"{WORKLOADS_PREFIX}.nginx_test_other"
     ]
-
-
-def test_generate_complete_state():
-    """
-    Test the CompleteState instance generation from a Manifest instance.
-    """
-    with patch("ankaios_sdk.CompleteState._from_dict") as mock_complete_state:
-        manifest = Manifest(MANIFEST_DICT)
-        complete_state = manifest.generate_complete_state()
-        mock_complete_state.assert_called_once_with(manifest._manifest)
-        assert isinstance(complete_state, CompleteState)

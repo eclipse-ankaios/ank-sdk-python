@@ -130,6 +130,7 @@ from ._components import Workload, CompleteState, Request, Response, \
                          ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
+from .utils import WORKLOADS_PREFIX
 
 
 class AnkaiosLogLevel(Enum):
@@ -402,7 +403,7 @@ class Ankaios:
                 the manifest.
         """
         request = Request(request_type="update_state")
-        request.set_complete_state(manifest.generate_complete_state())
+        request.set_complete_state(CompleteState.from_manifest(manifest))
         request.set_masks(manifest._calculate_masks())
 
         # Send request
@@ -418,13 +419,15 @@ class Ankaios:
             self.logger.error("Error while trying to apply manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        self.logger.info(
-            "Update successfull: %s added workloads, "
-            + "%s deleted workloads.",
-            len(content["added_workloads"]),
-            len(content["deleted_workloads"])
-        )
-        return content
+        if content_type == "update_state_success":
+            self.logger.info(
+                "Update successfull: %s added workloads, "
+                + "%s deleted workloads.",
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
+            )
+            return content
+        raise AnkaiosException("Received unexpected content type.")
 
     def delete_manifest(self, manifest: Manifest) -> dict:
         """
@@ -458,13 +461,15 @@ class Ankaios:
             self.logger.error("Error while trying to delete manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        self.logger.info(
-            "Update successfull: %s added workloads, "
-            + "%s deleted workloads.",
-            len(content["added_workloads"]),
-            len(content["deleted_workloads"])
-        )
-        return content
+        if content_type == "update_state_success":
+            self.logger.info(
+                "Update successfull: %s added workloads, "
+                + "%s deleted workloads.",
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
+            )
+            return content
+        raise AnkaiosException("Received unexpected content type.")
 
     def run_workload(self, workload: Workload) -> dict:
         """
@@ -501,13 +506,15 @@ class Ankaios:
             self.logger.error("Error while trying to run workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        self.logger.info(
-            "Update successfull: %s added workloads, "
-            + "%s deleted workloads.",
-            len(content["added_workloads"]),
-            len(content["deleted_workloads"])
-        )
-        return content
+        if content_type == "update_state_success":
+            self.logger.info(
+                "Update successfull: %s added workloads, "
+                + "%s deleted workloads.",
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
+            )
+            return content
+        raise AnkaiosException("Received unexpected content type.")
 
     def delete_workload(self, workload_name: str) -> dict:
         """
@@ -525,7 +532,7 @@ class Ankaios:
         """
         request = Request(request_type="update_state")
         request.set_complete_state(CompleteState())
-        request.add_mask(f"desiredState.workloads.{workload_name}")
+        request.add_mask(f"{WORKLOADS_PREFIX}.{workload_name}")
 
         try:
             response = self._send_request(request)
@@ -539,13 +546,15 @@ class Ankaios:
             self.logger.error("Error while trying to delete workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        self.logger.info(
-            "Update successfull: %s added workloads, "
-            + "%s deleted workloads.",
-            len(content["added_workloads"]),
-            len(content["deleted_workloads"])
-        )
-        return content
+        if content_type == "update_state_success":
+            self.logger.info(
+                "Update successfull: %s added workloads, "
+                + "%s deleted workloads.",
+                len(content["added_workloads"]),
+                len(content["deleted_workloads"])
+            )
+            return content
+        raise AnkaiosException("Received unexpected content type.")
 
     def get_workload_with_instance_name(
             self, instance_name: WorkloadInstanceName,
@@ -564,7 +573,7 @@ class Ankaios:
             Workload: The workload object.
         """
         return self.get_state(
-            timeout, [f"desiredState.workloads.{str(instance_name)}"]
+            timeout, [f"{WORKLOADS_PREFIX}.{str(instance_name)}"]
         ).get_workloads()[0]
 
     def set_configs(self, configs: dict) -> bool:
@@ -669,8 +678,9 @@ class Ankaios:
             self.logger.error("Error while trying to get the state: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-
-        return content
+        if content_type == "complete_state":
+            return content
+        raise AnkaiosException("Received unexpected content type.")
 
     def get_agents(
             self, timeout: float = DEFAULT_TIMEOUT

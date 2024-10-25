@@ -39,16 +39,11 @@ Usage
     .. code-block:: python
 
         manifest = Manifest.from_dict({"apiVersion": "1.0", "workloads": {}})
-
-- Generate a CompleteState instance from the manifest:
-    .. code-block:: python
-
-        complete_state = manifest.generate_complete_state()
 """
 
 import yaml
 from ..exceptions import InvalidManifestException
-from .complete_state import CompleteState
+from ..utils import WORKLOADS_PREFIX
 
 
 class Manifest():
@@ -156,17 +151,5 @@ class Manifest():
         Returns:
             list[str]: A list of masks for the workloads.
         """
-        return [f"desiredState.workloads.{key}"
+        return [f"{WORKLOADS_PREFIX}.{key}"
                 for key in self._manifest["workloads"].keys()]
-
-    def generate_complete_state(self) -> CompleteState:
-        """
-        Generates a CompleteState instance from the manifest.
-
-        Returns:
-            CompleteState: An instance of the CompleteState class
-                populated with the manifest data.
-        """
-        complete_state = CompleteState()
-        complete_state._from_dict(self._manifest)
-        return complete_state
