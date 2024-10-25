@@ -33,7 +33,7 @@
 
    contributing
    code_of_conduct
-   License <https://github.com/GabyUnalaq/ank-sdk-python/blob/main/LICENSE>
+   License <https://github.com/eclipse-ankaios/ank-sdk-python/blob/main/LICENSE>
 
 Indices and tables
 ==================

@@ -34,41 +34,32 @@ Usage
 - Create an Ankaios object and connect to the control interface:
     .. code-block:: python
 
-        with Ankaios() as ankaios:
-            pass
+        ankaios = Ankaios()
 
 - Apply a manifest:
     .. code-block:: python
 
         ret = ankaios.apply_manifest(manifest)
-        if ret is not None:
-            print("Manifest applied successfully.")
-            print(ret["added_workloads"])
-            print(ret["deleted_workloads"])
+        print(ret["added_workloads"])
+        print(ret["deleted_workloads"])
 
 - Delete a manifest:
     .. code-block:: python
 
         ret = ankaios.delete_manifest(manifest)
-        if ret is not None:
-            print("Manifest deleted successfully.")
-            print(ret["deleted_workloads"])
+        print(ret["deleted_workloads"])
 
 - Run a workload:
     .. code-block:: python
 
         ret = ankaios.run_workload(workload)
-        if ret is not None:
-            print("Workload started successfully.")
-            print(ret["added_workloads"])
+        print(ret["added_workloads"])
 
 - Delete a workload:
     .. code-block:: python
 
         ret = ankaios.delete_workload(workload_name)
-        if ret is not None:
-            print("Workload deleted successfully.")
-            print(ret["deleted_workloads"])
+        print(ret["deleted_workloads"])
 
 - Get a workload:
     .. code-block:: python
@@ -99,8 +90,7 @@ Usage
     .. code-block:: python
 
         ret = ankaios.get_execution_state_for_instance_name(instance_name)
-        if ret is not None:
-            print(f"State: {ret.state}, substate: {ret.substate}")
+        print(f"State: {ret.state}, substate: {ret.substate}")
 
 - Wait for a workload to reach a state:
     .. code-block:: python
@@ -116,6 +106,7 @@ Usage
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
 
 import logging
+import os
 import time
 from typing import Union
 from enum import Enum
@@ -125,12 +116,12 @@ from google.protobuf.internal.decoder import _DecodeVarint
 
 from ._protos import _control_api
 from .exceptions import AnkaiosConnectionException, AnkaiosException, \
-                        ResponseException
+                        ResponseException, ConnectionClosedException
 from ._components import Workload, CompleteState, Request, Response, \
                          ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
-from .utils import WORKLOADS_PREFIX
+from .utils import WORKLOADS_PREFIX, ANKAIOS_VERSION
 
 
 class AnkaiosLogLevel(Enum):
@@ -165,45 +156,27 @@ class Ankaios:
     "(float): The default timeout, if not manually provided."
 
     def __init__(self) -> None:
-        """Initialize the Ankaios object."""
+        """
+        Initialize the Ankaios object. The logger will be created and
+        the connection to the control interface will be established.
+        """
         self.logger = None
         self.path = self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH
 
         self._read_thread = None
         self._connected = False
+        self._output_file = None
         self._responses_lock = threading.Lock()
         self._responses: dict[str, ResponseEvent] = {}
 
         self._create_logger()
-
-    def __enter__(self) -> "Ankaios":
-        """
-        Connect to the control interface.
-
-        Returns:
-            Ankaios: The Ankaios object.
-        """
         self._connect()
-        return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __del__(self) -> None:
         """
-        Disconnect from the control interface.
-
-        Args:
-            exc_type (type): The exception type.
-            exc_value (Exception): The exception instance.
-            traceback (traceback): The traceback object.
-
-        Raises:
-            AnkaiosConnectionException: If an exception occurred.
+        Disconnect from the control interface when the object is deleted.
         """
         self._disconnect()
-        if exc_type is not None:  # pragma: no cover
-            self.logger.error("An exception occurred: %s, %s, %s",
-                              exc_type, exc_value, traceback)
-            raise AnkaiosConnectionException(
-                f"An exception occurred: {exc_type}, {exc_value}, {traceback}")
 
     def _create_logger(self) -> None:
         """Create a logger with custom format and default log level."""
@@ -214,6 +187,56 @@ class Ankaios:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.set_logger_level(AnkaiosLogLevel.INFO)
+
+    def _connect(self) -> None:
+        """
+        Connect to the control interface by starting to read
+        from the input fifo and opening the output fifo.
+
+        Raises:
+            AnkaiosConnectionException: If an error occurred.
+        """
+        if self._connected:
+            raise AnkaiosConnectionException("Already connected.")
+        if not os.path.exists(
+                "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\input"):
+            raise AnkaiosConnectionException(
+                "Control interface input fifo does not exist."
+            )
+        if not os.path.exists(
+                "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output"):
+            raise AnkaiosConnectionException(
+                "Control interface output fifo does not exist."
+            )
+
+        self._read_thread = threading.Thread(
+            target=self._read_from_control_interface
+        )
+        self._read_thread.start()
+
+        # pylint: disable=consider-using-with
+        self._output_file = open(
+            f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output", "ab"
+        )
+
+        self._connected = True
+        self._send_initial_hello()
+
+    def _disconnect(self) -> None:
+        """
+        Disconnect from the control interface by stopping to read
+        from the input fifo.
+
+        Raises:
+            AnkaiosConnectionException: If already disconnected.
+        """
+        self._connected = False
+        if self._read_thread is not None:
+            self._read_thread.join()
+            self._read_thread = None
+        if self._output_file is not None:
+            self._output_file.close()
+            self._output_file = None
 
     def _read_from_control_interface(self) -> None:
         """
@@ -270,10 +293,61 @@ class Ankaios:
                     else:
                         self._responses[request_id] = ResponseEvent(response)
                         self._responses[request_id].set()
+        except ConnectionClosedException as e:  # pragma: no cover
+            self.logger.error("Connection closed: %s", e)
+            self._disconnect()
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
         finally:
             input_fifo.close()
+
+    def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
+        """
+        Writes the ToAnkaios proto message to the control
+        interface output fifo.
+
+        Args:
+            to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
+
+        Raises:
+            AnkaiosConnectionException: If not connected.
+        """
+        if not self._connected:
+            raise AnkaiosConnectionException(
+                "Could not write to pipe, not connected.")
+
+        # Adds the byte length of the proto msg
+        self._output_file.write(_VarintBytes(to_ankaios.ByteSize()))
+        # Adds the proto msg itself
+        self._output_file.write(to_ankaios.SerializeToString())
+        self._output_file.flush()
+
+    def _write_request(self, request: Request) -> None:
+        """
+        Writes the request into the control interface output fifo.
+
+        Args:
+            request (Request): The request object to be written.
+        """
+        request_to_ankaios = _control_api.ToAnkaios(
+            request=request._to_proto()
+        )
+        self._write_to_pipe(request_to_ankaios)
+
+    def _send_initial_hello(self) -> None:
+        """
+        Send an initial hello message to the control interface with
+        the version in order to check it.
+
+        Raises:
+            AnkaiosConnectionException: If an error occurred.
+        """
+        initial_hello = _control_api.ToAnkaios(
+            hello=_control_api.Hello(
+                protocolVersion=str(ANKAIOS_VERSION)
+            )
+        )
+        self._write_to_pipe(initial_hello)
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -293,8 +367,7 @@ class Ankaios:
                 is not started.
         """
         if not self._connected:
-            raise AnkaiosConnectionException(
-                "Reading from the control interface is not started.")
+            raise AnkaiosConnectionException("Not connected.")
 
         with self._responses_lock:
             if request_id in self._responses:
@@ -302,24 +375,6 @@ class Ankaios:
             self._responses[request_id] = ResponseEvent()
 
         return self._responses[request_id].wait_for_response(timeout)
-
-    def _write_to_pipe(self, request: Request) -> None:
-        """
-        Writes the request into the control interface output fifo.
-
-        Args:
-            request (Request): The request object to be written.
-        """
-        with open(f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output",
-                  "ab") as f:
-            request_to_ankaios = _control_api.ToAnkaios(
-                request=request._to_proto()
-            )
-            # Adds the byte length of the proto msg
-            f.write(_VarintBytes(request_to_ankaios.ByteSize()))
-            # Adds the proto msg itself
-            f.write(request_to_ankaios.SerializeToString())
-            f.flush()
 
     def _send_request(self, request: Request,
                       timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -335,13 +390,9 @@ class Ankaios:
             Response: The response object.
 
         Raises:
-            AnkaiosConnectionException: If not connected.
+            TimeoutError: If the request timed out.
         """
-        if not self._connected:
-            raise AnkaiosConnectionException(
-                "Cannot request if not connected."
-                )
-        self._write_to_pipe(request)
+        self._write_request(request)
 
         try:
             response = self._get_response_by_id(request.get_id(), timeout)
@@ -357,35 +408,6 @@ class Ankaios:
             level (AnkaiosLogLevel): The log level to be set.
         """
         self.logger.setLevel(level.value)
-
-    def _connect(self) -> None:
-        """
-        Connect to the control interface by starting to read
-        from the input fifo.
-
-        Raises:
-            AnkaiosConnectionException: If already connected.
-        """
-        if self._connected:
-            raise AnkaiosConnectionException("Already connected.")
-        self._connected = True
-        self._read_thread = threading.Thread(
-            target=self._read_from_control_interface
-        )
-        self._read_thread.start()
-
-    def _disconnect(self) -> None:
-        """
-        Disconnect from the control interface by stopping to read
-        from the input fifo.
-
-        Raises:
-            AnkaiosConnectionException: If already disconnected.
-        """
-        if not self._connected:
-            raise AnkaiosConnectionException("Already disconnected.")
-        self._connected = False
-        self._read_thread.join()
 
     def apply_manifest(self, manifest: Manifest) -> dict:
         """

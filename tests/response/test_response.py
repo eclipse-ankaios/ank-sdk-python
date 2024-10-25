@@ -18,7 +18,8 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
-from ankaios_sdk import Response, CompleteState, ResponseException
+from ankaios_sdk import Response, CompleteState, ResponseException, \
+    ConnectionClosedException
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
@@ -65,6 +66,12 @@ MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     )
 ).SerializeToString()
 
+MESSAGE_BUFFER_CONNECTION_CLOSED = _control_api.FromAnkaios(
+    connectionClosed=_control_api.ConnectionClosed(
+        reason="Connection closed reason",
+    )
+).SerializeToString()
+
 
 def test_initialisation():
     """
@@ -99,6 +106,11 @@ def test_initialisation():
     # Test invalid response type
     with pytest.raises(ResponseException, match="Invalid response type"):
         response = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
+
+    # Test connection closed
+    with pytest.raises(ConnectionClosedException,
+                       match="Connection closed reason"):
+        response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
 
 
 def test_getters():

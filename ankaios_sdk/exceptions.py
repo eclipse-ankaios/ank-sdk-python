@@ -29,7 +29,8 @@ Exceptions
 import inspect
 
 __all__ = ['WorkloadFieldException', 'WorkloadBuilderException',
-           'InvalidManifestException', 'RequestException', 'ResponseException',
+           'InvalidManifestException', 'ConnectionClosedException',
+           'RequestException', 'ResponseException',
            'AnkaiosConnectionException', 'AnkaiosException']
 
 
@@ -51,6 +52,10 @@ class WorkloadBuilderException(AnkaiosBaseException):
 
 class InvalidManifestException(AnkaiosBaseException):
     """Raised when the manifest file is invalid."""
+
+
+class ConnectionClosedException(AnkaiosBaseException):
+    """Raised when the connection is closed."""
 
 
 class RequestException(AnkaiosBaseException):

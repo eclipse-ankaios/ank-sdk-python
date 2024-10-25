@@ -46,7 +46,7 @@ __all__ = ["Response", "ResponseEvent"]
 from typing import Union
 from threading import Event
 from .._protos import _control_api
-from ..exceptions import ResponseException
+from ..exceptions import ResponseException, ConnectionClosedException
 from .complete_state import CompleteState
 from .workload_state import WorkloadInstanceName
 
@@ -90,7 +90,11 @@ class Response:
             from_ankaios.ParseFromString(self.buffer)
         except Exception as e:
             raise ResponseException(f"Parsing error: '{e}'") from e
-        self._response = from_ankaios.response
+        if from_ankaios.HasField("response"):
+            self._response = from_ankaios.response
+        else:
+            raise ConnectionClosedException(
+                from_ankaios.connectionClosed.reason)
 
     def _from_proto(self) -> None:
         """
