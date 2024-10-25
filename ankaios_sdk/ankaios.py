@@ -650,8 +650,7 @@ class Ankaios:
         Delete all the configs.
 
         Returns:
-            bool: True if the configs were deleted successfully,
-                False otherwise.
+            bool: if the configs were deleted successfully.
         """
         raise NotImplementedError("delete_all_configs is not implemented yet.")
 

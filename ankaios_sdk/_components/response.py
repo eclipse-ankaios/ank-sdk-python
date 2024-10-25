@@ -161,12 +161,11 @@ class Response:
 
     def get_content(self) -> tuple[str, Union[str, CompleteState, dict]]:
         """
-        Gets the content of the response.
+        Gets the content of the response. It can be either a string (if error),
+        a CompleteState instance, or a dictionary (if update state success).
 
         Returns:
-            tuple[str, str]: in case of an error response.
-            tuple[str, CompleteState]: in case of a complete state response.
-            tuple[str, dict]: in case of an update state success response.
+            tuple[str, any]: the content type and the content.
         """
         return (self.content_type, self.content)
 

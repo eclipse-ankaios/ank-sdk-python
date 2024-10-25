@@ -3,7 +3,7 @@ Getting started
 
 For installation of the Ankaios SDK, see the `Installation section <index.html#installation>`_.
 
-Once the SDK is installed, you can start using it by importing the module and creating a client object.
+Once the SDK is installed, you can start using it by importing the module and creating an ankaios object.
 
 .. code-block:: python
 
@@ -57,16 +57,16 @@ The manifest can now be applied using the following code:
     # Print the instance name
     print(wl_instance_name)
 
-IF the operation is succesfull, the result will contain a list with the added workloads that contains the workload instance name of our own.
+If the operation is succesfull, the result will contain a list with the added workloads that contains the workload instance name of our own.
 The workload instance name contains the name of the workload, the agent it is running on and an unique identifier.
 
 **Update a workload**
 ---------------------
 
-Considering we have the above workload running, we can update certain parameters of the workload. For this example, we will update the `restartPolicy`. To be able to pin-point
+Considering we have the above workload running, we can update certain parameters of the workload. For this example, we will update the `restartPolicy`. To be able to pinpoint
 the exact workload we want to modify, we must know the workload instance name. This can be obtained as a result when starting the workload (either using `apply_manifest` or other methods),
-deleting or modifying a one.. In case we don't have the workload instance name, we can take all the workloads that have the same name as the one we are looking for (or the agent).
-For simplisity, we will consider the workload instance name is known.
+deleting or modifying one. In case we don't have the workload instance name, we can take all the workloads that have the same name as the one we are looking for (or the agent).
+For simplicity, we will consider that the workload instance name is known.
 
 .. code-block:: python
 
@@ -115,13 +115,13 @@ Using the workload instance name, we can get the state of our specific workload.
     print(execution_state.substate)
     print(execution_state.info)
 
-If the workload instance name is not known, the state can be retrieved using the workload name or the agent name. This will return a `WorkloadStateCollection <workload_state.html#workloadstatecollection-class>`_
-that contains all the workload states that match.
+If the workload instance name is not known, the state can be retrieved using the workload name or the agent name. This will return a
+`WorkloadStateCollection <workload_state.html#workloadstatecollection-class>`_ that contains all the workload states that match.
 
 **Get the complete state**
 --------------------------
 
-The complete state of the Ankaios system can be retrieved using the following code:
+The complete state of the Ankaios system can be retrieved using the `get_state` method of the `Ankaios` class:
 
 .. code-block:: python
 
@@ -136,14 +136,14 @@ The complete state of the Ankaios system can be retrieved using the following co
     # Output the state
     print(complete_state)
 
-The complete state contains information regarding the workloads running in the ANkaios cluster, configurations and agents. The state can be filtered using filter masks
+The complete state contains information regarding the workloads running in the Ankaios cluster, configurations and agents. The state can be filtered using filter masks
 (See `get_state <ankaios.html#ankaios_sdk.ankaios.Ankaios.get_state>`_).
 
 **Delete a workload**
 ---------------------
 
 To delete a workload, there are multiple methods. We can either use the same manifest that we used to start it and call `delete_manifest` with it or we can
-delete the workload based on it's name. In this example, we will delete the workload using the manifest. Considering the same manifest as before (`my_manifest.yaml <getting_started.html#id1>`_):
+delete the workload based on its name. In this example, we will delete the workload using the manifest. Considering the same manifest as before (`my_manifest.yaml <getting_started.html#id1>`_):
 
 .. code-block:: python
 
@@ -167,5 +167,5 @@ delete the workload based on it's name. In this example, we will delete the work
 Notes
 -----
 
-* Exceptions might be raised during the usage of the sdk. For this, please see the `Exceptions section <exceptions.html>`_.
-* For any issue or feature request, please see the `Issues section <https://github.com/eclipse-ankaios/ank-sdk-python/issues>`_.
+* Exceptions might be raised during the usage of the sdk. For this, please consult the `Exceptions section <exceptions.html>`_ for a complete list.
+* For any issue or feature request, please see the `Contributing section <contributing.html>`_.
