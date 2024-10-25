@@ -22,6 +22,7 @@ import configparser
 
 SUPPORTED_API_VERSION = "v0.1"
 WORKLOADS_PREFIX = "desiredState.workloads"
+CONFIGS_PREFIX = "desiredState.configs"
 
 _config = configparser.ConfigParser()
 _config.read(os.path.join(os.path.dirname(__file__), '..', 'setup.cfg'))

@@ -38,7 +38,7 @@ Usage
 - Add a workload to the complete state:
     .. code-block:: python
 
-        complete_state.set_workload(workload)
+        complete_state.add_workload(workload)
 
 - Get a workload from the complete state:
     .. code-block:: python
@@ -117,7 +117,7 @@ class CompleteState:
         """
         return str(self._complete_state.desiredState.apiVersion)
 
-    def set_workload(self, workload: Workload) -> None:
+    def add_workload(self, workload: Workload) -> None:
         """
         Adds a workload to the complete state.
 
@@ -125,6 +125,8 @@ class CompleteState:
             workload (Workload): The workload to add.
         """
         self._workloads.append(workload)
+        self._complete_state.desiredState.workloads.\
+            workloads[workload.name].CopyFrom(workload._to_proto())
 
     def get_workload(self, workload_name: str) -> Workload:
         """
@@ -182,7 +184,26 @@ class CompleteState:
         Args:
             configs (dict): The configurations to set in the complete state.
         """
+        def _to_config_item(item: Union[str, list, dict]
+                            ) -> _ank_base.ConfigItem:
+            config_item = _ank_base.ConfigItem()
+            if isinstance(item, str):
+                config_item.String = item
+            elif isinstance(item, list):
+                for value in [_to_config_item(value) for value in item]:
+                    config_item.array.values.append(value)
+            elif isinstance(item, dict):
+                for key, value in item.items():
+                    config_item.object.fields[key]. \
+                        CopyFrom(_to_config_item(value))
+            return config_item
+
         self._configs = configs
+        self._complete_state.desiredState.configs.configs.clear()
+        for key, value in self._configs.items():
+            self._complete_state.desiredState.configs.configs[key].CopyFrom(
+                _to_config_item(value)
+            )
 
     def get_configs(self) -> dict:
         """
@@ -220,37 +241,12 @@ class CompleteState:
 
     def _to_proto(self) -> _ank_base.CompleteState:
         """
-        Converts the CompleteState object to a proto message.
+        Returns the CompleteState as a proto message.
 
         Returns:
             _ank_base.CompleteState: The protobuf message representing
                 the complete state.
         """
-        def _to_config_item(item: Union[str, list, dict]
-                            ) -> _ank_base.ConfigItem:
-            config_item = _ank_base.ConfigItem()
-            if isinstance(item, str):
-                config_item.String = item
-            elif isinstance(item, list):
-                for value in [_to_config_item(value) for value in item]:
-                    config_item.array.values.append(value)
-            elif isinstance(item, dict):
-                for key, value in item.items():
-                    config_item.object.fields[key]. \
-                        CopyFrom(_to_config_item(value))
-            return config_item
-
-        if len(self._complete_state.desiredState.workloads.workloads) != 0:
-            self._complete_state.desiredState.workloads.workloads.clear()
-        for workload in self._workloads:
-            self._complete_state.desiredState.workloads.\
-                workloads[workload.name].CopyFrom(workload._to_proto())
-        if len(self._complete_state.desiredState.configs.configs) != 0:
-            self._complete_state.desiredState.configs.configs.clear()
-        for key, value in self._configs.items():
-            self._complete_state.desiredState.configs.configs[key].CopyFrom(
-                _to_config_item(value)
-            )
         return self._complete_state
 
     def _from_proto(self, proto: _ank_base.CompleteState) -> None:

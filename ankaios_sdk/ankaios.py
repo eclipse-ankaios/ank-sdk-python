@@ -52,7 +52,7 @@ Usage
 - Run a workload:
     .. code-block:: python
 
-        ret = ankaios.run_workload(workload)
+        ret = ankaios.apply_workload(workload)
         print(ret["added_workloads"])
 
 - Delete a workload:
@@ -493,7 +493,7 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
-    def run_workload(self, workload: Workload) -> dict:
+    def apply_workload(self, workload: Workload) -> dict:
         """
         Send a request to run a workload.
 
@@ -508,7 +508,7 @@ class Ankaios:
             AnkaiosException: If an error occurred while running the workload.
         """
         complete_state = CompleteState()
-        complete_state.set_workload(workload)
+        complete_state.add_workload(workload)
 
         # Create the request
         request = Request(request_type="update_state")
@@ -806,7 +806,8 @@ class Ankaios:
         workload_states = state.get_workload_states().get_as_list()
         workload_states_for_name = WorkloadStateCollection()
         for workload_state in workload_states:
-            if workload_state.name == workload_name:
+            if workload_state.workload_instance_name.workload_name == \
+                    workload_name:
                 workload_states_for_name.add_workload_state(workload_state)
         return workload_states_for_name
 

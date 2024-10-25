@@ -48,12 +48,13 @@ def test_get():
     # Test get_as_list
     workload_state_collection.add_workload_state(workload_state)
     assert len(workload_state_collection._workload_states) == 1
-    assert workload_state_collection.get_as_list() == [workload_state]
+    assert str(workload_state_collection.get_as_list()[0]) == \
+        str(workload_state)
 
     # Test get_as_dict
     workload_states_dict = workload_state_collection.get_as_dict()
     assert len(workload_states_dict) == 1
-    assert "agent_Test" in workload_states_dict.keys()
+    assert "agent_Test" in workload_states_dict
     assert len(workload_states_dict["agent_Test"]) == 1
     assert "workload_Test" in workload_states_dict["agent_Test"].keys()
     assert len(workload_states_dict["agent_Test"]["workload_Test"]) == 1
@@ -69,9 +70,9 @@ def test_get():
         workload_name="workload_Test",
         workload_id="1234"
     )
-    assert workload_state_collection.get_for_instance_name(
-        workload_instance_name
-    ) == workload_state
+    ret = workload_state_collection.get_for_instance_name(
+        workload_instance_name)
+    assert str(ret) == str(workload_state)
     workload_instance_name.workload_id = "5678"
     assert workload_state_collection.get_for_instance_name(
         workload_instance_name

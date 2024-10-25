@@ -19,7 +19,7 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import Manifest, InvalidManifestException
-from ankaios_sdk.utils import WORKLOADS_PREFIX
+from ankaios_sdk.utils import WORKLOADS_PREFIX, CONFIGS_PREFIX
 
 
 MANIFEST_CONTENT = """apiVersion: v0.1
@@ -139,8 +139,9 @@ def test_calculate_masks():
             'runtimeConfig': 'image: image/test'
         }
     manifest = Manifest(manifest_dict)
-    assert len(manifest._calculate_masks()) == 2
+    assert len(manifest._calculate_masks()) == 3
     assert manifest._calculate_masks() == [
         f"{WORKLOADS_PREFIX}.nginx_test",
-        f"{WORKLOADS_PREFIX}.nginx_test_other"
+        f"{WORKLOADS_PREFIX}.nginx_test_other",
+        f"{CONFIGS_PREFIX}.test_ports"
     ]

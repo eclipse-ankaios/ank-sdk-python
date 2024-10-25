@@ -58,7 +58,7 @@ with Ankaios() as ankaios:
     .build()
 
   # Run the workload
-  ret = ankaios.run_workload(workload)
+  ret = ankaios.apply_workload(workload)
 
   # Check if the workload is scheduled and get the WorkloadInstanceName
   if ret is not None:

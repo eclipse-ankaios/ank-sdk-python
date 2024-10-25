@@ -57,9 +57,11 @@ def test_workload_functionality():
     assert len(complete_state.get_workloads()) == 0
 
     wl_nginx = generate_test_workload("nginx_test")
-    complete_state.set_workload(wl_nginx)
+    complete_state.add_workload(wl_nginx)
     assert len(complete_state.get_workloads()) == 1
     assert complete_state.get_workload("nginx_test") == wl_nginx
+    assert complete_state._complete_state.desiredState.workloads\
+        .workloads["nginx_test"] == wl_nginx._to_proto()
 
     assert complete_state.get_workload("invalid") is None
 
@@ -183,7 +185,7 @@ def test_proto():
     wl_nginx = generate_test_workload("nginx_test")
     config = generate_test_config()
 
-    complete_state.set_workload(wl_nginx)
+    complete_state.add_workload(wl_nginx)
     complete_state.set_configs(config)
 
     new_complete_state = CompleteState()

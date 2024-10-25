@@ -63,7 +63,7 @@ __all__ = ["WorkloadStateCollection", "WorkloadState",
            "WorkloadInstanceName", "WorkloadExecutionState",
            "WorkloadStateEnum", "WorkloadSubStateEnum"]
 
-from typing import Optional, TypeAlias
+from typing import Optional, TypeAlias, Union
 from enum import Enum
 from .._protos import _ank_base
 
@@ -231,6 +231,15 @@ class WorkloadExecutionState:
 
         self._interpret_state(state)
 
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the workload execution state.
+
+        Returns:
+            str: The string representation of the workload execution state.
+        """
+        return f"{self.state.name} ({self.substate.name}): {self.info}"
+
     def _interpret_state(self, exec_state: _ank_base.ExecutionState) -> None:
         """
         Interprets the execution state and sets the state, substate,
@@ -327,8 +336,11 @@ class WorkloadState:
         workload_instance_name (WorkloadInstanceName): The name of the
             workload instance.
     """
-    def __init__(self, agent_name: str, workload_name: str,
-                 workload_id: str, state: _ank_base.ExecutionState) -> None:
+    def __init__(self, agent_name: str,
+                 workload_name: str,
+                 workload_id: str,
+                 state: Union[WorkloadExecutionState, _ank_base.ExecutionState]
+                 ) -> None:
         """
         Initializes a WorkloadState instance.
 
@@ -336,12 +348,24 @@ class WorkloadState:
             agent_name (str): The name of the agent.
             workload_name (str): The name of the workload.
             workload_id (str): The ID of the workload.
-            state (_ank_base.ExecutionState): The execution state to interpret.
+            state (WorkloadExecutionState): The execution state.
         """
-        self.execution_state = WorkloadExecutionState(state)
+        if isinstance(state, _ank_base.ExecutionState):
+            self.execution_state = WorkloadExecutionState(state)
+        else:
+            self.execution_state = state
         self.workload_instance_name = WorkloadInstanceName(
             agent_name, workload_name, workload_id
         )
+
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the workload state.
+
+        Returns:
+            str: The string representation of the workload state.
+        """
+        return f"{self.workload_instance_name}: {self.execution_state}"
 
 
 class WorkloadStateCollection:
@@ -357,7 +381,7 @@ class WorkloadStateCollection:
         """
         Initializes a WorkloadStateCollection instance.
         """
-        self._workload_states: list[WorkloadState] = []
+        self._workload_states: dict = {}
 
     def add_workload_state(self, state: WorkloadState) -> None:
         """
@@ -366,7 +390,17 @@ class WorkloadStateCollection:
         Args:
             state (WorkloadState): The workload state to add.
         """
-        self._workload_states.append(state)
+        agent_name = state.workload_instance_name.agent_name
+        workload_name = state.workload_instance_name.workload_name
+        workload_id = state.workload_instance_name.workload_id
+        if agent_name not in self._workload_states:
+            self._workload_states[agent_name] = \
+                self.ExecutionsStatesOfWorkload()
+        if workload_name not in self._workload_states[agent_name]:
+            self._workload_states[agent_name][workload_name] = \
+                self.ExecutionsStatesForId()
+        self._workload_states[agent_name][workload_name][workload_id] = \
+            state.execution_state
 
     def get_as_dict(self) -> WorkloadStatesMap:
         """
@@ -375,22 +409,7 @@ class WorkloadStateCollection:
         Returns:
             WorkloadStatesMap: A dict of workload states.
         """
-        return_dict = self.WorkloadStatesMap()
-        for state in self._workload_states:
-
-            agent_name = state.workload_instance_name.agent_name
-            if agent_name not in return_dict:
-                return_dict[agent_name] = self.ExecutionsStatesOfWorkload()
-
-            workload_name = state.workload_instance_name.workload_name
-            if workload_name not in return_dict[agent_name]:
-                return_dict[agent_name][workload_name] = \
-                    self.ExecutionsStatesForId()
-
-            workload_id = state.workload_instance_name.workload_id
-            return_dict[agent_name][workload_name][workload_id] = \
-                state.execution_state
-        return return_dict
+        return self._workload_states
 
     def get_as_list(self) -> list[WorkloadState]:
         """
@@ -399,7 +418,14 @@ class WorkloadStateCollection:
         Returns:
             list[WorkloadState]: A list of workload states.
         """
-        return self._workload_states
+        workload_states = []
+        for agent_name, workloads in self._workload_states.items():
+            for workload_name, workload_ids in workloads.items():
+                for workload_id, exec_state in workload_ids.items():
+                    workload_states.append(WorkloadState(
+                        agent_name, workload_name, workload_id, exec_state
+                    ))
+        return workload_states
 
     def get_for_instance_name(self, instance_name: WorkloadInstanceName
                               ) -> Optional[WorkloadState]:
@@ -414,10 +440,16 @@ class WorkloadStateCollection:
             WorkloadState: The workload state for the given instance name.
             None: If no workload state was found.
         """
-        for state in self._workload_states:
-            if state.workload_instance_name == instance_name:
-                return state
-        return None
+        try:
+            return WorkloadState(
+                instance_name.agent_name,
+                instance_name.workload_name,
+                instance_name.workload_id,
+                self._workload_states[instance_name.agent_name]
+                [instance_name.workload_name][instance_name.workload_id]
+            )
+        except KeyError:
+            return None
 
     def _from_proto(self, state: _ank_base.WorkloadStatesMap) -> None:
         """

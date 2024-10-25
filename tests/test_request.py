@@ -31,7 +31,7 @@ def generate_test_request(request_type: str = "update_state") -> Request:
     if request_type == "update_state":
         request = Request("update_state")
         complete_state = CompleteState()
-        complete_state.set_workload(generate_test_workload())
+        complete_state.add_workload(generate_test_workload())
         request.set_complete_state(complete_state)
         return request
     return Request("get_state")

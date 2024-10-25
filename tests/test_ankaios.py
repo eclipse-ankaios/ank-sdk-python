@@ -32,6 +32,8 @@ from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
     MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_UPDATE_SUCCESS, \
     MESSAGE_BUFFER_UPDATE_SUCCESS, MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH
 from tests.test_manifest import MANIFEST_DICT
+from tests.workload_state.test_workload_state import \
+    generate_test_workload_state
 
 
 def generate_test_ankaios() -> Ankaios:
@@ -365,9 +367,9 @@ def test_delete_manifest():
         ankaios.logger.error.assert_called()
 
 
-def test_run_workload():
+def test_apply_workload():
     """
-    Test the run workload method of the Ankaios class.
+    Test the apply workload method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
     ankaios.logger = MagicMock()
@@ -377,7 +379,7 @@ def test_run_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ret = ankaios.run_workload(workload)
+        ret = ankaios.apply_workload(workload)
         assert isinstance(ret, dict)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
@@ -386,7 +388,7 @@ def test_run_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
         with pytest.raises(AnkaiosException):
-            ankaios.run_workload(workload)
+            ankaios.apply_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -394,7 +396,7 @@ def test_run_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.side_effect = TimeoutError()
         with pytest.raises(TimeoutError):
-            ankaios.run_workload(workload)
+            ankaios.apply_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -403,7 +405,7 @@ def test_run_workload():
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
         with pytest.raises(AnkaiosException):
-            ankaios.run_workload(workload)
+            ankaios.apply_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
@@ -641,13 +643,14 @@ def test_get_workload_states_for_name():
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
         wl_state_collection = WorkloadStateCollection()
-        wl_state = MagicMock()
-        wl_state.name = "nginx"
+        wl_state = generate_test_workload_state()
         wl_state_collection.add_workload_state(wl_state)
         mock_state_get_workload_states.return_value = wl_state_collection
-        ret = ankaios.get_workload_states_for_name("nginx")
+        ret = ankaios.get_workload_states_for_name("workload_Test")
         assert isinstance(ret, WorkloadStateCollection)
-        assert wl_state in ret.get_as_list()
+        wl_list = ret.get_as_list()
+        assert len(wl_list) == 1
+        assert str(wl_list[0]) == str(wl_state)
 
 
 def test_wait_for_workload_to_reach_state():

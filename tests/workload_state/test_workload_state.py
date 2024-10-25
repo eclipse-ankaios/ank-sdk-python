@@ -21,11 +21,11 @@ from ankaios_sdk import WorkloadState, WorkloadStateEnum, WorkloadSubStateEnum
 from ankaios_sdk._protos import _ank_base
 
 
-def test_creation():
+def generate_test_workload_state():
     """
-    Test the creation of a WorkloadState instance.
+    Generate a test WorkloadState instance.
     """
-    workload_state = WorkloadState(
+    return WorkloadState(
         agent_name="agent_Test",
         workload_name="workload_Test",
         workload_id="1234",
@@ -34,6 +34,13 @@ def test_creation():
             pending=_ank_base.PENDING_WAITING_TO_START
         )
     )
+
+
+def test_creation():
+    """
+    Test the creation of a WorkloadState instance.
+    """
+    workload_state = generate_test_workload_state()
     assert workload_state is not None
     assert workload_state.execution_state is not None
     assert workload_state.execution_state.state == WorkloadStateEnum.PENDING

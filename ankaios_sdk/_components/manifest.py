@@ -43,7 +43,7 @@ Usage
 
 import yaml
 from ..exceptions import InvalidManifestException
-from ..utils import WORKLOADS_PREFIX
+from ..utils import WORKLOADS_PREFIX, CONFIGS_PREFIX
 
 
 class Manifest():
@@ -146,10 +146,14 @@ class Manifest():
 
     def _calculate_masks(self) -> list[str]:
         """
-        Calculates the masks for the workloads in the manifest.
+        Calculates the masks for the manifest. This includes
+        the names of the workloads and of the configs.
 
         Returns:
-            list[str]: A list of masks for the workloads.
+            list[str]: A list of masks.
         """
-        return [f"{WORKLOADS_PREFIX}.{key}"
-                for key in self._manifest["workloads"].keys()]
+        masks = [f"{WORKLOADS_PREFIX}.{key}"
+                 for key in self._manifest["workloads"].keys()]
+        masks.extend([f"{CONFIGS_PREFIX}.{key}"
+                      for key in self._manifest["configs"].keys()])
+        return masks
