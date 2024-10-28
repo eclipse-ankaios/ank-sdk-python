@@ -17,19 +17,19 @@ the communication with the Ankaios cluster can be started.
 **Apply a manifest**
 --------------------
 
-Considering we have the following manifest file with a workload called ``nginx_test`` and a config called ``test_ports``:
+Considering we have the following manifest file with a workload called ``nginx``:
 
 .. code-block:: yaml
     :caption: my_manifest.yaml
 
     apiVersion: v0.1
     workloads:
-        nginx_test:
+        nginx:
             runtime: podman
             restartPolicy: NEVER
             agent: agent_A
             runtimeConfig: |
-                image: image/test
+                image: image/nginx
 
 The manifest can now be applied using the following code:
 
