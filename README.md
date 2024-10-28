@@ -37,8 +37,8 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-> [!Note]
-Depending on your Linux distribution, it could be that you need to create and activate a [virtual environment](https://docs.python.org/3/library/venv.html) to run the pip commands.
+> **Note:**  
+> Depending on your Linux distribution, it could be that you need to create and activate a [virtual environment](https://docs.python.org/3/library/venv.html) to run the pip commands.
 
 ## Usage
 

@@ -12,33 +12,31 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.cache-deps.outputs.cache-hit }}
+    name: Setup ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-
-      - name: Cache dependencies
-        id: cache-deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
-          restore-keys: |
-            python-deps-${{ runner.os }}-
+          python-version: ${{ matrix.python }}
 
       - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           python3 -m pip install --upgrade pip
           pip install .[dev]
+
+      - name: Print packages
+        run: python3 -m pip list
+
+      - name: Test installation
+        run: python3 -c "from ankaios_sdk import Ankaios"
 
   unit_test:
     needs: setup
@@ -51,12 +49,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
 
       - name: Install dependencies
         run: |
@@ -85,12 +77,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
-
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
@@ -117,12 +103,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
 
       - name: Install dependencies
         run: |
@@ -151,12 +131,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
-
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
@@ -183,12 +157,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
 
       - name: Install dependencies
         run: |

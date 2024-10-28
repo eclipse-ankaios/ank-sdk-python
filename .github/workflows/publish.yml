@@ -21,12 +21,6 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Restore cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: python-deps-${{ runner.os }}-${{ hashFiles('setup.py', 'setup.cfg') }}
-
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
