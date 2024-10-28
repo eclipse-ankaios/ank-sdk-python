@@ -56,7 +56,7 @@ Usage
         workload_name = workload_state.workload_instance_name.workload_name
         state = workload_state.execution_state.state
         substate = workload_state.execution_state.substate
-        info = workload_state.execution_state.info
+        info = workload_state.execution_state.additional_info
 """
 
 __all__ = ["WorkloadStateCollection", "WorkloadState",
@@ -227,7 +227,7 @@ class WorkloadExecutionState:
         """
         self.state: WorkloadStateEnum = None
         self.substate: WorkloadSubStateEnum = None
-        self.info: str = None
+        self.additional_info: str = None
 
         self._interpret_state(state)
 
@@ -238,7 +238,8 @@ class WorkloadExecutionState:
         Returns:
             str: The string representation of the workload execution state.
         """
-        return f"{self.state.name} ({self.substate.name}): {self.info}"
+        return f"{self.state.name} ({self.substate.name}):" \
+            + f"{self.additional_info}"
 
     def _interpret_state(self, exec_state: _ank_base.ExecutionState) -> None:
         """
@@ -252,7 +253,7 @@ class WorkloadExecutionState:
         Raises:
             ValueError: If the execution state is invalid.
         """
-        self.info = str(exec_state.additionalInfo)
+        self.additional_info = str(exec_state.additionalInfo)
 
         field = exec_state.WhichOneof("ExecutionStateEnum")
         if field is None:

@@ -95,6 +95,15 @@ def test_connection():
             path != "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output"
         ankaios = Ankaios()
 
+    # Test output pipe error
+    with patch("os.path.exists") as mock_exists, \
+        patch("builtins.open") as mock_open_file, \
+        pytest.raises(AnkaiosConnectionException,
+                      match="Error while opening output fifo"):
+        mock_exists.return_value = True
+        mock_open_file.side_effect = OSError
+        ankaios = Ankaios()
+
     # Test success
     with patch("os.path.exists") as mock_exists, \
             patch("threading.Thread") as mock_thread, \
@@ -410,6 +419,30 @@ def test_apply_workload():
         ankaios.logger.error.assert_called()
 
 
+def test_get_workload():
+    """
+    Test the get workload of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    workload_name = "nginx"
+    workload = generate_test_workload(
+        workload_name=workload_name
+    )
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_workloads") \
+            as mock_state_get_workloads:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_workloads.return_value = [workload]
+        ret = ankaios.get_workload(workload_name)
+        assert ret == workload
+        mock_get_state.assert_called_once_with(
+            Ankaios.DEFAULT_TIMEOUT,
+            [f"{WORKLOADS_PREFIX}.nginx"]
+        )
+        mock_state_get_workloads.assert_called_once()
+
+
 def test_delete_workload():
     """
     Test the delete workload method of the Ankaios class.
@@ -450,34 +483,6 @@ def test_delete_workload():
             ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
-
-
-def test_get_workload_with_instance_name():
-    """
-    Test the get workload with instance name of the Ankaios class.
-    """
-    ankaios = generate_test_ankaios()
-    workload_instance_name = WorkloadInstanceName(
-        agent_name="agent_Test",
-        workload_name="nginx",
-        workload_id="1234"
-    )
-    workload = generate_test_workload(
-        workload_name="nginx"
-    )
-
-    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
-            patch("ankaios_sdk.CompleteState.get_workloads") \
-            as mock_state_get_workloads:
-        mock_get_state.return_value = CompleteState()
-        mock_state_get_workloads.return_value = [workload]
-        ret = ankaios.get_workload_with_instance_name(workload_instance_name)
-        assert ret == workload
-        mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT,
-            [f"{WORKLOADS_PREFIX}.nginx.1234.agent_Test"]
-        )
-        mock_state_get_workloads.assert_called_once()
 
 
 def test_configs():

@@ -55,16 +55,16 @@ Usage
         ret = ankaios.apply_workload(workload)
         print(ret["added_workloads"])
 
+- Get a workload:
+    .. code-block:: python
+
+        workload = ankaios.get_workload(workload_name)
+
 - Delete a workload:
     .. code-block:: python
 
         ret = ankaios.delete_workload(workload_name)
         print(ret["deleted_workloads"])
-
-- Get a workload:
-    .. code-block:: python
-
-        workload = ankaios.get_workload(workload_name)
 
 - Get the state:
     .. code-block:: python
@@ -81,10 +81,15 @@ Usage
 
         workload_states = ankaios.get_workload_states()
 
-- Get the workload states:
+- Get the workload states for workloads with a specific name:
     .. code-block:: python
 
-        workload_states = ankaios.get_workload_states()
+        workload_states = ankaios.get_workload_states_for_name(workload_name)
+
+- Get the workload states for a specific agent:
+    .. code-block:: python
+
+        workload_states = ankaios.get_workload_states_on_agent(agent_name)
 
 - Get the workload execution state for instance name:
     .. code-block:: python
@@ -209,15 +214,22 @@ class Ankaios:
                 "Control interface output fifo does not exist."
             )
 
+        # pylint: disable=consider-using-with
+        try:
+            self._output_file = open(
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output", "ab"
+            )
+        except Exception as e:
+            self.logger.error("Error while opening output fifo: %s", e)
+            self._disconnect()
+            raise AnkaiosConnectionException(
+                "Error while opening output fifo."
+            ) from e
+
         self._read_thread = threading.Thread(
             target=self._read_from_control_interface
         )
         self._read_thread.start()
-
-        # pylint: disable=consider-using-with
-        self._output_file = open(
-            f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output", "ab"
-        )
 
         self._connected = True
         self._send_initial_hello()
@@ -360,7 +372,7 @@ class Ankaios:
                 in seconds.
 
         Returns:
-            AnkaiosConnectionException: The response object.
+            Response: The response object.
 
         Raises:
             AnkaiosConnectionException: If reading from the control interface
@@ -391,6 +403,7 @@ class Ankaios:
 
         Raises:
             TimeoutError: If the request timed out.
+            AnkaiosConnectionException: If not connected.
         """
         self._write_request(request)
 
@@ -538,6 +551,24 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
+    def get_workload(self, workload_name: str,
+                     timeout: float = DEFAULT_TIMEOUT) -> Workload:
+        """
+        Get the workload with the provided name from the
+        requested complete state.
+
+        Args:
+            workload_name (str): The name of the workload.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Returns:
+            Workload: The workload object.
+        """
+        return self.get_state(
+            timeout, [f"{WORKLOADS_PREFIX}.{workload_name}"]
+        ).get_workloads()[0]
+
     def delete_workload(self, workload_name: str) -> dict:
         """
         Send a request to delete a workload.
@@ -578,26 +609,6 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
-    def get_workload_with_instance_name(
-            self, instance_name: WorkloadInstanceName,
-            timeout: float = DEFAULT_TIMEOUT
-            ) -> Workload:
-        """
-        Get the workload from the requested complete state, filtered
-        with the provided instance name.
-
-        Args:
-            instance_name (instance_name): The instance name of the workload.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
-
-        Returns:
-            Workload: The workload object.
-        """
-        return self.get_state(
-            timeout, [f"{WORKLOADS_PREFIX}.{str(instance_name)}"]
-        ).get_workloads()[0]
-
     def set_configs(self, configs: dict) -> bool:
         """
         Set the configs. The names will be the keys of the dictionary.
@@ -633,7 +644,7 @@ class Ankaios:
         """
         raise NotImplementedError("get_configs is not implemented yet.")
 
-    def get_config(self, name: str) -> Union[dict, list, str]:
+    def get_config(self, name: str) -> dict:
         """
         Get the config with the provided name.
 
@@ -641,7 +652,7 @@ class Ankaios:
             name (str): The name of the config.
 
         Returns:
-            Union[dict, list, str]: The config.
+            dict: The config in a dict format.
         """
         raise NotImplementedError("get_config is not implemented yet.")
 

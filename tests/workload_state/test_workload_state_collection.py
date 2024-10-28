@@ -111,5 +111,5 @@ def test_from_proto():
         WorkloadStateEnum.PENDING
     assert workload_states[0].execution_state.substate == \
         WorkloadSubStateEnum.PENDING_WAITING_TO_START
-    assert workload_states[0].execution_state.info == \
+    assert workload_states[0].execution_state.additional_info == \
         "Dummy information"

@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.eggs/
 
 # Reports directory
 reports/
@@ -11,7 +12,8 @@ reports/
 .pytest_cache/
 
 # Build directory
-ankaios_sdk.egg-info
+*.egg-info
+*.egg
 build/
 dist/
 

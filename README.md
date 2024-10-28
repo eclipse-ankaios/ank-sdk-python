@@ -67,7 +67,7 @@ with Ankaios() as ankaios:
   # Request the workload state based on the workload instance name
   ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
   if ret is not None:
-    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.info}")
+    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
 
   # Wait until the workload reaches the running state
   ret = ankaios.wait_for_workload_to_reach_state(
