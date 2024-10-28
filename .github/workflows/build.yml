@@ -12,17 +12,22 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    name: Setup ${{ matrix.python }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python: [3.7, 3.8, 3.9, 3.10, 3.11, 3.12]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     outputs:
       cache-key: ${{ steps.cache-deps.outputs.cache-hit }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python }}
 
       - name: Cache dependencies
         id: cache-deps
@@ -39,6 +44,11 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install .[dev]
+
+      - name: Test installation
+        run: |
+          python3 -m pip list
+          python3 -c "from ankaios_sdk import Ankaios"
 
   unit_test:
     needs: setup
