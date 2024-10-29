@@ -49,7 +49,7 @@ def get_logger(name="Ankaios logger"):
 
     if not logger.handlers:
         formatter = logging.Formatter(
-            '%(asctime)s %(message)s', datefmt="%FT%TZ"
+            '%(asctime)s %(message)s', datefmt="[%F %T]"
         )
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)

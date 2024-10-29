@@ -208,10 +208,8 @@ class Ankaios:
         self._read_thread = threading.Thread(
             target=self._read_from_control_interface
         )
-        self._read_thread.start()
-
         self._connected = True
-        self.logger.info("Connected to the control interface.")
+        self._read_thread.start()
         self._send_initial_hello()
 
     def _disconnect(self) -> None:
@@ -285,10 +283,12 @@ class Ankaios:
                                   request_id)
                 with self._responses_lock:
                     if request_id in self._responses:
-                        self.logger.debug("Response expected.")
+                        self.logger.debug(
+                            "Setting response for existing request.")
                         self._responses[request_id].set_response(response)
                     else:
-                        self.logger.debug("Response saved for later.")
+                        self.logger.debug(
+                            "Adding early response.")
                         self._responses[request_id] = ResponseEvent(response)
                         self._responses[request_id].set()
         except ConnectionClosedException as e:  # pragma: no cover
@@ -319,8 +319,6 @@ class Ankaios:
         # Adds the proto msg itself
         self._output_file.write(to_ankaios.SerializeToString())
         self._output_file.flush()
-
-        self.logger.debug("Wrote a message to the pipe.")
 
     def _write_request(self, request: Request) -> None:
         """
@@ -373,11 +371,11 @@ class Ankaios:
 
         with self._responses_lock:
             if request_id in self._responses:
-                self.logger.debug("Found response.")
+                self.logger.debug("Immediate response available.")
                 return self._responses.pop(request_id).get_response()
             self._responses[request_id] = ResponseEvent()
 
-        self.logger.debug("Waiting for response.")
+        self.logger.debug("Waiting on response.")
         return self._responses[request_id].wait_for_response(timeout)
 
     def _send_request(self, request: Request,
@@ -448,7 +446,7 @@ class Ankaios:
             raise AnkaiosException(f"Received error: {content}")
         if content_type == "update_state_success":
             self.logger.info(
-                "Update successfull: %s added workloads, "
+                "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content["added_workloads"]),
                 len(content["deleted_workloads"])
@@ -490,7 +488,7 @@ class Ankaios:
             raise AnkaiosException(f"Received error: {content}")
         if content_type == "update_state_success":
             self.logger.info(
-                "Update successfull: %s added workloads, "
+                "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content["added_workloads"]),
                 len(content["deleted_workloads"])
@@ -535,7 +533,7 @@ class Ankaios:
             raise AnkaiosException(f"Received error: {content}")
         if content_type == "update_state_success":
             self.logger.info(
-                "Update successfull: %s added workloads, "
+                "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content["added_workloads"]),
                 len(content["deleted_workloads"])
@@ -593,7 +591,7 @@ class Ankaios:
             raise AnkaiosException(f"Received error: {content}")
         if content_type == "update_state_success":
             self.logger.info(
-                "Update successfull: %s added workloads, "
+                "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content["added_workloads"]),
                 len(content["deleted_workloads"])
@@ -609,7 +607,7 @@ class Ankaios:
             configs (dict): The configs dictionary.
 
         Returns:
-            bool: True if the configs were set successfully, False otherwise.
+            bool: True if the configs were set successfuly, False otherwise.
         """
         raise NotImplementedError("set_configs is not implemented yet.")
 
@@ -623,7 +621,7 @@ class Ankaios:
             config (Union[dict, list, str]): The config dictionary.
 
         Returns:
-            bool: True if the config was set successfully, False otherwise.
+            bool: True if the config was set successfuly, False otherwise.
         """
         raise NotImplementedError("set_config is not implemented yet.")
 
@@ -653,7 +651,7 @@ class Ankaios:
         Delete all the configs.
 
         Returns:
-            bool: if the configs were deleted successfully.
+            bool: if the configs were deleted successfuly.
         """
         raise NotImplementedError("delete_all_configs is not implemented yet.")
 
@@ -665,7 +663,7 @@ class Ankaios:
             name (str): The name of the config.
 
         Returns:
-            bool: True if the config was deleted successfully, False otherwise.
+            bool: True if the config was deleted successfuly, False otherwise.
         """
         raise NotImplementedError("delete_config is not implemented yet.")
 
@@ -756,7 +754,7 @@ class Ankaios:
 
         Raises:
             AnkaiosException: If the workload state was not
-                retrieved successfully.
+                retrieved successfuly.
         """
         state = self.get_state(timeout, [instance_name.get_filter_mask()])
         workload_states = state.get_workload_states().get_as_list()
