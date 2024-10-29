@@ -49,52 +49,54 @@ Example:
 ```python
 from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, WorkloadSubStateEnum
 
-# Connect to control interface
-with Ankaios() as ankaios:
-  # Create a new workload
-  workload = Workload.builder() \
-    .workload_name("dynamic_nginx") \
-    .agent_name("agent_A") \
-    .runtime("podman") \
-    .restart_policy("NEVER") \
-    .runtime_config("image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]") \
-    .build()
+# Create a new Ankaios object.
+# The connection to the control interface is automatically done at this step.
+ankaios = Ankaios()
 
-  # Run the workload
-  ret = ankaios.apply_workload(workload)
+# Create a new workload
+workload = Workload.builder() \
+  .workload_name("dynamic_nginx") \
+  .agent_name("agent_A") \
+  .runtime("podman") \
+  .restart_policy("NEVER") \
+  .runtime_config("image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]") \
+  .build()
 
-  # Check if the workload is scheduled and get the WorkloadInstanceName
-  if ret is not None:
-    workload_instance_name = ret["added_workloads"][0]
+# Run the workload
+ret = ankaios.apply_workload(workload)
 
-  # Request the workload state based on the workload instance name
-  ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
-  if ret is not None:
-    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
+# Check if the workload is scheduled and get the WorkloadInstanceName
+if ret is not None:
+  workload_instance_name = ret["added_workloads"][0]
 
-  # Wait until the workload reaches the running state
-  ret = ankaios.wait_for_workload_to_reach_state(
-    workload_instance_name,
-    state=WorkloadStateEnum.RUNNING,
-    timeout=5
-    )
-  if ret:
-    print("Workload reached the RUNNING state.")
+# Request the workload state based on the workload instance name
+ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
+if ret is not None:
+  print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
 
-  # Request the state of the system, filtered with the agent name
-  complete_state = ankaios.get_state(
-    timeout=5,
-    field_mask=["workloadStates.agent_A"])
+# Wait until the workload reaches the running state
+ret = ankaios.wait_for_workload_to_reach_state(
+  workload_instance_name,
+  state=WorkloadStateEnum.RUNNING,
+  timeout=5
+  )
+if ret:
+  print("Workload reached the RUNNING state.")
 
-  # Get the workload states present in the complete_state
-  workload_states_dict = complete_state.get_workload_states().get_as_dict()
+# Request the state of the system, filtered with the agent name
+complete_state = ankaios.get_state(
+  timeout=5,
+  field_mask=["workloadStates.agent_A"])
 
-  # Print the states of the workloads:
-  for workload_name in workload_states_dict["agent_A"]:
-    for workload_id in workload_states_dict["agent_A"][workload_name]:
-      print(f"Workload {workload_name} with id {workload_id} has the state "
-            + str(workload_states_dict["agent_A"] \
-                 [workload_name][workload_id].state))
+# Get the workload states present in the complete_state
+workload_states_dict = complete_state.get_workload_states().get_as_dict()
+
+# Print the states of the workloads:
+for workload_name in workload_states_dict["agent_A"]:
+  for workload_id in workload_states_dict["agent_A"][workload_name]:
+    print(f"Workload {workload_name} with id {workload_id} has the state "
+          + str(workload_states_dict["agent_A"] \
+                [workload_name][workload_id].state))
 ```
 
 ## Contributing
