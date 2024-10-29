@@ -63,7 +63,7 @@ __all__ = ["WorkloadStateCollection", "WorkloadState",
            "WorkloadInstanceName", "WorkloadExecutionState",
            "WorkloadStateEnum", "WorkloadSubStateEnum"]
 
-from typing import Optional, TypeAlias, Union
+from typing import Optional, Union
 from enum import Enum
 from .._protos import _ank_base
 
@@ -374,9 +374,9 @@ class WorkloadStateCollection:
     A class that represents a collection of workload states and provides
     methods to manipulate them.
     """
-    ExecutionsStatesForId: TypeAlias = dict[str, WorkloadExecutionState]
-    ExecutionsStatesOfWorkload: TypeAlias = dict[str, ExecutionsStatesForId]
-    WorkloadStatesMap: TypeAlias = dict[str, ExecutionsStatesOfWorkload]
+    ExecutionsStatesForId = dict[str, WorkloadExecutionState]
+    ExecutionsStatesOfWorkload = dict[str, ExecutionsStatesForId]
+    WorkloadStatesMap = dict[str, ExecutionsStatesOfWorkload]
 
     def __init__(self) -> None:
         """
