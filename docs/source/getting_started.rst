@@ -7,7 +7,7 @@ Once the SDK is installed, you can start using it by importing the module and cr
 
 .. code-block:: python
 
-    from ankaios import Ankaios
+    from ankaios_sdk import Ankaios
 
     ankaios = Ankaios()
 
@@ -35,7 +35,7 @@ The manifest can now be applied using the following code:
 
 .. code-block:: python
 
-    from ankaios import Ankaios, Manifest
+    from ankaios_sdk import Ankaios, Manifest
 
     # Create an Ankaios object
     ankaios = Ankaios()
@@ -71,7 +71,7 @@ The complete state of the Ankaios system can be retrieved using the ``get_state`
 
 .. code-block:: python
 
-    from ankaios import Ankaios
+    from ankaios_sdk import Ankaios
 
     # Create an Ankaios object
     ankaios = Ankaios()
@@ -93,7 +93,7 @@ the exact workload we want to modify, we must know only it's name.
 
 .. code-block:: python
 
-    from ankaios import Ankaios
+    from ankaios_sdk import Ankaios
 
     # Create an Ankaios object
     ankaios = Ankaios()
@@ -119,7 +119,7 @@ delete the workload based on its name. In this example, we will delete the workl
 
 .. code-block:: python
 
-    from ankaios import Ankaios, Manifest
+    from ankaios_sdk import Ankaios, Manifest
 
     # Create an Ankaios object
     ankaios = Ankaios()
