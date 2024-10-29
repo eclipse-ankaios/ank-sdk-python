@@ -230,7 +230,5 @@ class ResponseEvent(Event):
                 specified timeout.
         """
         if not self.wait(timeout):
-            logger.debug("Timeout while waiting for the response with id %s",
-                         self._response.get_request_id())
             raise TimeoutError("Timeout while waiting for the response.")
         return self.get_response()
