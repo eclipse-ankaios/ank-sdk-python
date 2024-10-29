@@ -86,7 +86,7 @@ if ret:
 # Request the state of the system, filtered with the agent name
 complete_state = ankaios.get_state(
   timeout=5,
-  field_mask=["workloadStates.agent_A"])
+  field_masks=["workloadStates.agent_A"])
 
 # Get the workload states present in the complete_state
 workload_states_dict = complete_state.get_workload_states().get_as_dict()
