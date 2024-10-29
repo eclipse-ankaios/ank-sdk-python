@@ -154,10 +154,10 @@ def test_read_from_control_interface():
         ankaios = generate_test_ankaios()
 
         # Start thread (similar to _connect)
-        ankaios._connected = True
         ankaios._read_thread = threading.Thread(
             target=ankaios._read_from_control_interface
         )
+        ankaios._connected = True
         ankaios._read_thread.start()
         time.sleep(0.01)
 
@@ -180,10 +180,10 @@ def test_read_from_control_interface():
         ankaios._responses["1234"] = ResponseEvent()
 
         # Start thread (similar to _connect)
-        ankaios._connected = True
         ankaios._read_thread = threading.Thread(
             target=ankaios._read_from_control_interface
         )
+        ankaios._connected = True
         ankaios._read_thread.start()
         time.sleep(0.01)
 

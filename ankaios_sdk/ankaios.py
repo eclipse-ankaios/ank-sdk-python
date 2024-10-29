@@ -185,13 +185,11 @@ class Ankaios:
             raise AnkaiosConnectionException(
                 "Control interface input fifo does not exist."
             )
-        self.logger.debug("Found input pipe.")
         if not os.path.exists(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
             raise AnkaiosConnectionException(
                 "Control interface output fifo does not exist."
             )
-        self.logger.debug("Found output pipe.")
 
         # pylint: disable=consider-using-with
         try:

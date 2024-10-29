@@ -154,6 +154,7 @@ class Manifest():
         """
         masks = [f"{WORKLOADS_PREFIX}.{key}"
                  for key in self._manifest["workloads"].keys()]
-        masks.extend([f"{CONFIGS_PREFIX}.{key}"
-                      for key in self._manifest["configs"].keys()])
+        if "configs" in self._manifest.keys():
+            masks.extend([f"{CONFIGS_PREFIX}.{key}"
+                          for key in self._manifest["configs"].keys()])
         return masks
