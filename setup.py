@@ -87,7 +87,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type="text/markdown",
     url="https://eclipse-ankaios.github.io/ankaios/latest/",
-    python_requires='>=3.10',
+    python_requires='>=3.9',
     package_dir={'': '.'},
     packages=find_packages(where="."),
     include_package_data=True,
