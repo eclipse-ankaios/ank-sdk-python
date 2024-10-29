@@ -204,12 +204,12 @@ class Ankaios:
         if self._connected:
             raise AnkaiosConnectionException("Already connected.")
         if not os.path.exists(
-                "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\input"):
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"):
             raise AnkaiosConnectionException(
                 "Control interface input fifo does not exist."
             )
         if not os.path.exists(
-                "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output"):
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
             raise AnkaiosConnectionException(
                 "Control interface output fifo does not exist."
             )
@@ -217,7 +217,7 @@ class Ankaios:
         # pylint: disable=consider-using-with
         try:
             self._output_file = open(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output", "ab"
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output", "ab"
             )
         except Exception as e:
             self.logger.error("Error while opening output fifo: %s", e)

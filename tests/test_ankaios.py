@@ -84,7 +84,7 @@ def test_connection():
         pytest.raises(AnkaiosConnectionException,
                       match="Control interface input fifo"):
         mock_exists.side_effect = lambda path: \
-            path != "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\input"
+            path != "/run/ankaios/control_interface/input"
         ankaios = Ankaios()
 
     # Test output pipe does not exist
@@ -92,7 +92,7 @@ def test_connection():
         pytest.raises(AnkaiosConnectionException,
                       match="Control interface output fifo"):
         mock_exists.side_effect = lambda path: \
-            path != "f{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output"
+            path != "/run/ankaios/control_interface/output"
         ankaios = Ankaios()
 
     # Test output pipe error
@@ -123,7 +123,7 @@ def test_connection():
         )
         mock_thread_instance.start.assert_called_once()
         mock_open_file.assert_called_once_with(
-            f"{ankaios.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}\\output", "ab"
+            "/run/ankaios/control_interface/output", "ab"
         )
         assert ankaios._read_thread is not None
         assert ankaios._output_file == output_file_mock
@@ -164,7 +164,7 @@ def test_read_from_control_interface():
         ankaios._read_thread.join()
 
         mock_file.assert_called_once_with(
-            f"{Ankaios.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
+            "/run/ankaios/control_interface/input", "rb")
         assert "1234" in list(ankaios._responses)
         assert ankaios._responses["1234"].is_set()
 
@@ -189,7 +189,7 @@ def test_read_from_control_interface():
         ankaios._read_thread.join()
 
         mock_file.assert_called_once_with(
-            f"{Ankaios.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
+            "/run/ankaios/control_interface/input", "rb")
         assert "1234" in list(ankaios._responses)
         assert ankaios._responses["1234"].is_set()
 
