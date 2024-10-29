@@ -581,9 +581,9 @@ def test_get_workload_states():
         mock_state_get_workload_states.assert_called_once()
 
 
-def test_get_workload_state_for_instance_name():
+def test_get_execution_state_for_instance_name():
     """
-    Test the get workload state for instance name method of the Ankaios class.
+    Test the get execution state for instance name method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
     ankaios.logger = MagicMock()

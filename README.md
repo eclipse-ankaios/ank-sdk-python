@@ -69,8 +69,8 @@ ret = ankaios.apply_workload(workload)
 if ret is not None:
   workload_instance_name = ret["added_workloads"][0]
 
-# Request the workload state based on the workload instance name
-ret = ankaios.get_workload_state_for_instance_name(workload_instance_name)
+# Request the execution state based on the workload instance name
+ret = ankaios.get_execution_state_for_instance_name(workload_instance_name)
 if ret is not None:
   print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
 
