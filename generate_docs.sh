@@ -3,7 +3,7 @@
 python3 -m venv docs_env
 source docs_env/bin/activate
 
-pip install .[docs]
+pip install ".[docs]"
 
 cd docs
 
