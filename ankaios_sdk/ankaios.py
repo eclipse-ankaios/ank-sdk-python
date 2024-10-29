@@ -110,11 +110,9 @@ Usage
 
 __all__ = ["Ankaios", "AnkaiosLogLevel"]
 
-import logging
 import os
 import time
 from typing import Union
-from enum import Enum
 import threading
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint
@@ -126,21 +124,8 @@ from ._components import Workload, CompleteState, Request, Response, \
                          ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
-from .utils import WORKLOADS_PREFIX, ANKAIOS_VERSION
-
-
-class AnkaiosLogLevel(Enum):
-    """ Ankaios log levels. """
-    FATAL = logging.FATAL
-    "(int): Fatal log level."
-    ERROR = logging.ERROR
-    "(int): Error log level."
-    WARN = logging.WARN
-    "(int): Warning log level."
-    INFO = logging.INFO
-    "(int): Info log level."
-    DEBUG = logging.DEBUG
-    "(int): Debug log level."
+from .utils import AnkaiosLogLevel, get_logger, \
+    WORKLOADS_PREFIX, ANKAIOS_VERSION
 
 
 # pylint: disable=too-many-public-methods
@@ -160,12 +145,13 @@ class Ankaios:
     DEFAULT_TIMEOUT = 5.0
     "(float): The default timeout, if not manually provided."
 
-    def __init__(self) -> None:
+    def __init__(self,
+                 log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO
+                 ) -> None:
         """
         Initialize the Ankaios object. The logger will be created and
         the connection to the control interface will be established.
         """
-        self.logger = None
         self.path = self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH
 
         self._read_thread = None
@@ -174,7 +160,8 @@ class Ankaios:
         self._responses_lock = threading.Lock()
         self._responses: dict[str, ResponseEvent] = {}
 
-        self._create_logger()
+        self.logger = get_logger()
+        self.set_logger_level(log_level)
         self._connect()
 
     def __del__(self) -> None:
@@ -182,16 +169,6 @@ class Ankaios:
         Disconnect from the control interface when the object is deleted.
         """
         self._disconnect()
-
-    def _create_logger(self) -> None:
-        """Create a logger with custom format and default log level."""
-        formatter = logging.Formatter('%(asctime)s %(message)s',
-                                      datefmt="%FT%TZ")
-        self.logger = logging.getLogger("Ankaios logger")
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.set_logger_level(AnkaiosLogLevel.INFO)
 
     def _connect(self) -> None:
         """
@@ -208,11 +185,13 @@ class Ankaios:
             raise AnkaiosConnectionException(
                 "Control interface input fifo does not exist."
             )
+        self.logger.debug("Found input pipe.")
         if not os.path.exists(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
             raise AnkaiosConnectionException(
                 "Control interface output fifo does not exist."
             )
+        self.logger.debug("Found output pipe.")
 
         # pylint: disable=consider-using-with
         try:
@@ -232,6 +211,7 @@ class Ankaios:
         self._read_thread.start()
 
         self._connected = True
+        self.logger.info("Connected to the control interface.")
         self._send_initial_hello()
 
     def _disconnect(self) -> None:
@@ -268,6 +248,8 @@ class Ankaios:
             input_fifo = open(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
 
+            self.logger.info("Started reading from the input pipe.")
+
             while self._connected:
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
@@ -299,10 +281,14 @@ class Ankaios:
                     continue
 
                 request_id = response.get_request_id()
+                self.logger.debug("Received a response with the id %s",
+                                  request_id)
                 with self._responses_lock:
                     if request_id in self._responses:
+                        self.logger.debug("Response expected.")
                         self._responses[request_id].set_response(response)
                     else:
+                        self.logger.debug("Response saved for later.")
                         self._responses[request_id] = ResponseEvent(response)
                         self._responses[request_id].set()
         except ConnectionClosedException as e:  # pragma: no cover
@@ -334,6 +320,8 @@ class Ankaios:
         self._output_file.write(to_ankaios.SerializeToString())
         self._output_file.flush()
 
+        self.logger.debug("Wrote a message to the pipe.")
+
     def _write_request(self, request: Request) -> None:
         """
         Writes the request into the control interface output fifo.
@@ -360,6 +348,8 @@ class Ankaios:
             )
         )
         self._write_to_pipe(initial_hello)
+        self.logger.debug("Sent initial hello message with the version %s",
+                          ANKAIOS_VERSION)
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -383,9 +373,11 @@ class Ankaios:
 
         with self._responses_lock:
             if request_id in self._responses:
+                self.logger.debug("Found response.")
                 return self._responses.pop(request_id).get_response()
             self._responses[request_id] = ResponseEvent()
 
+        self.logger.debug("Waiting for response.")
         return self._responses[request_id].wait_for_response(timeout)
 
     def _send_request(self, request: Request,

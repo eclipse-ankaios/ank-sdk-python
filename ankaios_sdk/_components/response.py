@@ -47,8 +47,12 @@ from typing import Union
 from threading import Event
 from .._protos import _control_api
 from ..exceptions import ResponseException, ConnectionClosedException
+from ..utils import get_logger
 from .complete_state import CompleteState
 from .workload_state import WorkloadInstanceName
+
+
+logger = get_logger()
 
 
 class Response:
@@ -89,10 +93,16 @@ class Response:
             # Deserialize the received proto msg
             from_ankaios.ParseFromString(self.buffer)
         except Exception as e:
+            logger.error(
+                "Error parsing the received message: %s", e
+            )
             raise ResponseException(f"Parsing error: '{e}'") from e
         if from_ankaios.HasField("response"):
             self._response = from_ankaios.response
         else:
+            logger.error(
+                "Connection closed by the server."
+            )
             raise ConnectionClosedException(
                 from_ankaios.connectionClosed.reason)
 
@@ -220,5 +230,7 @@ class ResponseEvent(Event):
                 specified timeout.
         """
         if not self.wait(timeout):
+            logger.debug("Timeout while waiting for the response with id %s",
+                         self._response.get_request_id())
             raise TimeoutError("Timeout while waiting for the response.")
         return self.get_response()

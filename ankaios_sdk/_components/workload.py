@@ -73,7 +73,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 
 from .._protos import _ank_base
 from ..exceptions import WorkloadFieldException, WorkloadBuilderException
-from ..utils import WORKLOADS_PREFIX
+from ..utils import get_logger, WORKLOADS_PREFIX
 
 
 # pylint: disable=too-many-public-methods
@@ -98,6 +98,7 @@ class Workload:
         self.name = name
         self._main_mask = f"{WORKLOADS_PREFIX}.{self.name}"
         self.masks = [self._main_mask]
+        self.logger = get_logger()
 
     def __str__(self) -> str:
         """
@@ -180,6 +181,8 @@ class Workload:
             WorkloadFieldException: If an invalid restart policy is provided.
         """
         if policy not in _ank_base.RestartPolicy.keys():
+            self.logger.error(
+                "Invalid restart policy provided.")
             raise WorkloadFieldException(
                 "restart policy", policy, _ank_base.RestartPolicy.keys()
             )
@@ -215,6 +218,8 @@ class Workload:
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
             if condition not in _ank_base.AddCondition.keys():
+                self.logger.error(
+                    "Invalid dependency condition provided.")
                 raise WorkloadFieldException(
                     "dependency condition", condition,
                     _ank_base.AddCondition.keys()
@@ -288,6 +293,8 @@ class Workload:
             "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
         }
         if operation not in enum_mapper:
+            self.logger.error(
+                "Invalid rule operation provided.")
             raise WorkloadFieldException(
                 "rule operation", operation, enum_mapper.keys()
             )

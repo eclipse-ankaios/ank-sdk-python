@@ -17,6 +17,7 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 """
 
 from io import StringIO
+import time
 import logging
 import threading
 from unittest.mock import patch, mock_open, MagicMock
@@ -158,6 +159,7 @@ def test_read_from_control_interface():
             target=ankaios._read_from_control_interface
         )
         ankaios._read_thread.start()
+        time.sleep(0.01)
 
         # Stop thread (similar to _disconnect)
         ankaios._connected = False
@@ -183,6 +185,7 @@ def test_read_from_control_interface():
             target=ankaios._read_from_control_interface
         )
         ankaios._read_thread.start()
+        time.sleep(0.01)
 
         # Stop thread (similar to _disconnect)
         ankaios._connected = False

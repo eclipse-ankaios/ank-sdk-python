@@ -53,6 +53,7 @@ __all__ = ["Request"]
 import uuid
 from .._protos import _ank_base
 from ..exceptions import RequestException
+from ..utils import get_logger
 from .complete_state import CompleteState
 
 
@@ -74,10 +75,14 @@ class Request:
         self._request = _ank_base.Request()
         self._request.requestId = str(uuid.uuid4())
         self._request_type = request_type
+        self.logger = get_logger()
 
         if request_type not in ["update_state", "get_state"]:
+            self.logger.error("Invalid request type.")
             raise RequestException("Invalid request type. Supported values: "
                                    + "'update_state', 'get_state'.")
+        self.logger.debug("Created request for %s with id %s",
+                          request_type, self._request.requestId)
 
     def __str__(self) -> str:
         """
