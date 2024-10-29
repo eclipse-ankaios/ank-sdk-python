@@ -16,14 +16,8 @@
 This script provides general functionality and constants for the ankaios_sdk.
 """
 
-import os
-import configparser
-
 
 SUPPORTED_API_VERSION = "v0.1"
+ANKAIOS_VERSION = "0.5.0"
 WORKLOADS_PREFIX = "desiredState.workloads"
 CONFIGS_PREFIX = "desiredState.configs"
-
-_config = configparser.ConfigParser()
-_config.read(os.path.join(os.path.dirname(__file__), '..', 'setup.cfg'))
-ANKAIOS_VERSION = _config['metadata']['ankaios_version']
