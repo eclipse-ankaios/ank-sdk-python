@@ -19,6 +19,7 @@
    manifest
    request
    response
+   utils
    exceptions
 
 .. toctree::

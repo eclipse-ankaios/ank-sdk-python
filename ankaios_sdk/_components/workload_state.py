@@ -264,6 +264,19 @@ class WorkloadExecutionState:
             self.state, getattr(exec_state, field)
         )
 
+    def to_dict(self) -> dict:
+        """
+        Returns the execution state as a dictionary.
+
+        Returns:
+            dict: The execution state as a dictionary.
+        """
+        return {
+            "state": str(self.state),
+            "substate": str(self.substate),
+            "additional_info": self.additional_info
+        }
+
 
 # pylint: disable=too-few-public-methods
 class WorkloadInstanceName:

@@ -239,6 +239,36 @@ class CompleteState:
             state._configs = dict_state.get("configs")
         return state
 
+    def to_dict(self) -> dict:
+        """
+        Returns the CompleteState as a dictionary
+
+        Returns:
+            dict: The CompleteState as a dictionary.
+        """
+        data = {
+            "desired_state": {
+                "api_version": self.get_api_version(),
+                "workloads": {},
+                "configs": self._configs
+            },
+            "workload_states": {},
+            "agents": {}
+        }
+        for wl in self._workloads:
+            data["desired_state"]["workloads"][wl.name] = \
+                wl.to_dict()
+        wl_states = self._workload_state_collection.get_as_dict()
+        for agent_name, exec_states in wl_states.items():
+            data["workload_states"][agent_name] = {}
+            for workload_name, exec_states_id in exec_states.items():
+                data["workload_states"][agent_name][workload_name] = {}
+                for workload_id, exec_state in exec_states_id.items():
+                    data["workload_states"][agent_name][workload_name][
+                        workload_id] = exec_state.to_dict()
+        data["agents"] = self.get_agents()
+        return data
+
     def _to_proto(self) -> _ank_base.CompleteState:
         """
         Returns the CompleteState as a proto message.

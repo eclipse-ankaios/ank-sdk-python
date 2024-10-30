@@ -14,16 +14,33 @@
 
 """
 This script provides general functionality and constants for the ankaios_sdk.
+
+Enums
+-----
+
+- AnkaiosLogLevel:
+    Represents the log levels for the Ankaios class.
+
+Functions
+---------
+
+- get_logger:
+    Creates and returns the logger.
 """
 
 import logging
 from enum import Enum
+import threading
 
 
 SUPPORTED_API_VERSION = "v0.1"
 ANKAIOS_VERSION = "0.5.0"
 WORKLOADS_PREFIX = "desiredState.workloads"
 CONFIGS_PREFIX = "desiredState.configs"
+
+
+# Used to sync across different threads when adding handlers
+_logger_lock = threading.Lock()
 
 
 class AnkaiosLogLevel(Enum):
@@ -47,12 +64,14 @@ def get_logger(name="Ankaios logger"):
     """
     logger = logging.getLogger(name)
 
-    if not logger.handlers:
-        formatter = logging.Formatter(
-            '%(asctime)s %(message)s', datefmt="[%F %T]"
-        )
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    with _logger_lock:
+        if not any(isinstance(handler, logging.StreamHandler)
+                   for handler in logger.handlers):
+            formatter = logging.Formatter(
+                '%(asctime)s %(message)s', datefmt="[%F %T]"
+            )
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
 
     return logger

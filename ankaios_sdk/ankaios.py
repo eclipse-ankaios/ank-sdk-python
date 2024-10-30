@@ -22,12 +22,6 @@ Classes
 - Ankaios:
     Handles the interaction with the Ankaios control interface.
 
-Enums
------
-
-- AnkaiosLogLevel:
-    Represents the log levels for the Ankaios class.
-
 Usage
 -----
 

@@ -437,6 +437,56 @@ class Workload:
         if self._main_mask not in self.masks and mask not in self.masks:
             self.masks.append(mask)
 
+    def to_dict(self) -> dict:
+        """
+        Convert the Workload object to a dictionary.
+
+        Returns:
+            dict: The dictionary representation of the Workload object.
+        """
+        workload_dict = {}
+        if self._workload.agent:
+            workload_dict["agent"] = self._workload.agent
+        if self._workload.runtime:
+            workload_dict["runtime"] = self._workload.runtime
+        if self._workload.runtimeConfig:
+            workload_dict["runtimeConfig"] = self._workload.runtimeConfig
+        workload_dict["restartPolicy"] = _ank_base.RestartPolicy.Name(
+            self._workload.restartPolicy
+        )
+        workload_dict["dependencies"] = {}
+        if self._workload.dependencies:
+            for dep_key, dep_value in \
+                    self._workload.dependencies.dependencies.items():
+                workload_dict["dependencies"][dep_key] = \
+                    _ank_base.AddCondition.Name(dep_value)
+        workload_dict["tags"] = []
+        if self._workload.tags:
+            for tag in self._workload.tags.tags:
+                workload_dict["tags"].append(
+                    {"key": tag.key, "value": tag.value}
+                )
+        workload_dict["controlInterfaceAccess"] = {}
+        if self._workload.controlInterfaceAccess:
+            workload_dict["controlInterfaceAccess"]["allowRules"] = []
+            for rule in self._workload.controlInterfaceAccess.allowRules:
+                operation, filter_masks = self._access_right_rule_to_str(rule)
+                workload_dict["controlInterfaceAccess"]["allowRules"].append({
+                        "type": "StateRule",
+                        "operation": operation,
+                        "filterMask": [str(mask) for mask in filter_masks]}
+                )
+            workload_dict["controlInterfaceAccess"]["denyRules"] = []
+            for rule in self._workload.controlInterfaceAccess.denyRules:
+                operation, filter_masks = self._access_right_rule_to_str(rule)
+                workload_dict["controlInterfaceAccess"]["denyRules"].append({
+                    "type": "StateRule",
+                    "operation": operation,
+                    "filterMask": [str(mask) for mask in filter_masks]}
+                )
+        workload_dict["configs"] = {}
+        return workload_dict
+
     # pylint: disable=too-many-branches
     @staticmethod
     def _from_dict(workload_name: str, dict_workload: dict) -> "Workload":

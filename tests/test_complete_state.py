@@ -16,25 +16,60 @@
 This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
+import json
 from ankaios_sdk import CompleteState, WorkloadStateCollection, Manifest
 from ankaios_sdk._components.complete_state import SUPPORTED_API_VERSION
 from ankaios_sdk._protos import _ank_base
-from tests.workload.test_workload import generate_test_workload
+from tests.workload.test_workload import generate_test_workload, WORKLOAD_PROTO
+from tests.workload_state.test_workload_state_collection import \
+    WORKLOAD_STATES_PROTO
 from tests.test_manifest import MANIFEST_DICT
 
 
-def generate_test_config():
-    """
-    Generate a test configuration.
-    """
-    return {
-        "config_1": "val_1",
-        "config_2": ["val_2", "val_3"],
-        "config_3": {
-            "key_1": "val_4",
-            "key_2": "val_5"
-        }
+CONFIGS_PROTO = _ank_base.ConfigMap(
+    configs={
+        "config_1": _ank_base.ConfigItem(
+            String="val_1"
+        ),
+        "config_2": _ank_base.ConfigItem(
+            array=_ank_base.ConfigArray(
+                values=[
+                    _ank_base.ConfigItem(String="val_2"),
+                    _ank_base.ConfigItem(String="val_3")
+                ]
+            )
+        ),
+        "config_3": _ank_base.ConfigItem(
+            object=_ank_base.ConfigObject(
+                fields={
+                    "key_1": _ank_base.ConfigItem(String="val_4"),
+                    "key_2": _ank_base.ConfigItem(String="val_5")
+                }
+            )
+        )
     }
+)
+
+
+AGENTS_PROTO = _ank_base.AgentMap(
+    agents={
+        "agent_A": _ank_base.AgentAttributes(
+                cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
+                free_memory=_ank_base.FreeMemory(free_memory=1024)
+        )
+    }
+)
+
+
+COMPLETE_PROTO = proto_msg = _ank_base.CompleteState(
+    desiredState=_ank_base.State(
+        apiVersion="v0.1",
+        workloads=WORKLOAD_PROTO,
+        configs=CONFIGS_PROTO
+    ),
+    workloadStates=WORKLOAD_STATES_PROTO,
+    agents=AGENTS_PROTO
+)
 
 
 def test_general_functionality():
@@ -72,31 +107,9 @@ def test_workload_states():
     setting and getting workload states.
     """
     complete_state = CompleteState()
-    complete_state._from_proto(_ank_base.CompleteState(
-        workloadStates=_ank_base.WorkloadStatesMap(agentStateMap={
-            "agent_A": _ank_base.ExecutionsStatesOfWorkload(wlNameStateMap={
-                "nginx": _ank_base.ExecutionsStatesForId(idStateMap={
-                    "1234": _ank_base.ExecutionState(
-                        additionalInfo="Random info",
-                        succeeded=_ank_base.SUCCEEDED_OK,
-                        )
-                    })
-                }),
-            "agent_B": _ank_base.ExecutionsStatesOfWorkload(wlNameStateMap={
-                "nginx": _ank_base.ExecutionsStatesForId(idStateMap={
-                    "5678": _ank_base.ExecutionState(
-                        additionalInfo="Random info",
-                        pending=_ank_base.PENDING_WAITING_TO_START,
-                        )
-                    }),
-                "dyn_nginx": _ank_base.ExecutionsStatesForId(idStateMap={
-                    "9012": _ank_base.ExecutionState(
-                        additionalInfo="Random info",
-                        stopping=_ank_base.STOPPING_WAITING_TO_STOP,
-                        )
-                    })
-                })
-            })
+    complete_state._from_proto(
+        _ank_base.CompleteState(
+            workloadStates=WORKLOAD_STATES_PROTO
         )
     )
 
@@ -110,14 +123,11 @@ def test_get_agents():
     Test the get_agents method of the CompleteState class.
     """
     complete_state = CompleteState()
-    complete_state._from_proto(_ank_base.CompleteState(
-        agents=_ank_base.AgentMap(agents={
-            "agent_A": _ank_base.AgentAttributes(
-                cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
-                free_memory=_ank_base.FreeMemory(free_memory=1024)
-            )
-        })
-    ))
+    complete_state._from_proto(
+        _ank_base.CompleteState(
+            agents=AGENTS_PROTO
+        )
+    )
     agents = complete_state.get_agents()
     assert len(agents) == 1
     assert "agent_A" in agents
@@ -132,32 +142,20 @@ def test_get_configs():
     complete_state = CompleteState()
     complete_state._from_proto(_ank_base.CompleteState(
         desiredState=_ank_base.State(
-            configs=_ank_base.ConfigMap(
-                configs={
-                    "config_1": _ank_base.ConfigItem(
-                        String="val_1"
-                    ),
-                    "config_2": _ank_base.ConfigItem(
-                        array=_ank_base.ConfigArray(
-                            values=[
-                                _ank_base.ConfigItem(String="val_2"),
-                                _ank_base.ConfigItem(String="val_3")
-                            ]
-                        )
-                    ),
-                    "config_3": _ank_base.ConfigItem(
-                        object=_ank_base.ConfigObject(
-                            fields={
-                                "key_1": _ank_base.ConfigItem(String="val_4"),
-                                "key_2": _ank_base.ConfigItem(String="val_5")
-                            }
-                        )
-                    )
-                }
-            )
+            configs=CONFIGS_PROTO
         )
     ))
-    assert complete_state.get_configs() == generate_test_config()
+    configs = complete_state.get_configs()
+    assert configs == {
+        "config_1": "val_1",
+        "config_2": ["val_2", "val_3"],
+        "config_3": {
+            "key_1": "val_4",
+            "key_2": "val_5"
+        }
+    }
+    complete_state.set_configs(configs)
+    assert complete_state.get_configs() == configs
 
 
 def test_from_manifest():
@@ -177,18 +175,110 @@ def test_from_manifest():
     }
 
 
+def test_to_dict():
+    """
+    Test converting the CompleteState to a dictionary.
+    """
+    complete_state = CompleteState()
+    complete_state._from_proto(COMPLETE_PROTO)
+
+    complete_state_dict = complete_state.to_dict()
+    assert complete_state_dict == {
+        'desired_state': {
+            'api_version': 'v0.1',
+            'workloads': {
+                'dynamic_nginx': {
+                    'agent': 'agent_A',
+                    'runtime': 'podman',
+                    'runtimeConfig': 'image: control_interface_prod:0.1\\n',
+                    'dependencies': {
+                        'nginx': 'ADD_COND_RUNNING'
+                    },
+                    'restartPolicy': 'ALWAYS',
+                    'tags': [
+                        {
+                            'key': 'owner',
+                            'value': 'Ankaios team'
+                        }
+                    ],
+                    'controlInterfaceAccess': {
+                        'allowRules': [
+                            {
+                                'type': 'StateRule',
+                                'operation': 'Write',
+                                'filterMask': [
+                                    'desiredState.workloads.dynamic_nginx'
+                                ]
+                            }
+                        ],
+                        'denyRules': [
+                            {
+                                'type': 'StateRule',
+                                'operation': 'Read',
+                                'filterMask': [
+                                    'desiredState.workloads.dynamic_nginx'
+                                ]
+                            }]
+                    },
+                    'configs': {}
+                }
+            },
+            'configs': {
+                'config_1': 'val_1',
+                'config_2': [
+                    'val_2', 'val_3'
+                ],
+                'config_3': {
+                    'key_1': 'val_4',
+                    'key_2': 'val_5'
+                }
+            }
+        },
+        'workload_states': {
+            'agent_B': {
+                'nginx': {
+                    '5678': {
+                        'state': 'PENDING',
+                        'substate': 'PENDING_WAITING_TO_START',
+                        'additional_info': 'Random info'
+                    }
+                },
+                'dyn_nginx': {
+                    '9012': {
+                        'state': 'STOPPING',
+                        'substate': 'STOPPING_WAITING_TO_STOP',
+                        'additional_info': 'Random info'
+                    }
+                }
+            },
+            'agent_A': {
+                'nginx': {
+                    '1234': {
+                        'state': 'SUCCEEDED',
+                        'substate': 'SUCCEEDED_OK',
+                        'additional_info': 'Random info'
+                    }
+                }
+            }
+        },
+        'agents': {
+            'agent_A': {
+                'cpu_usage': 50,
+                'free_memory': 1024
+            }
+        }
+    }
+
+    # Test that it can be converted to json
+    json.dumps(complete_state_dict)
+
+
 def test_proto():
     """
     Test converting the CompleteState instance to and from a protobuf message.
     """
     complete_state = CompleteState()
-    wl_nginx = generate_test_workload("nginx_test")
-    config = generate_test_config()
+    complete_state._from_proto(COMPLETE_PROTO)
+    new_proto = complete_state._to_proto()
 
-    complete_state.add_workload(wl_nginx)
-    complete_state.set_configs(config)
-
-    new_complete_state = CompleteState()
-    new_complete_state._from_proto(complete_state._to_proto())
-
-    assert str(complete_state) == str(new_complete_state)
+    assert new_proto == COMPLETE_PROTO

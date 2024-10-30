@@ -23,6 +23,44 @@ from ankaios_sdk import WorkloadStateCollection, WorkloadState, \
 from ankaios_sdk._protos import _ank_base
 
 
+WORKLOAD_STATES_PROTO = _ank_base.WorkloadStatesMap(
+    agentStateMap={
+        "agent_A": _ank_base.ExecutionsStatesOfWorkload(
+            wlNameStateMap={
+                "nginx": _ank_base.ExecutionsStatesForId(
+                    idStateMap={
+                        "1234": _ank_base.ExecutionState(
+                            additionalInfo="Random info",
+                            succeeded=_ank_base.SUCCEEDED_OK,
+                        )
+                    }
+                )
+            }
+        ),
+        "agent_B": _ank_base.ExecutionsStatesOfWorkload(
+            wlNameStateMap={
+                "nginx": _ank_base.ExecutionsStatesForId(
+                    idStateMap={
+                        "5678": _ank_base.ExecutionState(
+                            additionalInfo="Random info",
+                            pending=_ank_base.PENDING_WAITING_TO_START,
+                        )
+                    }
+                ),
+                "dyn_nginx": _ank_base.ExecutionsStatesForId(
+                    idStateMap={
+                        "9012": _ank_base.ExecutionState(
+                            additionalInfo="Random info",
+                            stopping=_ank_base.STOPPING_WAITING_TO_STOP,
+                        )
+                    }
+                )
+            }
+        )
+    }
+)
+
+
 def test_get():
     """
     Test the basic functionality of the WorkloadStateCollection
@@ -84,32 +122,21 @@ def test_from_proto():
     Test the _from_proto method of the WorkloadStateCollection class,
     ensuring it correctly populates the collection from a proto message.
     """
-    ank_workload_state = _ank_base.WorkloadStatesMap(
-        agentStateMap={"agent_Test": _ank_base.ExecutionsStatesOfWorkload(
-            wlNameStateMap={"workload_Test": _ank_base.ExecutionsStatesForId(
-                idStateMap={"1234": _ank_base.ExecutionState(
-                    additionalInfo="Dummy information",
-                    pending=_ank_base.PENDING_WAITING_TO_START
-                )}
-            )}
-        )}
-    )
-
     workload_state_collection = WorkloadStateCollection()
-    workload_state_collection._from_proto(ank_workload_state)
-    assert len(workload_state_collection._workload_states) == 1
+    workload_state_collection._from_proto(WORKLOAD_STATES_PROTO)
+    assert len(workload_state_collection._workload_states) == 2
     workload_states = workload_state_collection.get_as_list()
-    assert len(workload_states) == 1
+    assert len(workload_states) == 3
 
     assert workload_states[0].workload_instance_name.agent_name == \
-        "agent_Test"
+        "agent_B"
     assert workload_states[0].workload_instance_name.workload_name == \
-        "workload_Test"
+        "nginx"
     assert workload_states[0].workload_instance_name.workload_id == \
-        "1234"
+        "5678"
     assert workload_states[0].execution_state.state == \
         WorkloadStateEnum.PENDING
     assert workload_states[0].execution_state.substate == \
         WorkloadSubStateEnum.PENDING_WAITING_TO_START
     assert workload_states[0].execution_state.additional_info == \
-        "Dummy information"
+        "Random info"

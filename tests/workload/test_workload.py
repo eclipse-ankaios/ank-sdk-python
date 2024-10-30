@@ -30,6 +30,60 @@ from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
 
+WORKLOAD_PROTO = _ank_base.WorkloadMap(
+    workloads={
+        "dynamic_nginx": _ank_base.Workload(
+            agent="agent_A",
+            runtime="podman",
+            runtimeConfig=r"image: control_interface_prod:0.1\n",
+            restartPolicy=_ank_base.ALWAYS,
+            tags=_ank_base.Tags(
+                tags=[
+                    _ank_base.Tag(
+                        key="owner",
+                        value="Ankaios team"
+                    )
+                ]
+            ),
+            dependencies=_ank_base.Dependencies(
+                dependencies={
+                    "nginx": _ank_base.ADD_COND_RUNNING
+                }
+            ),
+            controlInterfaceAccess=_ank_base.ControlInterfaceAccess(
+                allowRules=[
+                    _ank_base.AccessRightsRule(
+                        stateRule=_ank_base.StateRule(
+                            operation=_ank_base.RW_WRITE,
+                            filterMasks=[
+                                "desiredState.workloads.dynamic_nginx"
+                            ]
+                        )
+                    )
+                ],
+                denyRules=[
+                    _ank_base.AccessRightsRule(
+                        stateRule=_ank_base.StateRule(
+                            operation=_ank_base.RW_READ,
+                            filterMasks=[
+                                "desiredState.workloads.dynamic_nginx"
+                            ]
+                        )
+                    )
+                ]
+            ),
+            configs=_ank_base.ConfigMappings(
+                configs={
+                    "str": "config_1",
+                    "array": "config_2",
+                    "dict": "config_3",
+                }
+            )
+        )
+    }
+)
+
+
 def generate_test_workload(workload_name: str = "workload_test") -> Workload:
     """
     Helper function to generate a Workload instance with some default values.
@@ -226,20 +280,13 @@ def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     ])
 
 
-def test_from_proto(
-        workload: Workload
-        ):  # pylint: disable=redefined-outer-name
+def test__proto():
     """
-    Test converting theprotobuf message to a Workload instance.
-
-    Args:
-        workload (Workload): The Workload fixture.
+    Test converting the workload to and from a proto.
     """
-    proto = workload._to_proto()
-    new_workload = Workload("workload_test")
-    new_workload._from_proto(proto)
-    assert new_workload is not None
-    assert str(workload) == str(new_workload)
+    workload_new = Workload("workload_test")
+    workload_new._from_proto(WORKLOAD_PROTO)
+    assert workload_new._to_proto() == WORKLOAD_PROTO
 
 
 def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
