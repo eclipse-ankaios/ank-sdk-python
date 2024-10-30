@@ -247,6 +247,9 @@ class CompleteState:
             _ank_base.CompleteState: The protobuf message representing
                 the complete state.
         """
+        for workload in self._workloads:
+            self._complete_state.desiredState.workloads.\
+                workloads[workload.name].CopyFrom(workload._to_proto())
         return self._complete_state
 
     def _from_proto(self, proto: _ank_base.CompleteState) -> None:
