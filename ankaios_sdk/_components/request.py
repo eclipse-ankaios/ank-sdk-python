@@ -77,7 +77,11 @@ class Request:
         self._request_type = request_type
         self.logger = get_logger()
 
-        if request_type not in ["update_state", "get_state"]:
+        if request_type == "update_state":
+            self._request.updateStateRequest.updateMask[:] = []
+        elif request_type == "get_state":
+            self._request.completeStateRequest.fieldMask[:] = []
+        else:
             self.logger.error("Invalid request type.")
             raise RequestException("Invalid request type. Supported values: "
                                    + "'update_state', 'get_state'.")

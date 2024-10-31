@@ -46,7 +46,8 @@ def test_general_functionality():
 
     request = Request("update_state")
     assert request.get_id() is not None
-    assert str(request) == f"requestId: \"{request.get_id()}\"\n"
+    assert str(request) == f"requestId: \"{request.get_id()}\"\n" \
+        + "updateStateRequest {\n}\n"
 
 
 def test_update_state():
