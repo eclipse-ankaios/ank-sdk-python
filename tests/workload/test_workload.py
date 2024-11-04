@@ -280,7 +280,7 @@ def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     ])
 
 
-def test__proto():
+def test_proto():
     """
     Test converting the workload to and from a proto.
     """
@@ -289,44 +289,13 @@ def test__proto():
     assert workload_new._to_proto() == WORKLOAD_PROTO
 
 
-def test_from_dict(workload: Workload):  # pylint: disable=redefined-outer-name
-    """
-    Test creating a Workload instance from a dictionary.
+def test_from_to_dict():
+    """Test converting a Workload instance to and from a dictionary."""
+    workload_new = generate_test_workload()
 
-    Args:
-        workload (Workload): The Workload fixture.
-    """
-    workload_dict = {
-        "name": "workload_test",
-        "agent": "agent_Test",
-        "runtime": "runtime_test",
-        "restartPolicy": "NEVER",
-        "runtimeConfig": "config_test",
-        "dependencies": {"workload_test_other": "ADD_COND_RUNNING"},
-        "tags": [
-            {"key": "key1", "value": "value1"},
-            {"key": "key2", "value": "value2"},
-            ],
-        "controlInterfaceAccess": {
-            "allowRules": [{
-                "type": "StateRule",
-                "operation": "Write",
-                "filterMask": [f"{WORKLOADS_PREFIX}.another_workload"]
-                }],
-            "denyRules": [{
-                "type": "StateRule",
-                "operation": "Read",
-                "filterMask": ["workloadStates.agent_Test.another_workload"]
-                }]
-            },
-        "configs": {
-            "alias_test": "config1"
-        }
-    }
-
-    new_workload = Workload._from_dict("workload_test", workload_dict)
-    assert new_workload is not None
-    assert str(workload) == str(new_workload)
+    workload_other = Workload._from_dict(
+        workload_new.name, workload_new.to_dict())
+    assert str(workload_new) == str(workload_other)
 
 
 @pytest.mark.parametrize("function_name, data, mask", [

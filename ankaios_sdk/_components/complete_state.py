@@ -236,7 +236,7 @@ class CompleteState:
                 Workload._from_dict(workload_name, workload_dict)
             )
         if dict_state.get("configs") is not None:
-            state._configs = dict_state.get("configs")
+            state.set_configs(dict_state.get("configs"))
         return state
 
     def to_dict(self) -> dict:
@@ -312,7 +312,8 @@ class CompleteState:
         self._workload_state_collection._from_proto(
             self._complete_state.workloadStates
         )
-        self._configs = {}
+        configs = {}
         for key, value in self._complete_state.desiredState. \
                 configs.configs.items():
-            self._configs[key] = _from_config_item(value)
+            configs[key] = _from_config_item(value)
+        self.set_configs(configs)

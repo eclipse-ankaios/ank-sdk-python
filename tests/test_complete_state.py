@@ -220,7 +220,11 @@ def test_to_dict():
                                 ]
                             }]
                     },
-                    'configs': {}
+                    'configs': {
+                        'array': 'config_2',
+                        'dict': 'config_3',
+                        'str': 'config_1'
+                    }
                 }
             },
             'configs': {

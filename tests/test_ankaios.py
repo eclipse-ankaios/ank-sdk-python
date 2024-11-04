@@ -488,29 +488,203 @@ def test_delete_workload():
         ankaios.logger.error.assert_called()
 
 
-def test_configs():
+def test_update_configs():
     """
-    Test the configs methods of the Ankaios class.
+    Test the update configs method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
+        ankaios.update_configs({"name": "config"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosException):
+            ankaios.update_configs({"name": "config"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.update_configs({"name": "config"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_COMPLETE_STATE)
+        with pytest.raises(AnkaiosException):
+            ankaios.update_configs({"name": "config"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
+def test_add_config():
+    """
+    Test the add config method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
+        ankaios.add_config("name", "config")
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosException):
+            ankaios.add_config("name", "config")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.add_config("name", "config")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_COMPLETE_STATE)
+        with pytest.raises(AnkaiosException):
+            ankaios.add_config("name", "config")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
+def test_get_configs():
+    """
+    Test the get configs method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.set_configs(configs={'name': 'config'})
-
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.set_config(name="config_test", config={'config_test': 'value'})
-
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_configs") \
+            as mock_state_get_configs:
+        mock_get_state.return_value = CompleteState()
         ankaios.get_configs()
+        mock_get_state.assert_called_once_with(
+            Ankaios.DEFAULT_TIMEOUT, field_masks=['desiredState.configs']
+            )
+        mock_state_get_configs.assert_called_once()
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.get_config(name="config_test")
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
+def test_get_config():
+    """
+    Test the get config method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+            patch("ankaios_sdk.CompleteState.get_configs") \
+            as mock_state_get_configs:
+        mock_get_state.return_value = CompleteState()
+        ankaios.get_config("config_name")
+        mock_get_state.assert_called_once_with(
+            Ankaios.DEFAULT_TIMEOUT,
+            field_masks=['desiredState.configs.config_name']
+            )
+        mock_state_get_configs.assert_called_once()
+
+
+def test_delete_all_configs():
+    """
+    Test the delete all configs method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
         ankaios.delete_all_configs()
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
 
-    with pytest.raises(NotImplementedError, match="not implemented yet"):
-        ankaios.delete_config(name="config_test")
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosException):
+            ankaios.delete_all_configs()
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.delete_all_configs()
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_COMPLETE_STATE)
+        with pytest.raises(AnkaiosException):
+            ankaios.delete_all_configs()
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
+def test_delete_config():
+    """
+    Test the delete config method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
+        ankaios.delete_config("config_name")
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosException):
+            ankaios.delete_config("config_name")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.delete_config("config_name")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = \
+            Response(MESSAGE_BUFFER_COMPLETE_STATE)
+        with pytest.raises(AnkaiosException):
+            ankaios.delete_config("config_name")
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
 
 
 def test_get_state():

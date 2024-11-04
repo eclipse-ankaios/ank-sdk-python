@@ -399,7 +399,6 @@ class Workload:
             name (str): The name of the configuration.
         """
         self._workload.configs.configs[alias] = name
-        # Currently the mask is for all configs, not for individual aliases
         self._add_mask(f"{self._main_mask}.configs")
 
     def get_configs(self) -> dict[str, str]:
@@ -485,6 +484,8 @@ class Workload:
                     "filterMask": [str(mask) for mask in filter_masks]}
                 )
         workload_dict["configs"] = {}
+        for alias, name in self._workload.configs.configs.items():
+            workload_dict["configs"][alias] = name
         return workload_dict
 
     # pylint: disable=too-many-branches

@@ -119,7 +119,7 @@ from ._components import Workload, CompleteState, Request, Response, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
 from .utils import AnkaiosLogLevel, get_logger, \
-    WORKLOADS_PREFIX, ANKAIOS_VERSION
+    WORKLOADS_PREFIX, ANKAIOS_VERSION, CONFIGS_PREFIX
 
 
 # pylint: disable=too-many-public-methods
@@ -404,12 +404,14 @@ class Ankaios:
         """
         self.logger.setLevel(level.value)
 
-    def apply_manifest(self, manifest: Manifest) -> dict:
+    def apply_manifest(self, manifest: Manifest,
+                       timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Send a request to apply a manifest.
 
         Args:
             manifest (Manifest): The manifest object to be applied.
+            timeout (float): The maximum time to wait for the response.
 
         Returns:
             dict: a dict with the added and deleted workloads.
@@ -425,7 +427,7 @@ class Ankaios:
 
         # Send request
         try:
-            response = self._send_request(request)
+            response = self._send_request(request, timeout)
         except TimeoutError as e:
             self.logger.error("%s", e)
             raise e
@@ -446,12 +448,14 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
-    def delete_manifest(self, manifest: Manifest) -> dict:
+    def delete_manifest(self, manifest: Manifest,
+                        timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Send a request to delete a manifest.
 
         Args:
             manifest (Manifest): The manifest object to be deleted.
+            timeout (float): The maximum time to wait for the response.
 
         Returns:
             dict: a dict with the added and deleted workloads.
@@ -467,7 +471,7 @@ class Ankaios:
 
         # Send request
         try:
-            response = self._send_request(request)
+            response = self._send_request(request, timeout)
         except TimeoutError as e:
             self.logger.error("%s", e)
             raise e
@@ -488,12 +492,14 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
-    def apply_workload(self, workload: Workload) -> dict:
+    def apply_workload(self, workload: Workload,
+                       timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Send a request to run a workload.
 
         Args:
             workload (Workload): The workload object to be run.
+            timeout (float): The maximum time to wait for the response.
 
         Returns:
             dict: a dict with the added and deleted workloads.
@@ -512,7 +518,7 @@ class Ankaios:
 
         # Send request
         try:
-            response = self._send_request(request)
+            response = self._send_request(request, timeout)
         except TimeoutError as e:
             self.logger.error("%s", e)
             raise e
@@ -551,12 +557,14 @@ class Ankaios:
             timeout, [f"{WORKLOADS_PREFIX}.{workload_name}"]
         ).get_workloads()[0]
 
-    def delete_workload(self, workload_name: str) -> dict:
+    def delete_workload(self, workload_name: str,
+                        timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Send a request to delete a workload.
 
         Args:
             workload_name (str): The name of the workload to be deleted.
+            timeout (float): The maximum time to wait for the response.
 
         Returns:
             dict: a dict with the added and deleted workloads.
@@ -570,7 +578,7 @@ class Ankaios:
         request.add_mask(f"{WORKLOADS_PREFIX}.{workload_name}")
 
         try:
-            response = self._send_request(request)
+            response = self._send_request(request, timeout)
         except TimeoutError as e:
             self.logger.error("%s", e)
             raise e
@@ -591,42 +599,95 @@ class Ankaios:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
-    def set_configs(self, configs: dict) -> bool:
+    def update_configs(self, configs: dict,
+                       timeout: float = DEFAULT_TIMEOUT):
         """
-        Set the configs. The names will be the keys of the dictionary.
+        Update the configs. The names will be the keys of the dictionary.
 
         Args:
             configs (dict): The configs dictionary.
+            timeout (float): The maximum time to wait for the response.
 
-        Returns:
-            bool: True if the configs were set successfuly, False otherwise.
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred.
         """
-        raise NotImplementedError("set_configs is not implemented yet.")
+        complete_state = CompleteState()
+        complete_state.set_configs(configs)
 
-    def set_config(self, name: str, config: Union[dict, list, str]) -> bool:
+        request = Request(request_type="update_state")
+        request.set_complete_state(complete_state)
+        request.add_mask(CONFIGS_PREFIX)
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error("Error while trying to set the configs: %s",
+                              content)
+            raise AnkaiosException(f"Received error: {content}")
+        if content_type == "update_state_success":
+            self.logger.info("Update successful")
+            return
+        raise AnkaiosException("Received unexpected content type.")
+
+    def add_config(self, name: str, config: Union[dict, list, str],
+                   timeout: float = DEFAULT_TIMEOUT):
         """
-        Set the config with the provided name.
+        Adds the config with the provided name.
         If the config exists, it will be replaced.
 
         Args:
             name (str): The name of the config.
             config (Union[dict, list, str]): The config dictionary.
+            timeout (float): The maximum time to wait for the response.
 
-        Returns:
-            bool: True if the config was set successfuly, False otherwise.
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred.
         """
-        raise NotImplementedError("set_config is not implemented yet.")
+        complete_state = CompleteState()
+        complete_state.set_configs({name: config})
 
-    def get_configs(self) -> dict:
+        request = Request(request_type="update_state")
+        request.set_complete_state(complete_state)
+        request.add_mask(f"{CONFIGS_PREFIX}.{name}")
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error("Error while trying to add the config: %s",
+                              content)
+            raise AnkaiosException(f"Received error: {content}")
+        if content_type == "update_state_success":
+            self.logger.info("Update successful")
+            return
+        raise AnkaiosException("Received unexpected content type.")
+
+    def get_configs(self,
+                    timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Get the configs. The keys will be the names.
 
         Returns:
             dict: The configs dictionary.
         """
-        raise NotImplementedError("get_configs is not implemented yet.")
+        return self.get_state(
+            timeout, field_masks=[CONFIGS_PREFIX]).get_configs()
 
-    def get_config(self, name: str) -> dict:
+    def get_config(self, name: str,
+                   timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Get the config with the provided name.
 
@@ -636,28 +697,70 @@ class Ankaios:
         Returns:
             dict: The config in a dict format.
         """
-        raise NotImplementedError("get_config is not implemented yet.")
+        return self.get_state(
+            timeout, field_masks=[f"{CONFIGS_PREFIX}.{name}"]).get_configs()
 
-    def delete_all_configs(self) -> bool:
+    def delete_all_configs(self, timeout: float = DEFAULT_TIMEOUT):
         """
         Delete all the configs.
 
-        Returns:
-            bool: if the configs were deleted successfuly.
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred.
         """
-        raise NotImplementedError("delete_all_configs is not implemented yet.")
+        request = Request(request_type="update_state")
+        request.set_complete_state(CompleteState())
+        request.add_mask(CONFIGS_PREFIX)
 
-    def delete_config(self, name: str) -> bool:
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error("Error while trying to delete all configs: %s",
+                              content)
+            raise AnkaiosException(f"Received error: {content}")
+        if content_type == "update_state_success":
+            self.logger.info("Update successful")
+            return
+        raise AnkaiosException("Received unexpected content type.")
+
+    def delete_config(self, name: str, timeout: float = DEFAULT_TIMEOUT):
         """
         Delete the config.
 
         Args:
             name (str): The name of the config.
+            timeout (float): The maximum time to wait for the response.
 
-        Returns:
-            bool: True if the config was deleted successfuly, False otherwise.
+        Raises:
+            TimeoutError: If the request timed out.
+            AnkaiosException: If an error occurred.
         """
-        raise NotImplementedError("delete_config is not implemented yet.")
+        request = Request(request_type="update_state")
+        request.set_complete_state(CompleteState())
+        request.add_mask(f"{CONFIGS_PREFIX}.{name}")
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == "error":
+            self.logger.error("Error while trying to delete all configs: %s",
+                              content)
+            raise AnkaiosException(f"Received error: {content}")
+        if content_type == "update_state_success":
+            self.logger.info("Update successful")
+            return
+        raise AnkaiosException("Received unexpected content type.")
 
     def get_state(self, timeout: float = DEFAULT_TIMEOUT,
                   field_masks: list[str] = None) -> CompleteState:
