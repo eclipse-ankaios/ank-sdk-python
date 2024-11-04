@@ -126,8 +126,6 @@ class Manifest():
         """
         if "apiVersion" not in self._manifest.keys():
             raise InvalidManifestException("apiVersion is missing.")
-        if "workloads" not in self._manifest.keys():
-            raise InvalidManifestException("workloads is missing.")
         wl_allowed_keys = ["runtime", "agent", "restartPolicy",
                            "runtimeConfig", "dependencies", "tags",
                            "controlInterfaceAccess", "configs"]

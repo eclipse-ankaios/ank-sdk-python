@@ -112,10 +112,6 @@ def test_check():
         _ = Manifest({})
 
     with pytest.raises(InvalidManifestException,
-                       match="workloads is missing."):
-        _ = Manifest({'apiVersion': 'v0.1'})
-
-    with pytest.raises(InvalidManifestException,
                        match="Mandatory key"):
         _ = Manifest({'apiVersion': 'v0.1', 'workloads':
                       {'nginx_test': {}}})
