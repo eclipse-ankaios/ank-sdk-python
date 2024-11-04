@@ -126,21 +126,23 @@ class Manifest():
         """
         if "apiVersion" not in self._manifest.keys():
             raise InvalidManifestException("apiVersion is missing.")
-        wl_allowed_keys = ["runtime", "agent", "restartPolicy",
-                           "runtimeConfig", "dependencies", "tags",
-                           "controlInterfaceAccess", "configs"]
-        wl_mandatory_keys = ["runtime", "runtimeConfig", "agent"]
-        for wl_name in self._manifest["workloads"]:
-            # Check allowed keys
-            for key in self._manifest["workloads"][wl_name].keys():
-                if key not in wl_allowed_keys:
-                    raise InvalidManifestException(
-                        f"Invalid key in workload {wl_name}: {key}")
-            # Check mandatory keys
-            for key in wl_mandatory_keys:
-                if key not in self._manifest["workloads"][wl_name].keys():
-                    raise InvalidManifestException(
-                        f"Mandatory key {key} missing in workload {wl_name}")
+        if "workloads" in self._manifest.keys():
+            wl_allowed_keys = ["runtime", "agent", "restartPolicy",
+                               "runtimeConfig", "dependencies", "tags",
+                               "controlInterfaceAccess", "configs"]
+            wl_mandatory_keys = ["runtime", "runtimeConfig", "agent"]
+            for wl_name in self._manifest["workloads"]:
+                # Check allowed keys
+                for key in self._manifest["workloads"][wl_name].keys():
+                    if key not in wl_allowed_keys:
+                        raise InvalidManifestException(
+                            f"Invalid key in workload {wl_name}: {key}")
+                # Check mandatory keys
+                for key in wl_mandatory_keys:
+                    if key not in self._manifest["workloads"][wl_name].keys():
+                        raise InvalidManifestException(
+                            f"Mandatory key {key} "
+                            f"missing in workload {wl_name}")
 
     def _calculate_masks(self) -> list[str]:
         """
@@ -150,8 +152,10 @@ class Manifest():
         Returns:
             list[str]: A list of masks.
         """
-        masks = [f"{WORKLOADS_PREFIX}.{key}"
-                 for key in self._manifest["workloads"].keys()]
+        masks = []
+        if "workloads" in self._manifest.keys():
+            masks.extend([f"{WORKLOADS_PREFIX}.{key}"
+                          for key in self._manifest["workloads"].keys()])
         if "configs" in self._manifest.keys():
             masks.extend([f"{CONFIGS_PREFIX}.{key}"
                           for key in self._manifest["configs"].keys()])

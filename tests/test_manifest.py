@@ -141,3 +141,14 @@ def test_calculate_masks():
         f"{WORKLOADS_PREFIX}.nginx_test_other",
         f"{CONFIGS_PREFIX}.test_ports"
     ]
+
+
+def test_manifest_only_configs():
+    """
+    Test the manifest with only configs.
+    """
+    manifest_dict = MANIFEST_DICT.copy()
+    manifest_dict.pop("workloads")
+    manifest = Manifest(manifest_dict)
+    assert len(manifest._calculate_masks()) == 1
+    assert manifest._calculate_masks() == [f"{CONFIGS_PREFIX}.test_ports"]

@@ -230,11 +230,12 @@ class CompleteState:
             dict_state.get("apiVersion", state.get_api_version())
         )
         state._workloads = []
-        for workload_name, workload_dict in \
-                dict_state.get("workloads").items():
-            state._workloads.append(
-                Workload._from_dict(workload_name, workload_dict)
-            )
+        if dict_state.get("workloads") is not None:
+            for workload_name, workload_dict in \
+                    dict_state.get("workloads").items():
+                state._workloads.append(
+                    Workload._from_dict(workload_name, workload_dict)
+                )
         if dict_state.get("configs") is not None:
             state.set_configs(dict_state.get("configs"))
         return state
