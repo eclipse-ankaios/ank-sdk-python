@@ -36,30 +36,6 @@ jobs:
         python3 -m pip install .[dev]
         python3 -m pip install --upgrade twine build
 
-    - name: Download artifacts for unit tests
-      uses: actions/download-artifact@v4.1.7
-      with:
-        name: unit-test-report
-        path: dist/unit-test-report
-
-    - name: Download artifacts for coverage
-      uses: actions/download-artifact@v4.1.7
-      with:
-        name: coverage-report
-        path: dist/coverage-report
-
-    - name: Download artifacts for lint
-      uses: actions/download-artifact@v4.1.7
-      with:
-        name: pylint-report
-        path: dist/pylint-report
-
-    - name: Download artifacts for codestyle
-      uses: actions/download-artifact@v4.1.7
-      with:
-        name: codestyle-report
-        path: dist/codestyle-report
-
     - name: Build package
       run: |
         python3 -m build
@@ -70,9 +46,33 @@ jobs:
         name: dist-artifact
         path: dist/
 
+    - name: Download artifacts for unit tests
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: unit-test-report
+        path: reports/unit-test-report
+
+    - name: Download artifacts for coverage
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: coverage-report
+        path: reports/coverage-report
+
+    - name: Download artifacts for lint
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: pylint-report
+        path: reports/pylint-report
+
+    - name: Download artifacts for codestyle
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: codestyle-report
+        path: reports/codestyle-report
+
     - name: Compress the artifacts
       run: |
-        cd dist
+        cd reports
         zip -r unit-test-report.zip unit-test-report
         zip -r coverage-report.zip coverage-report
         zip -r pylint-report.zip pylint-report
@@ -81,13 +81,13 @@ jobs:
     - name: Package release
       id: package
       run: |
-        cd dist
         gh release upload ${{ github.ref_name }} \
-        ankaios_sdk-*.tar.gz ankaios_sdk-*.whl \
-        unit-test-report.zip \
-        coverage-report.zip \
-        pylint-report.zip \
-        codestyle-report.zip
+        dist/ankaios_sdk-*.tar.gz \
+        dist/ankaios_sdk-*.whl \
+        reports/unit-test-report.zip \
+        reports/coverage-report.zip \
+        reports/pylint-report.zip \
+        reports/codestyle-report.zip
 
   publish:
     needs: release
