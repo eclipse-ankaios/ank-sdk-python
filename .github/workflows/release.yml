@@ -64,6 +64,20 @@ jobs:
       run: |
         python3 -m build
 
+    - name: Upload dist as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-artifact
+        path: dist/
+
+    - name: Compress the artifacts
+      run: |
+        cd dist
+        zip -r unit-test-report.zip unit-test-report
+        zip -r coverage-report.zip coverage-report
+        zip -r pylint-report.zip pylint-report
+        zip -r codestyle-report.zip codestyle-report
+
     - name: Package release
       id: package
       run: |
