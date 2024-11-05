@@ -6,7 +6,7 @@ on:
 jobs:
   publish:
     permissions: write-all
-    environment: release
+    environment: publish
     runs-on: ubuntu-latest
 
     steps:
