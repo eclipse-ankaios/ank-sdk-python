@@ -78,31 +78,4 @@ jobs:
   publish:
     needs: release
     permissions: write-all
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install .[dev]
-        python3 -m pip install --upgrade twine build
-
-    - name: Print packages
-      run: python3 -m pip list
-
-    - name: Build package
-      run: |
-        python3 -m build
-
-    - name: Publish package to Pypi
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+    uses: ./.github/workflows/publish.yml
