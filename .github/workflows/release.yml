@@ -76,5 +76,6 @@ jobs:
         codestyle-report.zip
 
   publish:
+    needs: release
     permissions: write-all
     uses: ./.github/workflows/publish.yml
