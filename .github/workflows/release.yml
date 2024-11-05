@@ -91,12 +91,15 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        pip install .[dev]
-        pip install twine
+        python3 -m pip install .[dev]
+        python3 -m pip install --upgrade twine build
+
+    - name: Print packages
+      run: python3 -m pip list
 
     - name: Build package
       run: |
-        python3 setup.py sdist bdist_wheel
+        python3 -m build
 
     - name: Publish package to Pypi
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
