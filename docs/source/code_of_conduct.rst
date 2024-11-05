@@ -1,0 +1,1 @@
+.. mdinclude:: ../build/CODE_OF_CONDUCT.md

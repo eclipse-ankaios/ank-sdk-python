@@ -1,0 +1,21 @@
+# Python ignores
+__pycache__/
+*.py[cod]
+*$py.class
+.eggs/
+
+# Reports directory
+reports/
+
+# Tools caches
+.coverage
+.pytest_cache/
+
+# Build directory
+*.egg-info
+*.egg
+build/
+dist/
+
+# Docs build dir
+docs/build/

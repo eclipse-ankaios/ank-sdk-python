@@ -1,0 +1,176 @@
+name: Build and run tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  setup:
+    name: Setup ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Print packages
+        run: python3 -m pip list
+
+      - name: Test installation
+        run: python3 -c "from ankaios_sdk import Ankaios"
+
+  unit_test:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run unit tests
+        run: python3 run_checks.py --utest
+        continue-on-error: true
+
+      - name: Upload unit test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: reports/utest
+
+  coverage:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run coverage
+        run: python3 run_checks.py --cov
+        continue-on-error: true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: reports/coverage
+
+  lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run lint
+        run: python3 run_checks.py --lint
+        continue-on-error: true
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylint-report
+          path: reports/pylint
+
+  codestyle:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run pep8 codestyle check
+        run: python3 run_checks.py --pep8
+        continue-on-error: true
+
+      - name: Upload codestyle report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codestyle-report
+          path: reports/codestyle
+
+  docs:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Generate documentation
+        run: |
+          cd docs
+          make html
+          cd ..
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_html
+          path: docs/build/html

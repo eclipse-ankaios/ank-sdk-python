@@ -1,0 +1,1 @@
+.. mdinclude:: ../build/CONTRIBUTING.md
