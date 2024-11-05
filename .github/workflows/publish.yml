@@ -6,6 +6,7 @@ on:
 jobs:
   publish:
     permissions: write-all
+    environment: release
     runs-on: ubuntu-latest
 
     steps:
@@ -17,6 +18,3 @@ jobs:
 
     - name: Publish package to Pypi
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
