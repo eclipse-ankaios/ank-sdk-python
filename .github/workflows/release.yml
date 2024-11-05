@@ -82,7 +82,7 @@ jobs:
       id: package
       run: |
         cd dist
-        gh release upload ${{ github.ref }} \
+        gh release upload ${{ github.ref_name }} \
         ankaios_sdk-*.tar.gz ankaios_sdk-*.whl \
         unit-test-report.zip \
         coverage-report.zip \
