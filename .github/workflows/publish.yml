@@ -5,7 +5,8 @@ on:
 
 jobs:
   publish:
-    permissions: write-all
+    permissions:
+      id-token: write
     environment: publish
     runs-on: ubuntu-latest
 
