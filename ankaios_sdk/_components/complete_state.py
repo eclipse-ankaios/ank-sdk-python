@@ -233,7 +233,7 @@ class CompleteState:
         if dict_state.get("workloads") is not None:
             for workload_name, workload_dict in \
                     dict_state.get("workloads").items():
-                state._workloads.append(
+                state.add_workload(
                     Workload._from_dict(workload_name, workload_dict)
                 )
         if dict_state.get("configs") is not None:
@@ -278,9 +278,6 @@ class CompleteState:
             _ank_base.CompleteState: The protobuf message representing
                 the complete state.
         """
-        for workload in self._workloads:
-            self._complete_state.desiredState.workloads.\
-                workloads[workload.name].CopyFrom(workload._to_proto())
         return self._complete_state
 
     def _from_proto(self, proto: _ank_base.CompleteState) -> None:

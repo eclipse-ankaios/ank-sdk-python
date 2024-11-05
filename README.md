@@ -65,7 +65,7 @@ workload = Workload.builder() \
 # Run the workload
 ret = ankaios.apply_workload(workload)
 
-# Check if the workload is scheduled and get the WorkloadInstanceName
+# Get the WorkloadInstanceName to check later if the workload is running
 if ret is not None:
   workload_instance_name = ret["added_workloads"][0]
 
