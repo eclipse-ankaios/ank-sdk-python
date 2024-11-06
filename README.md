@@ -1,7 +1,7 @@
 <picture style="padding-bottom: 1em;">
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/eclipse-ankaios/ankaios/blob/main/logo/Ankaios__logo_for_dark_bgrd_clipped.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/eclipse-ankaios/ankaios/blob/main/logo/Ankaios__logo_for_light_bgrd_clipped.png">
-  <img alt="Shows Ankaios logo" src="https://github.com/eclipse-ankaios/ankaios/blob/main/logo/Ankaios__logo_for_light_bgrd_clipped.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/logo/Ankaios__logo_for_dark_bgrd_clipped.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/logo/Ankaios__logo_for_light_bgrd_clipped.png">
+  <img alt="Shows Ankaios logo" src="https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/logo/Ankaios__logo_for_light_bgrd_clipped.png">
 </picture>
 
 # Ankaios Python SDK for Eclipse Ankaios
