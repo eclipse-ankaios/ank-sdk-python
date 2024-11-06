@@ -1,20 +1,110 @@
-name: Publish to Pypi
+name: Release
 
 on:
-  workflow_call:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency:
+  group: "release-${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
 
 jobs:
-  publish:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: build
     permissions: write-all
-    environment: publish
     runs-on: ubuntu-latest
 
     steps:
-    - name: Download dist artifact
+    - uses: actions/checkout@v4
+
+    - name: "Set up Python"
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+
+    - name: "Install dependencies"
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install .[dev]
+        python3 -m pip install --upgrade twine build
+
+    - name: "Build package"
+      run: |
+        python3 -m build
+
+    - name: "Upload dist as artifact"
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-artifact
+        path: dist/
+
+    - name: "Download artifacts for unit tests"
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: unit-test-report
+        path: reports/unit-test-report
+
+    - name: "Download artifacts for coverage"
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: coverage-report
+        path: reports/coverage-report
+
+    - name: "Download artifacts for lint"
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: pylint-report
+        path: reports/pylint-report
+
+    - name: "Download artifacts for codestyle"
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: codestyle-report
+        path: reports/codestyle-report
+
+    - name: "Compress the artifacts"
+      run: |
+        cd reports
+        zip -r unit-test-report.zip unit-test-report
+        zip -r coverage-report.zip coverage-report
+        zip -r pylint-report.zip pylint-report
+        zip -r codestyle-report.zip codestyle-report
+
+    - name: "Package release"
+      id: package
+      run: |
+        gh release upload ${{ github.ref_name }} \
+        dist/ankaios_sdk-*.tar.gz \
+        dist/ankaios_sdk-*.whl \
+        reports/unit-test-report.zip \
+        reports/coverage-report.zip \
+        reports/pylint-report.zip \
+        reports/codestyle-report.zip
+
+  publish:
+    needs: release
+    environment:
+      name: publish
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: "Download dist artifact"
       uses: actions/download-artifact@v3
       with:
         name: dist-artifact
         path: dist
 
-    - name: Publish package to Pypi
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+    - name: "Publish package to PyPI"
+      uses: pypa/gh-action-pypi-publish@fb13cb306901256ace3dab689990e13a5550ffaa # v1.11.0
+      with:
+        attestations: true
