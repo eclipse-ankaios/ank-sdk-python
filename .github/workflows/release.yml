@@ -92,7 +92,8 @@ jobs:
   publish:
     needs: release
     environment:
-      name: publish
+      name: pypi
+      url: https://pypi.org/p/ankaios-sdk
     permissions:
       id-token: write
     runs-on: ubuntu-latest
