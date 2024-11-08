@@ -4,7 +4,7 @@
   <img alt="Shows Ankaios logo" src="https://github.com/eclipse-ankaios/ankaios/blob/main/logo/Ankaios__logo_for_light_bgrd_clipped.png">
 </picture>
 
-# Ankaios Python SDK for Eclipse Ankaios
+# Python SDK for Eclipse Ankaios
 
 [Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provides workload and container orchestration for automotive
 High Performance Computers (HPCs). While it can be used for various fields of
@@ -12,8 +12,8 @@ applications, it is developed from scratch for automotive use cases and provides
 a slim yet powerful solution to manage containerized applications.
 
 The Python SDK provides easy access from the container (workload) point-of-view
-to manage the Ankaios system. A workload can use the Python SDK to run other workloads
-and get the state of the Ankaios system.
+to manage the Ankaios system. A workload can use the Python SDK to start, stop and update other workloads and configs and get
+the state of the Ankaios system.
 
 ## Installation
 
@@ -40,13 +40,13 @@ pip install -e ".[dev]"
 > **Note:**  
 > Depending on your Linux distribution, it could be that you need to create and activate a [virtual environment](https://docs.python.org/3/library/venv.html) to run the pip commands.
 
-## Versions
+## Compatibility
 
 Please make sure the Python SDK is compatible with the version of Ankaios you are using. For information regarding versioning, please refer to this table:
 
 | Ankaios    | Python SDK |
 | -------- | ------- |
-| 0.4.x and bellow | no sdk available |
+| 0.4.x and below | No Python SDK available. Please update Ankaios. |
 | 0.5.x | 0.5.x     |
 
 ## Usage
