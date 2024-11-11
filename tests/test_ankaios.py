@@ -121,7 +121,8 @@ def test_connection():
         # Build ankaios and connect
         ankaios = Ankaios()
         mock_thread.assert_called_once_with(
-            target=ankaios._read_from_control_interface
+            target=ankaios._read_from_control_interface,
+            daemon=True
         )
         mock_thread_instance.start.assert_called_once()
         mock_open_file.assert_called_once_with(
@@ -133,10 +134,41 @@ def test_connection():
         assert ankaios._connected
 
         # Disconnect
-        ankaios._disconnect()
+        ankaios.disconnect()
 
         mock_thread_instance.join.assert_called_once()
         output_file_mock.close.assert_called_once()
+
+    # Test context manager
+    with patch("os.path.exists") as mock_exists, \
+            patch("threading.Thread") as mock_thread, \
+            patch("builtins.open") as mock_open_file, \
+            patch("ankaios_sdk.Ankaios._send_initial_hello") \
+            as mock_initial_hello:
+        mock_exists.return_value = True
+        mock_thread_instance = MagicMock()
+        mock_thread.return_value = mock_thread_instance
+        output_file_mock = MagicMock()
+        mock_open_file.return_value = output_file_mock
+
+        with Ankaios() as ankaios:
+            mock_thread.assert_called_once_with(
+                target=ankaios._read_from_control_interface,
+                daemon=True
+            )
+            mock_thread_instance.start.assert_called_once()
+            mock_open_file.assert_called_once_with(
+                "/run/ankaios/control_interface/output", "ab"
+            )
+            assert ankaios._read_thread is not None
+            assert ankaios._output_file == output_file_mock
+            mock_initial_hello.assert_called_once()
+            assert ankaios._connected
+
+        mock_thread_instance.join.assert_called_once()
+        output_file_mock.close.assert_called_once()
+        assert not ankaios._connected
+        assert ankaios._disconnect_event.is_set()
 
 
 def test_read_from_control_interface():
@@ -147,7 +179,10 @@ def test_read_from_control_interface():
         MESSAGE_BUFFER_UPDATE_SUCCESS
 
     # Test response comes first
-    with patch("builtins.open", mock_open()) as mock_file:
+    with patch("builtins.open", mock_open()) as mock_file, \
+            patch("os.set_blocking") as _, \
+            patch("select.select") as mock_select:
+        mock_select.return_value = ([True], [], [])
         mock_file_handle = mock_file.return_value.__enter__.return_value
         mock_file_handle.read.side_effect = \
             [bytes([b]) for b in input_file_content]
@@ -162,8 +197,9 @@ def test_read_from_control_interface():
         ankaios._read_thread.start()
         time.sleep(0.01)
 
-        # Stop thread (similar to _disconnect)
+        # Stop thread (similar to disconnect)
         ankaios._connected = False
+        ankaios._disconnect_event.set()
         ankaios._read_thread.join()
 
         mock_file.assert_called_once_with(
@@ -172,7 +208,10 @@ def test_read_from_control_interface():
         assert ankaios._responses["1234"].is_set()
 
     # Test request set first
-    with patch("builtins.open", mock_open()) as mock_file:
+    with patch("builtins.open", mock_open()) as mock_file, \
+            patch("os.set_blocking") as _, \
+            patch("select.select") as mock_select:
+        mock_select.return_value = ([True], [], [])
         mock_file_handle = mock_file.return_value.__enter__.return_value
         mock_file_handle.read.side_effect = \
             [bytes([b]) for b in input_file_content]
@@ -188,8 +227,9 @@ def test_read_from_control_interface():
         ankaios._read_thread.start()
         time.sleep(0.01)
 
-        # Stop thread (similar to _disconnect)
+        # Stop thread (similar to disconnect)
         ankaios._connected = False
+        ankaios._disconnect_event.set()
         ankaios._read_thread.join()
 
         mock_file.assert_called_once_with(
