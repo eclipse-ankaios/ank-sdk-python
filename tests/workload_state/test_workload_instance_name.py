@@ -37,6 +37,11 @@ def test_methods():
     assert str(workload_instance_name) == "workload_Test.1234.agent_Test"
     assert workload_instance_name.get_filter_mask() == \
         "workloadStates.agent_Test.workload_Test.1234"
+    assert workload_instance_name.to_dict() == {
+        "agent_name": "agent_Test",
+        "workload_name": "workload_Test",
+        "workload_id": "1234"
+    }
 
 
 def test_equality():

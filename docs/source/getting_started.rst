@@ -47,7 +47,7 @@ The manifest can now be applied using the following code:
     ret = ankaios.apply_manifest(manifest)
 
     # Get the workload instance name
-    wl_instance_name = ret["added_workloads"][0]
+    wl_instance_name = ret.added_workloads[0]
 
     # Print the instance name
     print(wl_instance_name)
@@ -60,7 +60,7 @@ The manifest can now be applied using the following code:
     print(execution_state.substate)
     print(execution_state.additional_info)
 
-If the operation is successful, the result will contain a list with the added workloads that contains the workload instance name of the newly added workload.
+If the operation is successful, the result will be an UpdateStateSuccess object that contains the added and deleted workload instance names.
 The workload instance name contains the name of the workload, the agent it is running on and a unique identifier. Using it, we can request the current execution state of
 the workload. The state has 3 elements: the primary state, the substate and additional information (See `Workload States <workload_state.html>`_).
 
@@ -105,8 +105,8 @@ the exact workload we want to modify, we must know only it's name.
     ret = workload.update_restart_policy("ALWAYS")
 
     # Unpack the result
-    added_workloads = ret["added_workloads"]
-    deleted_workloads = ret["deleted_workloads"]
+    added_workloads = ret.added_workloads
+    deleted_workloads = ret.deleted_workloads
 
 Depending on the updated parameter, the workload can be restarted or not. If this is the case, the ``deleted_workloads`` will contain the old instance name and 
 the ``added_workloads`` will contain the new one.
@@ -131,7 +131,7 @@ delete the workload based on its name. In this example, we will delete the workl
     ret = ankaios.delete_manifest(manifest)
 
     # Get the workload instance name
-    wl_instance_name = ret["deleted_workloads"][0]
+    wl_instance_name = ret.deleted_workloads[0]
 
     # Print the instance name of the deleted workload
     print(wl_instance_name)

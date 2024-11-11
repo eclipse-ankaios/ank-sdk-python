@@ -57,6 +57,13 @@ Usage
         state = workload_state.execution_state.state
         substate = workload_state.execution_state.substate
         info = workload_state.execution_state.additional_info
+
+- Get the workload instance name as a dictionary:
+    .. code-block:: python
+
+        workload_instance_name = WorkloadInstanceName()
+        instance_name_dict = workload_instance_name.to_dict()
+        json_instance_name = json.dumps(instance_name_dict)
 """
 
 __all__ = ["WorkloadStateCollection", "WorkloadState",
@@ -327,6 +334,19 @@ class WorkloadInstanceName:
             str: The string representation of the workload instance name.
         """
         return f"{self.workload_name}.{self.workload_id}.{self.agent_name}"
+
+    def to_dict(self) -> dict:
+        """
+        Returns the workload instance name as a dictionary.
+
+        Returns:
+            dict: The workload instance name as a dictionary.
+        """
+        return {
+            "agent_name": self.agent_name,
+            "workload_name": self.workload_name,
+            "workload_id": self.workload_id
+        }
 
     def get_filter_mask(self) -> str:
         """

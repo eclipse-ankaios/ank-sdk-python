@@ -65,7 +65,7 @@ the state of the Ankaios system and the connected agents.
 
 Example:
 ```python
-from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, WorkloadSubStateEnum
+from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum
 
 # Create a new Ankaios object.
 # The connection to the control interface is automatically done at this step.
@@ -84,8 +84,7 @@ workload = Workload.builder() \
 ret = ankaios.apply_workload(workload)
 
 # Get the WorkloadInstanceName to check later if the workload is running
-if ret is not None:
-  workload_instance_name = ret["added_workloads"][0]
+workload_instance_name = ret.added_workloads[0]
 
 # Request the execution state based on the workload instance name
 ret = ankaios.get_execution_state_for_instance_name(workload_instance_name)
@@ -93,12 +92,15 @@ if ret is not None:
   print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
 
 # Wait until the workload reaches the running state
-ret = ankaios.wait_for_workload_to_reach_state(
-  workload_instance_name,
-  state=WorkloadStateEnum.RUNNING,
-  timeout=5
-  )
-if ret:
+try:
+  ankaios.wait_for_workload_to_reach_state(
+    workload_instance_name,
+    state=WorkloadStateEnum.RUNNING,
+    timeout=5
+    )
+except TimeoutError:
+  print("Workload didn't reach the required state in time.")
+else:
   print("Workload reached the RUNNING state.")
 
 # Request the state of the system, filtered with the agent name
