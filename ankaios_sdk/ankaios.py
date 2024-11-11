@@ -34,20 +34,19 @@ Usage
     .. code-block:: python
 
         ret = ankaios.apply_manifest(manifest)
-        print(ret["added_workloads"])
-        print(ret["deleted_workloads"])
+        print(ret.to_dict())
 
 - Delete a manifest:
     .. code-block:: python
 
         ret = ankaios.delete_manifest(manifest)
-        print(ret["deleted_workloads"])
+        print(ret.to_dict())
 
 - Run a workload:
     .. code-block:: python
 
         ret = ankaios.apply_workload(workload)
-        print(ret["added_workloads"])
+        print(ret.to_dict())
 
 - Get a workload:
     .. code-block:: python
@@ -58,7 +57,7 @@ Usage
     .. code-block:: python
 
         ret = ankaios.delete_workload(workload_name)
-        print(ret["deleted_workloads"])
+        print(ret.to_dict())
 
 - Get the state:
     .. code-block:: python
@@ -115,7 +114,8 @@ from ._protos import _control_api
 from .exceptions import AnkaiosConnectionException, AnkaiosException, \
                         ResponseException, ConnectionClosedException
 from ._components import Workload, CompleteState, Request, Response, \
-                         ResponseEvent, WorkloadStateCollection, Manifest, \
+                         UpdateStateSuccess, ResponseEvent, \
+                         WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
 from .utils import AnkaiosLogLevel, get_logger, \
@@ -405,7 +405,8 @@ class Ankaios:
         self.logger.setLevel(level.value)
 
     def apply_manifest(self, manifest: Manifest,
-                       timeout: float = DEFAULT_TIMEOUT) -> dict:
+                       timeout: float = DEFAULT_TIMEOUT
+                       ) -> UpdateStateSuccess:
         """
         Send a request to apply a manifest.
 
@@ -414,7 +415,7 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response.
 
         Returns:
-            dict: a dict with the added and deleted workloads.
+            UpdateStateSuccess: The update state success object.
 
         Raises:
             TimeoutError: If the request timed out.
@@ -442,14 +443,15 @@ class Ankaios:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
+                len(content.added_workloads),
+                len(content.deleted_workloads)
             )
             return content
         raise AnkaiosException("Received unexpected content type.")
 
     def delete_manifest(self, manifest: Manifest,
-                        timeout: float = DEFAULT_TIMEOUT) -> dict:
+                        timeout: float = DEFAULT_TIMEOUT
+                        ) -> UpdateStateSuccess:
         """
         Send a request to delete a manifest.
 
@@ -458,7 +460,7 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response.
 
         Returns:
-            dict: a dict with the added and deleted workloads.
+            UpdateStateSuccess: The update state success object.
 
         Raises:
             TimeoutError: If the request timed out.
@@ -486,14 +488,15 @@ class Ankaios:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
+                len(content.added_workloads),
+                len(content.deleted_workloads)
             )
             return content
         raise AnkaiosException("Received unexpected content type.")
 
     def apply_workload(self, workload: Workload,
-                       timeout: float = DEFAULT_TIMEOUT) -> dict:
+                       timeout: float = DEFAULT_TIMEOUT
+                       ) -> UpdateStateSuccess:
         """
         Send a request to run a workload.
 
@@ -502,7 +505,7 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response.
 
         Returns:
-            dict: a dict with the added and deleted workloads.
+            UpdateStateSuccess: The update state success object.
 
         Raises:
             TimeoutError: If the request timed out.
@@ -533,8 +536,8 @@ class Ankaios:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
+                len(content.added_workloads),
+                len(content.deleted_workloads)
             )
             return content
         raise AnkaiosException("Received unexpected content type.")
@@ -558,7 +561,8 @@ class Ankaios:
         ).get_workloads()[0]
 
     def delete_workload(self, workload_name: str,
-                        timeout: float = DEFAULT_TIMEOUT) -> dict:
+                        timeout: float = DEFAULT_TIMEOUT
+                        ) -> UpdateStateSuccess:
         """
         Send a request to delete a workload.
 
@@ -567,7 +571,7 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response.
 
         Returns:
-            dict: a dict with the added and deleted workloads.
+            UpdateStateSuccess: The update state success object.
 
         Raises:
             TimeoutError: If the request timed out.
@@ -593,8 +597,8 @@ class Ankaios:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
-                len(content["added_workloads"]),
-                len(content["deleted_workloads"])
+                len(content.added_workloads),
+                len(content.deleted_workloads)
             )
             return content
         raise AnkaiosException("Received unexpected content type.")
@@ -801,7 +805,7 @@ class Ankaios:
 
     def get_agents(
             self, timeout: float = DEFAULT_TIMEOUT
-            ) -> list[str]:
+            ) -> dict:
         """
         Get the agents from the requested complete state.
 
@@ -810,7 +814,7 @@ class Ankaios:
                 in seconds.
 
         Returns:
-            list[str]: The list of agent names.
+            dict: The agents dictionary.
         """
         return self.get_state(timeout).get_agents()
 

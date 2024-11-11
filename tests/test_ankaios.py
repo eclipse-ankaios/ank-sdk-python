@@ -23,8 +23,9 @@ import threading
 from unittest.mock import patch, mock_open, MagicMock
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
-    Manifest, CompleteState, WorkloadInstanceName, WorkloadStateCollection, \
-    WorkloadStateEnum, AnkaiosConnectionException, AnkaiosException
+    UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
+    WorkloadStateCollection, WorkloadStateEnum, AnkaiosConnectionException, \
+    AnkaiosException
 from ankaios_sdk.utils import WORKLOADS_PREFIX, ANKAIOS_VERSION
 from ankaios_sdk._protos import _control_api
 from tests.workload.test_workload import generate_test_workload
@@ -306,7 +307,7 @@ def test_apply_manifest():
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
         ret = ankaios.apply_manifest(manifest)
-        assert isinstance(ret, dict)
+        assert isinstance(ret, UpdateStateSuccess)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
@@ -349,7 +350,7 @@ def test_delete_manifest():
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
         ret = ankaios.delete_manifest(manifest)
-        assert isinstance(ret, dict)
+        assert isinstance(ret, UpdateStateSuccess)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
@@ -392,7 +393,7 @@ def test_apply_workload():
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
         ret = ankaios.apply_workload(workload)
-        assert isinstance(ret, dict)
+        assert isinstance(ret, UpdateStateSuccess)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 
@@ -458,7 +459,7 @@ def test_delete_workload():
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
         ret = ankaios.delete_workload("nginx")
-        assert isinstance(ret, dict)
+        assert isinstance(ret, UpdateStateSuccess)
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
 

@@ -23,6 +23,8 @@ Classes
     Represents a response from the control interface.
 - ResponseEvent:
     Represents an event used to wait for a response.
+- UpdateStateSuccess:
+    Represents a response for a successful update state request.
 
 Usage
 ------
@@ -39,9 +41,15 @@ Usage
         response = Response()
         if response.check_request_id("1234"):
             print("Request ID matches")
+
+- Convert the update state success to a dictionary:
+    .. code-block:: python
+
+        update_state_success = UpdateStateSuccess()
+        update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseEvent"]
+__all__ = ["Response", "ResponseEvent", "UpdateStateSuccess"]
 
 from typing import Union
 from threading import Event
@@ -64,7 +72,7 @@ class Response:
         content_type (str): The type of the response content
             (e.g., "error", "complete_state", "update_state_success").
         content: The content of the response, which can be a string,
-            CompleteState, or dictionary.
+            CompleteState, or UpdateStateSuccess.
     """
     def __init__(self, message_buffer: bytes) -> None:
         """
@@ -125,14 +133,11 @@ class Response:
         elif self._response.HasField("UpdateStateSuccess"):
             update_state_msg = self._response.UpdateStateSuccess
             self.content_type = "update_state_success"
-            self.content = {
-                "added_workloads": [],
-                "deleted_workloads": [],
-            }
+            self.content = UpdateStateSuccess()
             for workload in update_state_msg.addedWorkloads:
                 workload_name, workload_id, agent_name = \
                     workload.split(".")
-                self.content["added_workloads"].append(
+                self.content.added_workloads.append(
                     WorkloadInstanceName(
                         agent_name, workload_name, workload_id
                     )
@@ -140,7 +145,7 @@ class Response:
             for workload in update_state_msg.deletedWorkloads:
                 workload_name, workload_id, agent_name = \
                     workload.split(".")
-                self.content["deleted_workloads"].append(
+                self.content.deleted_workloads.append(
                     WorkloadInstanceName(
                         agent_name, workload_name, workload_id
                     )
@@ -169,10 +174,11 @@ class Response:
         """
         return self._response.requestId == request_id
 
-    def get_content(self) -> tuple[str, Union[str, CompleteState, dict]]:
+    def get_content(self) -> \
+            tuple[str, Union[str, 'CompleteState', 'UpdateStateSuccess']]:
         """
         Gets the content of the response. It can be either a string (if error),
-        a CompleteState instance, or a dictionary (if update state success).
+        a CompleteState instance, or a UpdateStateSuccess instance.
 
         Returns:
             tuple[str, any]: the content type and the content.
@@ -232,3 +238,44 @@ class ResponseEvent(Event):
         if not self.wait(timeout):
             raise TimeoutError("Timeout while waiting for the response.")
         return self.get_response()
+
+
+class UpdateStateSuccess:
+    """
+    Represents an object that holds the added and deleted workloads.
+    This is automatically returned whenever a state update is successful.
+    """
+    def __init__(self) -> None:
+        """
+        Initializes the UpdateStateSuccess.
+        """
+        self.added_workloads = []
+        self.deleted_workloads = []
+
+    def to_dict(self) -> dict:
+        """
+        Converts the UpdateStateSuccess to a dictionary.
+
+        Returns:
+            dict: The dictionary representation.
+        """
+        return {
+            "added_workloads": [instance_name.to_dict()
+                                for instance_name in self.added_workloads],
+            "deleted_workloads": [instance_name.to_dict()
+                                  for instance_name in self.deleted_workloads]
+        }
+
+    def __str__(self) -> str:
+        """
+        Converts the UpdateStateSuccess to a string.
+
+        Returns:
+            str: The string representation.
+        """
+        added_workloads = [
+            str(instance_name) for instance_name in self.added_workloads]
+        deleted_workloads = [
+            str(instance_name) for instance_name in self.deleted_workloads]
+        return f"Added workloads: {added_workloads}, " \
+               f"Deleted workloads: {deleted_workloads}"

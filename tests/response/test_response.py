@@ -92,8 +92,8 @@ def test_initialisation():
     # Test UpdateStateSuccess message
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
     assert response.content_type == "update_state_success"
-    added_workloads = response.content["added_workloads"]
-    deleted_workloads = response.content["deleted_workloads"]
+    added_workloads = response.content.added_workloads
+    deleted_workloads = response.content.deleted_workloads
     assert len(added_workloads) == 1
     assert len(deleted_workloads) == 1
     assert str(added_workloads[0]) == "new_nginx.12345.agent_A"
