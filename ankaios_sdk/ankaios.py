@@ -25,10 +25,18 @@ Classes
 Usage
 -----
 
-- Create an Ankaios object and connect to the control interface:
+- Create an Ankaios object, connect and disconnect from the control interface:
     .. code-block:: python
 
         ankaios = Ankaios()
+        ...
+        ankaios.disconnect()
+
+- Connect and disconnect using a context manager:
+    .. code-block:: python
+
+        with Ankaios() as ankaios:
+            ...
 
 - Apply a manifest:
     .. code-block:: python
@@ -107,6 +115,7 @@ import os
 import time
 from typing import Union
 import threading
+import select
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint
 
@@ -122,7 +131,7 @@ from .utils import AnkaiosLogLevel, get_logger, \
     WORKLOADS_PREFIX, ANKAIOS_VERSION, CONFIGS_PREFIX
 
 
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-public-methods, too-many-instance-attributes
 class Ankaios:
     """
     This class is used to interact with the Ankaios using an intuitive API.
@@ -150,6 +159,7 @@ class Ankaios:
 
         self._read_thread = None
         self._connected = False
+        self._disconnect_event = threading.Event()
         self._output_file = None
         self._responses_lock = threading.Lock()
         self._responses: dict[str, ResponseEvent] = {}
@@ -158,11 +168,28 @@ class Ankaios:
         self.set_logger_level(log_level)
         self._connect()
 
-    def __del__(self) -> None:
+    def __enter__(self) -> "Ankaios":
         """
-        Disconnect from the control interface when the object is deleted.
+        Used for context management.
+
+        Returns:
+            Ankaios: The current object.
         """
-        self._disconnect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Used for context management. Disconnects from the control interface.
+
+        Args:
+            exc_type (type): The exception type.
+            exc_value (Exception): The exception instance.
+            traceback (traceback): The traceback object.
+        """
+        if exc_type is not None:  # pragma: no cover
+            self.logger.error("An exception occurred: %s, %s, %s",
+                              exc_type, exc_value, traceback)
+        self.disconnect()
 
     def _connect(self) -> None:
         """
@@ -192,34 +219,37 @@ class Ankaios:
             )
         except Exception as e:
             self.logger.error("Error while opening output fifo: %s", e)
-            self._disconnect()
+            self.disconnect()
             raise AnkaiosConnectionException(
                 "Error while opening output fifo."
             ) from e
 
         self._read_thread = threading.Thread(
-            target=self._read_from_control_interface
+            target=self._read_from_control_interface,
+            daemon=True
         )
         self._connected = True
         self._read_thread.start()
         self._send_initial_hello()
 
-    def _disconnect(self) -> None:
+    def disconnect(self) -> None:
         """
         Disconnect from the control interface by stopping to read
         from the input fifo.
-
-        Raises:
-            AnkaiosConnectionException: If already disconnected.
         """
+        self.logger.debug("Disconnecting..")
         self._connected = False
+        self._disconnect_event.set()
         if self._read_thread is not None:
-            self._read_thread.join()
+            self._read_thread.join(timeout=2)
+            if self._read_thread.is_alive():
+                self.logger.error("Read thread did not stop.")
             self._read_thread = None
         if self._output_file is not None:
             self._output_file.close()
             self._output_file = None
 
+    # pylint: disable=too-many-branches
     def _read_from_control_interface(self) -> None:
         """
         Reads from the control interface input fifo and saves the response.
@@ -236,11 +266,18 @@ class Ankaios:
         try:
             # pylint: disable=consider-using-with
             input_fifo = open(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb"
+            )
+            os.set_blocking(input_fifo.fileno(), False)
 
             self.logger.info("Started reading from the input pipe.")
+            while not self._disconnect_event.is_set():
+                # The loop continues when data is available or when the
+                # timeout of 1 second is reached.
+                ready, _, _ = select.select([input_fifo], [], [], 1)
+                if not ready:  # pragma: no cover
+                    continue
 
-            while self._connected:
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
                 while True:
@@ -285,7 +322,7 @@ class Ankaios:
                         self._responses[request_id].set()
         except ConnectionClosedException as e:  # pragma: no cover
             self.logger.error("Connection closed: %s", e)
-            self._disconnect()
+            self.disconnect()
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
         finally:
@@ -853,7 +890,7 @@ class Ankaios:
 
         Raises:
             AnkaiosException: If the workload state was not
-                retrieved successfuly.
+                retrieved successfully.
         """
         state = self.get_state(timeout, [instance_name.get_filter_mask()])
         workload_states = state.get_workload_states().get_as_list()

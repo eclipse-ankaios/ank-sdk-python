@@ -102,7 +102,7 @@ setup(
         "Programming Language :: Python :: 3.13",
     ],
     project_urls={
-        "Documentation": "https://eclipse-ankaios.github.io/ankaios/latest/",
+        "Documentation": "https://eclipse-ankaios.github.io/ank-sdk-python/",
         "Source": "https://github.com/eclipse-ankaios/ank-sdk-python",
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
