@@ -39,6 +39,14 @@ Usage
     .. code-block:: python
 
         manifest = Manifest.from_dict({"apiVersion": "1.0", "workloads": {}})
+
+- Check if the manifest is valid:
+    .. code-block:: python
+
+        try:
+            manifest = Manifest.from_file("path/to/manifest.yaml")
+        except InvalidManifestException as e:
+            print(f"Invalid manifest: {e}")
 """
 
 import yaml

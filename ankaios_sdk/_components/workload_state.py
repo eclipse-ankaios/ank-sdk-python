@@ -223,7 +223,7 @@ class WorkloadExecutionState:
     Attributes:
         state (WorkloadStateEnum): The state of the workload.
         substate (WorkloadSubStateEnum): The sub-state of the workload.
-        info (str): Additional information about the workload state.
+        additional_info (str): Additional information about the workload state.
     """
     def __init__(self, state: _ank_base.ExecutionState) -> None:
         """
