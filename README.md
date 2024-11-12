@@ -131,7 +131,7 @@ For more details, please visit the [Documentation](https://eclipse-ankaios.githu
 ## Contributing
 
 This project welcomes contributions and suggestions. Before contributing, make sure to read the
-[contribution guideline](CONTRIBUTING.md).
+[contribution guideline](https://github.com/eclipse-ankaios/ank-sdk-python/blob/main/CONTRIBUTING.md).
 
 ## License
 
