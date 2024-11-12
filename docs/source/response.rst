@@ -29,3 +29,12 @@ UpdateStateSuccess Class
     :members:
     :undoc-members:
     :show-inheritance:
+
+ResponseType Enum
+-----------------
+
+.. autoclass:: ankaios_sdk._components.response.ResponseType
+    :special-members: __str__
+    :members:
+    :undoc-members:
+    :show-inheritance:

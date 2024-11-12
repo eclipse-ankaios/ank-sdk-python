@@ -23,19 +23,26 @@ Classes
     Represents a request to the Ankaios system and provides \
     methods to get and set the state of the system.
 
+Enums
+-----
+
+- RequestType:
+    Enumeration for the different types of requests. It includes
+    UPDATE_STATE and GET_STATE.
+
 Usage
 -----
 
 - Create a Request for updating the state:
     .. code-block:: python
 
-        request = Request(request_type="update_state")
+        request = Request(RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
 
 - Create a Request for getting the state:
     .. code-block:: python
 
-        request = Request(request_type="get_state")
+        request = Request(RequestType.GET_STATE)
 
 - Get the request ID:
     .. code-block:: python
@@ -48,9 +55,10 @@ Usage
         request.add_mask("desiredState.workloads")
 """
 
-__all__ = ["Request"]
+__all__ = ["Request", "RequestType"]
 
 import uuid
+from enum import Enum
 from .._protos import _ank_base
 from ..exceptions import RequestException
 from ..utils import get_logger
@@ -61,13 +69,12 @@ class Request:
     """
     Represents a request to the Ankaios system.
     """
-    def __init__(self, request_type: str) -> None:
+    def __init__(self, request_type: 'RequestType') -> None:
         """
         Initializes a Request instance with the given request type.
 
         Args:
-            request_type (str): The type of the request,
-                either "update_state" or "get_state".
+            request_type (RequestType): The type of the request.
 
         Raises:
             RequestException: If the request type is invalid.
@@ -77,16 +84,16 @@ class Request:
         self._request_type = request_type
         self.logger = get_logger()
 
-        if request_type == "update_state":
+        if request_type == RequestType.UPDATE_STATE:
             self._request.updateStateRequest.updateMask[:] = []
-        elif request_type == "get_state":
+        elif request_type == RequestType.GET_STATE:
             self._request.completeStateRequest.fieldMask[:] = []
         else:
             self.logger.error("Invalid request type.")
-            raise RequestException("Invalid request type. Supported values: "
-                                   + "'update_state', 'get_state'.")
-        self.logger.debug("Created request for %s with id %s",
-                          request_type, self._request.requestId)
+            raise RequestException("Invalid request type. "
+                                   "Check the RequestType enum.")
+        self.logger.debug("Created request of type %s with id %s",
+                          str(request_type), self._request.requestId)
 
     def __str__(self) -> str:
         """
@@ -115,9 +122,9 @@ class Request:
                 set for the request.
 
         Raises:
-            RequestException: If the request type is not "update_state".
+            RequestException: If the request type is not UPDATE_STATE.
         """
-        if self._request_type != "update_state":
+        if self._request_type != RequestType.UPDATE_STATE:
             raise RequestException("Complete state can only be set "
                                    + "for an update state request.")
 
@@ -132,9 +139,9 @@ class Request:
         Args:
             mask (str): The mask to set for the request.
         """
-        if self._request_type == "update_state":
+        if self._request_type == RequestType.UPDATE_STATE:
             self._request.updateStateRequest.updateMask.append(mask)
-        elif self._request_type == "get_state":
+        elif self._request_type == RequestType.GET_STATE:
             self._request.completeStateRequest.fieldMask.append(mask)
 
     def set_masks(self, masks: list) -> None:
@@ -144,9 +151,9 @@ class Request:
         Args:
             masks (list): The masks to set for the request.
         """
-        if self._request_type == "update_state":
+        if self._request_type == RequestType.UPDATE_STATE:
             self._request.updateStateRequest.updateMask[:] = masks
-        elif self._request_type == "get_state":
+        elif self._request_type == RequestType.GET_STATE:
             self._request.completeStateRequest.fieldMask[:] = masks
 
     def _to_proto(self) -> _ank_base.Request:
@@ -157,3 +164,20 @@ class Request:
             _ank_base.Request: The protobuf message representing the request.
         """
         return self._request
+
+
+class RequestType(Enum):
+    """ Enumeration for the different types of requests. """
+    UPDATE_STATE = 1
+    "(int): Request for updating the state."
+    GET_STATE = 2
+    "(int): Request for getting the state."
+
+    def __str__(self) -> str:
+        """
+        Return the string representation of the enum value.
+
+        Returns:
+            str: The enum value as a string.
+        """
+        return self.name.lower()
