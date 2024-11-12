@@ -289,6 +289,7 @@ class Ankaios:
                     # Check if we reached the last byte
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
+                # Not worth unit testing
                 if not varint_buffer:  # pragma: no cover
                     continue
                 # Decode the varint and receive the proto msg length
