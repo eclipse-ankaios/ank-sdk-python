@@ -63,7 +63,9 @@ Please make sure the Python SDK is compatible with the version of Ankaios you ar
 After installation, you can use the Ankaios SDK to configure and run workloads and request
 the state of the Ankaios system and the connected agents.
 
-Example:
+The following example assumes that the code is running in a managed by
+Ankaios workload with configured control interface access:
+
 ```python
 from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, AnkaiosException
 
@@ -126,7 +128,10 @@ with Ankaios() as ankaios:
                     [workload_name][workload_id].state))
 ```
 
-For more details, please visit the [Documentation](https://eclipse-ankaios.github.io/ank-sdk-python/).
+For more details, please visit:
+* [Ankaios documentation](https://eclipse-ankaios.github.io/ankaios/latest/)
+* [Python SDK documentation](https://eclipse-ankaios.github.io/ank-sdk-python/)
+* [Fleet connector example](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/)
 
 ## Contributing
 
