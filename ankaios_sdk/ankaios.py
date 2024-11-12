@@ -101,11 +101,14 @@ Usage
 - Wait for a workload to reach a state:
     .. code-block:: python
 
-        ret = ankaios.wait_for_workload_to_reach_state(
-            instance_name,
-            WorkloadStateEnum.RUNNING
-        )
-        if ret:
+        try:
+            ankaios.wait_for_workload_to_reach_state(
+                instance_name,
+                WorkloadStateEnum.RUNNING
+            )
+        except TimeoutError:
+            print(f"State not reached in time.")
+        else:
             print(f"State reached.")
 """
 

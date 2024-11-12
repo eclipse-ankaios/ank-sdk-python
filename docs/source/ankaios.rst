@@ -11,11 +11,3 @@ Ankaios Class
     :members:
     :undoc-members:
     :show-inheritance:
-
-AnkaiosLogLevel Enum
----------------------
-
-.. autoclass:: ankaios_sdk.ankaios.AnkaiosLogLevel
-    :members:
-    :undoc-members:
-    :show-inheritance:
