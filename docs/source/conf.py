@@ -86,7 +86,7 @@ start = stop = 0
 for i, line in enumerate(readme):
     if "</picture>" in line:
         start = i+1
-    if r"https://eclipse-ankaios.github.io/ank-sdk-python/" in line:
+    if "## Contributing" in line:
         stop = i
         break
 with open(read_me_out, 'w') as f:
