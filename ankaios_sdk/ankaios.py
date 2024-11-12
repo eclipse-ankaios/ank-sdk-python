@@ -325,6 +325,7 @@ class Ankaios:
             self.disconnect()
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
+            raise e
         finally:
             input_fifo.close()
 
