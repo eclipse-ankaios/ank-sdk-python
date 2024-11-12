@@ -109,20 +109,21 @@ with Ankaios() as ankaios:
   except AnkaiosException as e:
     print("Ankaios Exception occured: ", e)
 
-  # Request the state of the system, filtered with the agent name
+  # Request the state of the system, filtered with the workloadStates
   complete_state = ankaios.get_state(
     timeout=5,
-    field_masks=["workloadStates.agent_A"])
+    field_masks=["workloadStates"])
 
   # Get the workload states present in the complete_state
   workload_states_dict = complete_state.get_workload_states().get_as_dict()
 
   # Print the states of the workloads:
-  for workload_name in workload_states_dict["agent_A"]:
-    for workload_id in workload_states_dict["agent_A"][workload_name]:
-      print(f"Workload {workload_name} with id {workload_id} has the state "
-            + str(workload_states_dict["agent_A"] \
-                  [workload_name][workload_id].state))
+  for agent_name in workload_states_dict:
+    for workload_name in workload_states_dict[agent_name]:
+      for workload_id in workload_states_dict[agent_name][workload_name]:
+        print(f"Workload {workload_name} on agent {agent_name} has the state "
+              + str(workload_states_dict[agent_name] \
+                    [workload_name][workload_id].state))
 ```
 
 For more details, please visit the [Documentation](https://eclipse-ankaios.github.io/ank-sdk-python/).
