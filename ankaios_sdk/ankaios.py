@@ -289,6 +289,8 @@ class Ankaios:
                     # Check if we reached the last byte
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
+                if not varint_buffer:  # pragma: no cover
+                    continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
 
@@ -325,7 +327,6 @@ class Ankaios:
             self.disconnect()
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
-            raise e
         finally:
             input_fifo.close()
 
