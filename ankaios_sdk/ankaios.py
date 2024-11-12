@@ -261,6 +261,10 @@ class Ankaios:
             AnkaiosConnectionException: If an error occurs
                 while reading the fifo.
         """
+        # The pragma: no cover is used on small checks that are not expected
+        # to fail. This method is difficult to test and testing each check
+        # would be redundant.
+
         # pylint: disable=invalid-name
         MOST_SIGNIFICANT_BIT_MASK = 0b10000000
         try:
@@ -289,7 +293,6 @@ class Ankaios:
                     # Check if we reached the last byte
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
-                # Not worth unit testing
                 if not varint_buffer:  # pragma: no cover
                     continue
                 # Decode the varint and receive the proto msg length
