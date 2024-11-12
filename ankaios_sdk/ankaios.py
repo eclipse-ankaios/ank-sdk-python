@@ -283,13 +283,17 @@ class Ankaios:
                 # timeout of 1 second is reached.
                 ready, _, _ = select.select([input_fifo], [], [], 1)
                 if not ready:  # pragma: no cover
+                    self.logger.info("Not ready. Continue.")
                     continue
 
+                self.logger.info("We are ready.")
+                
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
                 while True:
                     # Consume byte for byte
                     next_byte = input_fifo.read(1)
+                    self.logger.info(f"Reading: {next_byte}")
                     if not next_byte:  # pragma: no cover
                         break
                     varint_buffer += next_byte
@@ -297,6 +301,7 @@ class Ankaios:
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
                 if not varint_buffer:  # pragma: no cover
+                    self.logger.info("varint_buffer empty. Continue.")
                     continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
