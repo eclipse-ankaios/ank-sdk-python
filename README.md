@@ -131,7 +131,8 @@ with Ankaios() as ankaios:
 For more details, please visit:
 * [Ankaios documentation](https://eclipse-ankaios.github.io/ankaios/latest/)
 * [Python SDK documentation](https://eclipse-ankaios.github.io/ank-sdk-python/)
-* [Fleet connector example](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/)
+
+Especially the Ankaios [fleet management tutorial](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/) gives a great overview on the usage of the SDK.
 
 ## Contributing
 
