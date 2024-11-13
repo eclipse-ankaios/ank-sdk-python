@@ -17,7 +17,7 @@ This module contains unit tests for the Request class in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk import Request, CompleteState, RequestException
+from ankaios_sdk import Request, RequestType, CompleteState, RequestException
 from tests.workload.test_workload import generate_test_workload
 
 
@@ -29,12 +29,12 @@ def generate_test_request(request_type: str = "update_state") -> Request:
         Request: A Request instance.
     """
     if request_type == "update_state":
-        request = Request("update_state")
+        request = Request(RequestType.UPDATE_STATE)
         complete_state = CompleteState()
         complete_state.add_workload(generate_test_workload())
         request.set_complete_state(complete_state)
         return request
-    return Request("get_state")
+    return Request(RequestType.GET_STATE)
 
 
 def test_general_functionality():
@@ -44,7 +44,7 @@ def test_general_functionality():
     with pytest.raises(RequestException, match="Invalid request type."):
         Request("invalid")
 
-    request = Request("update_state")
+    request = Request(RequestType.UPDATE_STATE)
     assert request.get_id() is not None
     assert str(request) == f"requestId: \"{request.get_id()}\"\n" \
         + "updateStateRequest {\n}\n"
@@ -54,7 +54,7 @@ def test_update_state():
     """
     Test the update state request type.
     """
-    request = Request("update_state")
+    request = Request(RequestType.UPDATE_STATE)
     complete_state = CompleteState()
     request.set_complete_state(complete_state)
     assert request._request.updateStateRequest.newState == \
@@ -67,14 +67,14 @@ def test_update_state():
             RequestException,
             match="Complete state can only be set for an update state request."
             ):
-        Request("get_state").set_complete_state(CompleteState())
+        Request(RequestType.GET_STATE).set_complete_state(CompleteState())
 
 
 def test_get_state():
     """
     Test the get state request type.
     """
-    request = Request("get_state")
+    request = Request(RequestType.GET_STATE)
     request.add_mask("test_mask")
     assert request._request.completeStateRequest.fieldMask == ["test_mask"]
 
@@ -83,8 +83,8 @@ def test_proto():
     """
     Test the conversion to proto message.
     """
-    request = Request("update_state")
+    request = Request(RequestType.UPDATE_STATE)
     assert request._to_proto().requestId == request.get_id()
 
-    request = Request("get_state")
+    request = Request(RequestType.GET_STATE)
     assert request._to_proto().requestId == request.get_id()

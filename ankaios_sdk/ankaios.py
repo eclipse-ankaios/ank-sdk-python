@@ -125,9 +125,9 @@ from google.protobuf.internal.decoder import _DecodeVarint
 from ._protos import _control_api
 from .exceptions import AnkaiosConnectionException, AnkaiosException, \
                         ResponseException, ConnectionClosedException
-from ._components import Workload, CompleteState, Request, Response, \
-                         UpdateStateSuccess, ResponseEvent, \
-                         WorkloadStateCollection, Manifest, \
+from ._components import Workload, CompleteState, Request, RequestType, \
+                         Response, ResponseType, UpdateStateSuccess, \
+                         ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState
 from .utils import AnkaiosLogLevel, get_logger, \
@@ -468,7 +468,7 @@ class Ankaios:
             AnkaiosException: If an error occurred while applying
                 the manifest.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState.from_manifest(manifest))
         request.set_masks(manifest._calculate_masks())
 
@@ -481,11 +481,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to apply manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -513,7 +513,7 @@ class Ankaios:
             AnkaiosException: If an error occurred while deleting
                 the manifest.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.set_masks(manifest._calculate_masks())
 
@@ -526,11 +526,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -561,7 +561,7 @@ class Ankaios:
         complete_state.add_workload(workload)
 
         # Create the request
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.set_masks(workload.masks)
 
@@ -574,11 +574,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to run workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -623,7 +623,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred while deleting the workload.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(f"{WORKLOADS_PREFIX}.{workload_name}")
 
@@ -635,11 +635,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -665,7 +665,7 @@ class Ankaios:
         complete_state = CompleteState()
         complete_state.set_configs(configs)
 
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.add_mask(CONFIGS_PREFIX)
 
@@ -677,11 +677,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to set the configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -704,7 +704,7 @@ class Ankaios:
         complete_state = CompleteState()
         complete_state.set_configs({name: config})
 
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.add_mask(f"{CONFIGS_PREFIX}.{name}")
 
@@ -716,11 +716,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to add the config: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -758,7 +758,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(CONFIGS_PREFIX)
 
@@ -770,11 +770,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -791,7 +791,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(f"{CONFIGS_PREFIX}.{name}")
 
@@ -803,11 +803,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -830,7 +830,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred while getting the state.
         """
-        request = Request(request_type="get_state")
+        request = Request(request_type=RequestType.GET_STATE)
         if field_masks is not None:
             request.set_masks(field_masks)
         try:
@@ -841,11 +841,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to get the state: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "complete_state":
+        if content_type == ResponseType.COMPLETE_STATE:
             return content
         raise AnkaiosException("Received unexpected content type.")
 

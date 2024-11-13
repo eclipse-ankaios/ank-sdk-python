@@ -18,8 +18,8 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
-from ankaios_sdk import Response, CompleteState, ResponseException, \
-    ConnectionClosedException
+from ankaios_sdk import Response, ResponseType, CompleteState, \
+    ResponseException, ConnectionClosedException
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
@@ -81,17 +81,17 @@ def test_initialisation():
     """
     # Test error message
     response = Response(MESSAGE_BUFFER_ERROR)
-    assert response.content_type == "error"
+    assert response.content_type == ResponseType.ERROR
     assert response.content == "Test error message"
 
     # Test CompleteState message
     response = Response(MESSAGE_BUFFER_COMPLETE_STATE)
-    assert response.content_type == "complete_state"
+    assert response.content_type == ResponseType.COMPLETE_STATE
     assert isinstance(response.content, CompleteState)
 
     # Test UpdateStateSuccess message
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-    assert response.content_type == "update_state_success"
+    assert response.content_type == ResponseType.UPDATE_STATE_SUCCESS
     added_workloads = response.content.added_workloads
     deleted_workloads = response.content.deleted_workloads
     assert len(added_workloads) == 1
@@ -119,7 +119,10 @@ def test_getters():
     """
     response = Response(MESSAGE_BUFFER_ERROR)
     assert response.get_request_id() == "1234"
-    assert response.get_content() == ("error", "Test error message")
+    content_type, content = response.get_content()
+    assert content_type == ResponseType.ERROR
+    assert str(content_type) == "error"
+    assert content == "Test error message"
 
 
 def test_check_request_id():

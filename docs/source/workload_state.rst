@@ -39,8 +39,8 @@ WorkloadStateCollection Class
     :undoc-members:
     :show-inheritance:
 
-WorkloadStateEnum Enum
-----------------------
+WorkloadStateEnum
+-----------------
 
 .. autoclass:: ankaios_sdk._components.workload_state.WorkloadStateEnum
     :special-members: __str__
@@ -48,8 +48,8 @@ WorkloadStateEnum Enum
     :undoc-members:
     :show-inheritance:
 
-WorkloadSubStateEnum Enum
--------------------------
+WorkloadSubStateEnum
+--------------------
 
 .. autoclass:: ankaios_sdk._components.workload_state.WorkloadSubStateEnum
     :special-members: __str__
