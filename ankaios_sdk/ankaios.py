@@ -309,7 +309,7 @@ class Ankaios:
                         break
                 if not varint_buffer:  # pragma: no cover
                     self.logger.error(
-                        "Empty buffer. Is the agent still there?"
+                        "Nothing to read from the input fifo pipe. Is the agent still there?"
                         )
                     time.sleep(1)
                     continue
