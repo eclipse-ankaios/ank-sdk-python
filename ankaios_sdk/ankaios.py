@@ -135,6 +135,7 @@ from .utils import AnkaiosLogLevel, get_logger, \
 
 
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
+# pylint: disable=too-many-lines
 class Ankaios:
     """
     This class is used to interact with the Ankaios using an intuitive API.
@@ -240,17 +241,27 @@ class Ankaios:
         Disconnect from the control interface by stopping to read
         from the input fifo.
         """
+        if not self._connected:
+            self.logger.debug("Already disconnected.")
+            return
         self.logger.debug("Disconnecting..")
-        self._connected = False
         self._disconnect_event.set()
         if self._read_thread is not None:
             self._read_thread.join(timeout=2)
             if self._read_thread.is_alive():
                 self.logger.error("Read thread did not stop.")
             self._read_thread = None
+        self._cleanup()
+
+    def _cleanup(self) -> None:
+        """
+        Clean up the resources.
+        """
+        self._connected = False
         if self._output_file is not None:
             self._output_file.close()
             self._output_file = None
+        self.logger.debug("Cleanup happened")
 
     # pylint: disable=too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -287,7 +298,7 @@ class Ankaios:
 
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
-                while True:
+                while not self._disconnect_event.is_set():
                     # Consume byte for byte
                     next_byte = input_fifo.read(1)
                     if not next_byte:  # pragma: no cover
@@ -297,6 +308,10 @@ class Ankaios:
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
                 if not varint_buffer:  # pragma: no cover
+                    self.logger.error(
+                        "Nothing to read from the input fifo pipe. Is the agent still there?"
+                        )
+                    time.sleep(1)
                     continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
@@ -331,11 +346,11 @@ class Ankaios:
                         self._responses[request_id].set()
         except ConnectionClosedException as e:  # pragma: no cover
             self.logger.error("Connection closed: %s", e)
-            self.disconnect()
         except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.error("Error while reading fifo file: %s", e)
         finally:
             input_fifo.close()
+            self._cleanup()
 
     def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
         """
