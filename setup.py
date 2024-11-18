@@ -112,7 +112,7 @@ setup(
     ],
     setup_requires=[
         "protobuf==5.27.2",  # Protocol Buffers
-        "grpcio-tools==1.66.1",  # Needed for an OS independent protoc
+        "grpcio-tools==1.67.1",  # Needed for an OS independent protoc
         "requests",  # Used to download the proto files
     ],
     extras_require={
