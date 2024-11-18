@@ -34,9 +34,19 @@ import threading
 
 
 SUPPORTED_API_VERSION = "v0.1"
+"(str): The supported API version of the Ankaios SDK."
+
 ANKAIOS_VERSION = "0.5.0"
+"(str): The version of the compatible Ankaios."
+
 WORKLOADS_PREFIX = "desiredState.workloads"
+"(str): The prefix for the workloads in the desired state."
+
 CONFIGS_PREFIX = "desiredState.configs"
+"(str): The prefix for the configs in the desired state."
+
+DEFAULT_CONTROL_INTERFACE_PATH = "/run/ankaios/control_interface"
+"(str): The base path for the Ankaios control interface."
 
 
 # Used to sync across different threads when adding handlers

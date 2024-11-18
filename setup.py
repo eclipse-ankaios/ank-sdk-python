@@ -107,12 +107,12 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "protobuf==5.27.2",  # Protocol Buffers
+        "protobuf==5.28.1",  # Protocol Buffers
         "PyYAML",  # Used to parse manifest files
     ],
     setup_requires=[
-        "protobuf==5.27.2",  # Protocol Buffers
-        "grpcio-tools>=1.56.2",  # Needed for an OS independent protoc
+        "protobuf==5.28.1",  # Protocol Buffers
+        "grpcio-tools==1.66.1",  # Needed for an OS independent protoc
         "requests",  # Used to download the proto files
     ],
     extras_require={
