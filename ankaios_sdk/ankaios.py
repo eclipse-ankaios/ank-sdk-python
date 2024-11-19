@@ -112,7 +112,7 @@ Usage
             print(f"State reached.")
 """
 
-__all__ = ["Ankaios", "AnkaiosLogLevel"]
+__all__ = ["Ankaios"]
 
 import time
 from typing import Union
@@ -195,7 +195,7 @@ class Ankaios:
         Returns:
             ControlInterfaceState: The state of the control interface.
         """
-        return self._ci.state()
+        return self._ci.state
 
     def _state_changed(self, state: ControlInterfaceState) -> None:
         """
@@ -211,7 +211,7 @@ class Ankaios:
         """
         request_id = response.get_request_id()
         self.logger.debug("Received a response with the id %s",
-                            request_id)
+                          request_id)
         with self._responses_lock:
             if request_id in self._responses:
                 self.logger.debug(

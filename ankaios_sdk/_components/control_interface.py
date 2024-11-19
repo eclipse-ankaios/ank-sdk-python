@@ -27,6 +27,22 @@ Enums
 
 - ControlInterfaceState:
     Represents the state of the control interface.
+
+Usage
+-----
+
+- Create a Control Interface instance, connect and disconnect.
+    .. code-block:: python
+
+        ci = ControlInterface(<callbacks from Ankaios>)
+        ci.connect()
+        ...
+        ci.disconnect()
+
+- Change the state of the control interface.
+    .. code-block:: python
+
+        ci.change_state(ControlInterfaceState.CONNECTED)
 """
 
 
@@ -35,6 +51,7 @@ __all__ = ["ControlInterface", "ControlInterfaceState"]
 
 import os
 import select
+import time
 import threading
 from typing import Callable
 from enum import Enum
@@ -44,7 +61,7 @@ from google.protobuf.internal.decoder import _DecodeVarint
 from .._protos import _control_api
 from .request import Request
 from .response import Response, ResponseException
-from ..exceptions import AnkaiosConnectionException, ConnectionClosedException
+from ..exceptions import ControlInterfaceException, ConnectionClosedException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
 
@@ -69,6 +86,7 @@ class ControlInterfaceState(Enum):
         return self.name
 
 
+# pylint: disable=too-many-instance-attributes
 class ControlInterface:
     """
     This class handles the interaction with the Ankaios control interface.
@@ -87,12 +105,20 @@ class ControlInterface:
                  state_changed_callback: Callable
                  ) -> None:
         """
-        Initialize the ControlInterface object. This will also connect to
-        the control interface pipes.
+        Initialize the ControlInterface object. This is used
+        to interact with the control interface.
+
+        Args:
+            add_response_callback (Callable): The callback function to add
+                a response to the Ankaios class.
+            state_changed_callback (Callable): The callback function to
+                to call when the state of the control interface changes.
         """
         self.path = DEFAULT_CONTROL_INTERFACE_PATH
         self._input_file = None
         self._output_file = None
+        # The state of the control interface must not be changed directly.
+        # Use the change_state method instead.
         self.state = ControlInterfaceState.DISCONNECTED
         self._read_thread = None
         self._disconnect_event = threading.Event()
@@ -111,17 +137,17 @@ class ControlInterface:
             AnkaiosConnectionException: If an error occurred.
         """
         if self.state == ControlInterfaceState.CONNECTED:
-            raise AnkaiosConnectionException("Already connected.")
+            raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"):
-            raise AnkaiosConnectionException(
+            raise ControlInterfaceException(
                 "Control interface input fifo does not exist."
             )
 
         if not os.path.exists(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
-            raise AnkaiosConnectionException(
+            raise ControlInterfaceException(
                 "Control interface output fifo does not exist."
             )
 
@@ -132,8 +158,7 @@ class ControlInterface:
             )
         except Exception as e:
             self.logger.error("Error while opening output fifo: %s", e)
-            self.disconnect()
-            raise AnkaiosConnectionException(
+            raise ControlInterfaceException(
                 "Error while opening output fifo."
             ) from e
 
@@ -149,7 +174,7 @@ class ControlInterface:
         """
         Disconnect from the control interface.
         """
-        if not self.state == ControlInterfaceState.DISCONNECTED:
+        if not self.state == ControlInterfaceState.CONNECTED:
             self.logger.debug("Already disconnected.")
             return
 
@@ -179,13 +204,13 @@ class ControlInterface:
         Args:
             state (ControlInterfaceState): The new state.
         """
+        if state == self.state:
+            self.logger.debug("State is already %s.", state)
+            return
         self.state = state
         self._state_changed_callback(state)
 
-        if self.state == ControlInterfaceState.AGENT_DISCONNECTED:
-            self._disconnect_event.set()
-            self._cleanup()
-
+    # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
         """
         Reads from the control interface input fifo.
@@ -211,14 +236,13 @@ class ControlInterface:
         except Exception as e:
             self.logger.error("Error while opening input fifo: %s", e)
             self.disconnect()
-            raise AnkaiosConnectionException(
+            raise ControlInterfaceException(
                 "Error while opening input fifo."
             ) from e
         os.set_blocking(self._input_file.fileno(), False)
 
         try:
             self.logger.info("Started reading from the input pipe.")
-
             while not self._disconnect_event.is_set():
                 # The loop continues when data is available or when the
                 # timeout of 1 second is reached.
@@ -239,8 +263,15 @@ class ControlInterface:
                         break
 
                 if not varint_buffer:  # pragma: no cover
-                    self.change_state(ControlInterfaceState.AGENT_DISCONNECTED)
-
+                    if self.state != ControlInterfaceState.AGENT_DISCONNECTED:
+                        self.change_state(
+                            ControlInterfaceState.AGENT_DISCONNECTED)
+                    self.logger.error(
+                        "Nothing to read from the input fifo pipe. "
+                        "Is the agent still there?"
+                        )
+                    time.sleep(1)
+                    continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
 
@@ -279,7 +310,18 @@ class ControlInterface:
 
         Args:
             to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
+
+        Raises:
+            AnkaiosConnectionException: If the output pipe is None.
         """
+        if self._output_file is None:
+            self.logger.error(
+                "Could not write to pipe, output file handler is None."
+            )
+            raise ControlInterfaceException(
+                "Could not write to pipe, output file handler is None."
+            )
+
         # Adds the byte length of the proto msg
         self._output_file.write(_VarintBytes(to_ankaios.ByteSize()))
         # Adds the proto msg itself
@@ -297,7 +339,7 @@ class ControlInterface:
             AnkaiosConnectionException: If not connected.
         """
         if not self.state == ControlInterfaceState.CONNECTED:
-            raise AnkaiosConnectionException(
+            raise ControlInterfaceException(
                 "Could not write to pipe, not connected.")
 
         request_to_ankaios = _control_api.ToAnkaios(
@@ -321,4 +363,3 @@ class ControlInterface:
         self._write_to_pipe(initial_hello)
         self.logger.debug("Sent initial hello message with the version %s",
                           ANKAIOS_VERSION)
-    

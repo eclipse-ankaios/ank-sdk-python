@@ -32,7 +32,7 @@ import inspect
 __all__ = ['WorkloadFieldException', 'WorkloadBuilderException',
            'InvalidManifestException', 'ConnectionClosedException',
            'RequestException', 'ResponseException',
-           'AnkaiosConnectionException', 'AnkaiosException']
+           'ControlInterfaceException', 'AnkaiosException']
 
 
 class AnkaiosBaseException(Exception):
@@ -67,8 +67,8 @@ class ResponseException(AnkaiosBaseException):
     """Raised when the response is invalid."""
 
 
-class AnkaiosConnectionException(AnkaiosBaseException):
-    """Raised when an operation on the connection fails."""
+class ControlInterfaceException(AnkaiosBaseException):
+    """Raised when an operation on the Control Interface fails"""
 
 
 class AnkaiosException(AnkaiosBaseException):
