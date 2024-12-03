@@ -87,8 +87,12 @@ def test_state():
     Test the state property of the Ankaios class and the state callback.
     """
     ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
     assert ankaios.state == ankaios._control_interface._state
     ankaios._state_changed(ControlInterfaceState.TERMINATED)
+    ankaios.logger.info.assert_called_with(
+        "State changed to %s", ControlInterfaceState.TERMINATED
+    )
 
 
 def test_add_response():
