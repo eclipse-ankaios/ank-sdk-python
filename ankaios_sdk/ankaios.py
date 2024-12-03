@@ -138,7 +138,6 @@ class Ankaios:
     and responses sent and received over the Ankaios Control Interface.
 
     Attributes:
-        state (ControlInterfaceState): The state of the control interface.
         logger (logging.Logger): The logger for the Ankaios class.
     """
     DEFAULT_TIMEOUT = 5.0

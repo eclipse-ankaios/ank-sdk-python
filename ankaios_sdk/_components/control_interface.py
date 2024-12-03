@@ -67,10 +67,10 @@ from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
 class ControlInterfaceState(Enum):
     """ The state of the control interface. """
-    CONNECTED = 1
-    "(int): Connected state."
-    DISCONNECTED = 2
-    "(int): Disconnected state."
+    INITIALIZED = 1
+    "(int): Connection established state."
+    TERMINATED = 2
+    "(int): Connection stopped state."
     AGENT_DISCONNECTED = 3
     "(int): Agent disconnected state."
     CONNECTION_CLOSED = 4
@@ -95,7 +95,6 @@ class ControlInterface:
 
     Attributes:
         path (str): The path to the control interface.
-        state (ControlInterfaceState): The state of the control interface.
     """
     ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
     "(str): The base path for the Ankaios control interface."
@@ -119,7 +118,7 @@ class ControlInterface:
         self._output_file = None
         # The state of the control interface must not be changed directly.
         # Use the change_state method instead.
-        self._state = ControlInterfaceState.DISCONNECTED
+        self._state = ControlInterfaceState.TERMINATED
         self._read_thread = None
         self._disconnect_event = threading.Event()
 
@@ -146,7 +145,7 @@ class ControlInterface:
         Raises:
             AnkaiosConnectionException: If an error occurred.
         """
-        if self._state == ControlInterfaceState.CONNECTED:
+        if self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
@@ -176,7 +175,7 @@ class ControlInterface:
             target=self._read_from_control_interface,
             daemon=True
         )
-        self.change_state(ControlInterfaceState.CONNECTED)
+        self.change_state(ControlInterfaceState.INITIALIZED)
         self._read_thread.start()
         self._send_initial_hello()
 
@@ -184,7 +183,7 @@ class ControlInterface:
         """
         Disconnect from the control interface.
         """
-        if not self._state == ControlInterfaceState.CONNECTED:
+        if not self._state == ControlInterfaceState.INITIALIZED:
             self._logger.debug("Already disconnected.")
             return
 
@@ -201,10 +200,16 @@ class ControlInterface:
         """
         Clean up the resources.
         """
-        self.change_state(ControlInterfaceState.DISCONNECTED)
+        self.change_state(ControlInterfaceState.TERMINATED)
         if self._output_file is not None:
             self._output_file.close()
             self._output_file = None
+        # The input file will be closed by the reading thread.
+        # If the thread gets terminated or it's stuck, the input file
+        # will be closed here. No cover because it's an exceptional case.
+        if self._input_file is not None:  # pragma: no cover
+            self._input_file.close()
+            self._input_file = None
         self._logger.debug("Cleanup happened")
 
     def change_state(self, state: ControlInterfaceState) -> None:
@@ -309,6 +314,7 @@ class ControlInterface:
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
             self._input_file.close()
+            self._input_file = None
             self._cleanup()
 
     def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
@@ -346,7 +352,7 @@ class ControlInterface:
         Raises:
             AnkaiosConnectionException: If not connected.
         """
-        if not self._state == ControlInterfaceState.CONNECTED:
+        if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected.")
 

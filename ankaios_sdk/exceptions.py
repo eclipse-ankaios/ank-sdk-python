@@ -23,7 +23,7 @@ Exceptions
 - ConnectionClosedException: Raised when the connection is closed.
 - RequestException: Raised when the request is invalid.
 - ResponseException: Raised when the response is invalid.
-- ControlInterfaceException: Raised when an operation on the connection fails.
+- ControlInterfaceException: Raised when an operation fails.
 - AnkaiosException: Raised when an update operation fails.
 """
 
