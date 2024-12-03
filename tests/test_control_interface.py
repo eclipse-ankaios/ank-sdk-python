@@ -39,16 +39,16 @@ def test_state():
         add_response_callback=lambda _: None,
         state_changed_callback=state_changed
     )
-    ci.logger = MagicMock()
-    assert ci.state == ControlInterfaceState.DISCONNECTED
-    assert str(ci.state) == "DISCONNECTED"
+    ci._logger = MagicMock()
+    assert ci._state == ControlInterfaceState.DISCONNECTED
+    assert str(ci._state) == "DISCONNECTED"
 
     ci.change_state(ControlInterfaceState.CONNECTED)
-    assert ci.state == ControlInterfaceState.CONNECTED
+    assert ci._state == ControlInterfaceState.CONNECTED
     state_changed.assert_called_once_with(ControlInterfaceState.CONNECTED)
 
     ci.change_state(ControlInterfaceState.CONNECTED)
-    ci.logger.debug.assert_called_with(
+    ci._logger.debug.assert_called_with(
         "State is already %s.", ControlInterfaceState.CONNECTED)
 
 
@@ -60,7 +60,7 @@ def test_connection():
         add_response_callback=lambda _: None,
         state_changed_callback=lambda _: None
     )
-    ci.state = ControlInterfaceState.CONNECTED
+    ci._state = ControlInterfaceState.CONNECTED
 
     # Already connected
     with pytest.raises(ControlInterfaceException,
@@ -68,7 +68,7 @@ def test_connection():
         ci.connect()
 
     # Test input pipe does not exist
-    ci.state = ControlInterfaceState.DISCONNECTED
+    ci._state = ControlInterfaceState.DISCONNECTED
     with patch("os.path.exists") as mock_exists, \
         pytest.raises(ControlInterfaceException,
                       match="Control interface input fifo"):
@@ -118,24 +118,24 @@ def test_connection():
         assert ci._read_thread is not None
         assert ci._output_file == output_file_mock
         mock_initial_hello.assert_called_once()
-        assert ci.state == ControlInterfaceState.CONNECTED
+        assert ci._state == ControlInterfaceState.CONNECTED
         assert not ci._disconnect_event.is_set()
 
         # Disconnect
         ci.disconnect()
 
         assert ci._disconnect_event.is_set()
-        assert ci.state == ControlInterfaceState.DISCONNECTED
+        assert ci._state == ControlInterfaceState.DISCONNECTED
         mock_thread_instance.join.assert_called_once()
         assert ci._read_thread is None
         output_file_mock.close.assert_called_once()
         assert ci._output_file is None
 
     # Test disconnect while not connected
-    ci.logger = MagicMock()
-    assert ci.state == ControlInterfaceState.DISCONNECTED
+    ci._logger = MagicMock()
+    assert ci._state == ControlInterfaceState.DISCONNECTED
     ci.disconnect()
-    ci.logger.debug.assert_called_with("Already disconnected.")
+    ci._logger.debug.assert_called_with("Already disconnected.")
 
 
 def test_read_from_control_interface():
@@ -177,12 +177,12 @@ def test_read_from_control_interface():
             target=ci._read_from_control_interface,
             daemon=True
         )
-        ci.state = ControlInterfaceState.CONNECTED
+        ci._state = ControlInterfaceState.CONNECTED
         ci._read_thread.start()
         time.sleep(0.01)
 
         # Stop thread (similar to disconnect)
-        ci.state = ControlInterfaceState.DISCONNECTED
+        ci._state = ControlInterfaceState.DISCONNECTED
         ci._disconnect_event.set()
         ci._read_thread.join()
 
@@ -223,12 +223,12 @@ def test_write_request():
         state_changed_callback=lambda _: None
         )
 
-    ci.state = ControlInterfaceState.DISCONNECTED
+    ci._state = ControlInterfaceState.DISCONNECTED
     with pytest.raises(ControlInterfaceException,
                        match="Could not write to pipe"):
         ci.write_request(generate_test_request())
 
-    ci.state = ControlInterfaceState.CONNECTED
+    ci._state = ControlInterfaceState.CONNECTED
     with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
         ci.write_request(generate_test_request())
         mock_write.assert_called_once()

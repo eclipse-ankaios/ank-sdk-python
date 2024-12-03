@@ -138,8 +138,8 @@ class Ankaios:
     and responses sent and received over the Ankaios Control Interface.
 
     Attributes:
+        state (ControlInterfaceState): The state of the control interface.
         logger (logging.Logger): The logger for the Ankaios class.
-        path (str): The path to the control interface.
     """
     DEFAULT_TIMEOUT = 5.0
     "(float): The default timeout, if not manually provided."
@@ -158,11 +158,11 @@ class Ankaios:
         self.set_logger_level(log_level)
 
         # Connect to the control interface
-        self._ci = ControlInterface(
+        self._control_interface = ControlInterface(
             add_response_callback=self._add_response,
             state_changed_callback=self._state_changed
             )
-        self._ci.connect()
+        self._control_interface.connect()
 
     def __enter__(self) -> "Ankaios":
         """
@@ -185,7 +185,7 @@ class Ankaios:
         if exc_type is not None:  # pragma: no cover
             self.logger.error("An exception occurred: %s, %s, %s",
                               exc_type, exc_value, traceback)
-        self._ci.disconnect()
+        self._control_interface.disconnect()
 
     @property
     def state(self) -> ControlInterfaceState:
@@ -195,7 +195,7 @@ class Ankaios:
         Returns:
             ControlInterfaceState: The state of the control interface.
         """
-        return self._ci.state
+        return self._control_interface.state
 
     def _state_changed(self, state: ControlInterfaceState) -> None:
         """
@@ -266,7 +266,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosConnectionException: If not connected.
         """
-        self._ci.write_request(request)
+        self._control_interface.write_request(request)
 
         try:
             response = self._get_response_by_id(request.get_id(), timeout)

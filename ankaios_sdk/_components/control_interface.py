@@ -90,12 +90,12 @@ class ControlInterfaceState(Enum):
 class ControlInterface:
     """
     This class handles the interaction with the Ankaios control interface.
-    It provides method to send and receive data to and from the control
+    It provides methods to send and receive data to and from the control
     interface pipes.
 
     Attributes:
-        logger (logging.Logger): The logger for the Ankaios class.
         path (str): The path to the control interface.
+        state (ControlInterfaceState): The state of the control interface.
     """
     ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
     "(str): The base path for the Ankaios control interface."
@@ -119,14 +119,24 @@ class ControlInterface:
         self._output_file = None
         # The state of the control interface must not be changed directly.
         # Use the change_state method instead.
-        self.state = ControlInterfaceState.DISCONNECTED
+        self._state = ControlInterfaceState.DISCONNECTED
         self._read_thread = None
         self._disconnect_event = threading.Event()
 
         self._add_response_callback = add_response_callback
         self._state_changed_callback = state_changed_callback
 
-        self.logger = get_logger()
+        self._logger = get_logger()
+
+    @property
+    def state(self) -> ControlInterfaceState:
+        """
+        Returns the current state of the control interface.
+
+        Returns:
+            ControlInterfaceState: The state of the control interface.
+        """
+        return self._state
 
     def connect(self) -> None:
         """
@@ -136,7 +146,7 @@ class ControlInterface:
         Raises:
             AnkaiosConnectionException: If an error occurred.
         """
-        if self.state == ControlInterfaceState.CONNECTED:
+        if self._state == ControlInterfaceState.CONNECTED:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
@@ -157,7 +167,7 @@ class ControlInterface:
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output", "ab"
             )
         except Exception as e:
-            self.logger.error("Error while opening output fifo: %s", e)
+            self._logger.error("Error while opening output fifo: %s", e)
             raise ControlInterfaceException(
                 "Error while opening output fifo."
             ) from e
@@ -174,16 +184,16 @@ class ControlInterface:
         """
         Disconnect from the control interface.
         """
-        if not self.state == ControlInterfaceState.CONNECTED:
-            self.logger.debug("Already disconnected.")
+        if not self._state == ControlInterfaceState.CONNECTED:
+            self._logger.debug("Already disconnected.")
             return
 
-        self.logger.debug("Disconnecting..")
+        self._logger.debug("Disconnecting..")
         self._disconnect_event.set()
         if self._read_thread is not None:
             self._read_thread.join(timeout=2)
             if self._read_thread.is_alive():
-                self.logger.error("Read thread did not stop.")
+                self._logger.error("Read thread did not stop.")
             self._read_thread = None
         self._cleanup()
 
@@ -195,7 +205,7 @@ class ControlInterface:
         if self._output_file is not None:
             self._output_file.close()
             self._output_file = None
-        self.logger.debug("Cleanup happened")
+        self._logger.debug("Cleanup happened")
 
     def change_state(self, state: ControlInterfaceState) -> None:
         """
@@ -204,10 +214,10 @@ class ControlInterface:
         Args:
             state (ControlInterfaceState): The new state.
         """
-        if state == self.state:
-            self.logger.debug("State is already %s.", state)
+        if state == self._state:
+            self._logger.debug("State is already %s.", state)
             return
-        self.state = state
+        self._state = state
         self._state_changed_callback(state)
 
     # pylint: disable=too-many-statements, too-many-branches
@@ -234,7 +244,7 @@ class ControlInterface:
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb"
             )
         except Exception as e:
-            self.logger.error("Error while opening input fifo: %s", e)
+            self._logger.error("Error while opening input fifo: %s", e)
             self.disconnect()
             raise ControlInterfaceException(
                 "Error while opening input fifo."
@@ -242,7 +252,7 @@ class ControlInterface:
         os.set_blocking(self._input_file.fileno(), False)
 
         try:
-            self.logger.info("Started reading from the input pipe.")
+            self._logger.info("Started reading from the input pipe.")
             while not self._disconnect_event.is_set():
                 # The loop continues when data is available or when the
                 # timeout of 1 second is reached.
@@ -263,10 +273,10 @@ class ControlInterface:
                         break
 
                 if not varint_buffer:  # pragma: no cover
-                    if self.state != ControlInterfaceState.AGENT_DISCONNECTED:
+                    if self._state != ControlInterfaceState.AGENT_DISCONNECTED:
                         self.change_state(
                             ControlInterfaceState.AGENT_DISCONNECTED)
-                    self.logger.error(
+                    self._logger.error(
                         "Nothing to read from the input fifo pipe. "
                         "Is the agent still there?"
                         )
@@ -287,19 +297,17 @@ class ControlInterface:
                 try:
                     response = Response(bytes(msg_buf))
                 except ResponseException as e:  # pragma: no cover
-                    self.logger.error("Error while reading: %s", e)
+                    self._logger.error("Error while reading: %s", e)
                     continue
                 except ConnectionClosedException as e:  # pragma: no cover
-                    self.logger.error("Connection closed: %s", e)
+                    self._logger.error("Connection closed: %s", e)
                     self.change_state(ControlInterfaceState.CONNECTION_CLOSED)
                     break
 
                 self._add_response_callback(response)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            self.logger.error("Error while reading fifo file: %s", e)
+            self._logger.error("Error while reading fifo file: %s", e)
         finally:
-            if self.state == ControlInterfaceState.CONNECTED:
-                self.change_state(ControlInterfaceState.DISCONNECTED)
             self._input_file.close()
             self._cleanup()
 
@@ -315,7 +323,7 @@ class ControlInterface:
             AnkaiosConnectionException: If the output pipe is None.
         """
         if self._output_file is None:
-            self.logger.error(
+            self._logger.error(
                 "Could not write to pipe, output file handler is None."
             )
             raise ControlInterfaceException(
@@ -338,7 +346,7 @@ class ControlInterface:
         Raises:
             AnkaiosConnectionException: If not connected.
         """
-        if not self.state == ControlInterfaceState.CONNECTED:
+        if not self._state == ControlInterfaceState.CONNECTED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected.")
 
@@ -349,8 +357,8 @@ class ControlInterface:
 
     def _send_initial_hello(self) -> None:
         """
-        Send an initial hello message to the control interface with
-        the version in order to check it.
+        Send an initial hello message with the version
+        to the control interface.
 
         Raises:
             AnkaiosConnectionException: If an error occurred.
@@ -361,5 +369,5 @@ class ControlInterface:
             )
         )
         self._write_to_pipe(initial_hello)
-        self.logger.debug("Sent initial hello message with the version %s",
-                          ANKAIOS_VERSION)
+        self._logger.debug("Sent initial hello message with the version %s",
+                           ANKAIOS_VERSION)

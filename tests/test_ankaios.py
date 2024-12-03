@@ -45,7 +45,7 @@ def generate_test_ankaios() -> Ankaios:
     with patch("ankaios_sdk.ControlInterface.connect") as mock_connect:
         ankaios = Ankaios()
         mock_connect.assert_called_once()
-    ankaios._ci.state = ControlInterfaceState.CONNECTED
+    ankaios._control_interface._state = ControlInterfaceState.CONNECTED
     return ankaios
 
 
@@ -87,7 +87,7 @@ def test_state():
     Test the state property of the Ankaios class and the state callback.
     """
     ankaios = generate_test_ankaios()
-    assert ankaios.state == ankaios._ci.state
+    assert ankaios.state == ankaios._control_interface._state
     ankaios._state_changed(ControlInterfaceState.DISCONNECTED)
 
 
