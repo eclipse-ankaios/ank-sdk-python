@@ -19,6 +19,7 @@
    manifest
    request
    response
+   control_interface
    utils
    exceptions
 
