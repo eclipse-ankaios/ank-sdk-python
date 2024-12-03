@@ -53,6 +53,7 @@ import os
 import select
 import time
 import threading
+import signal
 from typing import Callable
 from enum import Enum
 from google.protobuf.internal.encoder import _VarintBytes
@@ -63,6 +64,12 @@ from .request import Request
 from .response import Response, ResponseException
 from ..exceptions import ControlInterfaceException, ConnectionClosedException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
+
+
+# Used to redirect the SIGPIPE signal to the SIG_IGN handler.
+# This is done to prevent the program from crashing when
+# writing to a closed pipe.
+signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
 
 class ControlInterfaceState(Enum):
@@ -175,8 +182,8 @@ class ControlInterface:
             target=self._read_from_control_interface,
             daemon=True
         )
-        self.change_state(ControlInterfaceState.INITIALIZED)
         self._read_thread.start()
+        self.change_state(ControlInterfaceState.INITIALIZED)
         self._send_initial_hello()
 
     def disconnect(self) -> None:
@@ -278,14 +285,13 @@ class ControlInterface:
                         break
 
                 if not varint_buffer:
-                    if self._state != ControlInterfaceState.AGENT_DISCONNECTED:
-                        self.change_state(
-                            ControlInterfaceState.AGENT_DISCONNECTED)
+                    self.change_state(
+                        ControlInterfaceState.AGENT_DISCONNECTED)
                     self._logger.error(
                         "Nothing to read from the input fifo pipe. "
                         "Is the agent still there?"
                         )
-                    time.sleep(1)
+                    self._agent_gone_routine()
                     continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
@@ -316,6 +322,24 @@ class ControlInterface:
             self._input_file.close()
             self._input_file = None
             self._cleanup()
+
+    def _agent_gone_routine(self) -> None:
+        """
+        Method will be called when the agent is gone.
+        It will attempt to write the hello message to the agent
+        until the agent is connected.
+        """
+        while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
+            try:
+                self._send_initial_hello()
+            except BrokenPipeError as _:
+                self.logger.error(
+                    "Waiting for the agent.."
+                    )
+                time.sleep(1)
+            else:
+                self.change_state(ControlInterfaceState.INITIALIZED)
+                break
 
     def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
         """
