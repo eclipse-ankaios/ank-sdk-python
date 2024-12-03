@@ -277,7 +277,7 @@ class ControlInterface:
                     if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
                         break
 
-                if not varint_buffer:  # pragma: no cover
+                if not varint_buffer:
                     if self._state != ControlInterfaceState.AGENT_DISCONNECTED:
                         self.change_state(
                             ControlInterfaceState.AGENT_DISCONNECTED)

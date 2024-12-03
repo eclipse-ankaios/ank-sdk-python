@@ -191,6 +191,45 @@ def test_read_from_control_interface():
             "/run/ankaios/control_interface/input", "rb")
         response_callback.assert_called_once()
 
+    # Test agent disconnected case
+    original_sleep = time.sleep
+    with patch("builtins.open", mock_open()) as mock_file, \
+            patch("os.set_blocking") as _, \
+            patch("select.select") as mock_select, \
+            patch("time.sleep",
+                  new=lambda x: original_sleep(x)
+                  if x != 1 else original_sleep(0.01)
+                  ) as _:
+
+        # Data is available, but read returns empty
+        mock_select.return_value = ([True], [], [])
+        mock_file_handle = mock_file.return_value.__enter__.return_value
+        mock_file_handle.read.return_value = b""
+
+        ci = ControlInterface(
+            add_response_callback=lambda _: None,
+            state_changed_callback=lambda _: None
+        )
+
+        # Start thread (similar to _connect)
+        ci._read_thread = threading.Thread(
+            target=ci._read_from_control_interface,
+            daemon=True
+        )
+        ci._state = ControlInterfaceState.INITIALIZED
+        ci._read_thread.start()
+        time.sleep(0.01)
+
+        assert ci.state == ControlInterfaceState.AGENT_DISCONNECTED
+
+        # Stop thread (similar to disconnect)
+        ci._state = ControlInterfaceState.TERMINATED
+        ci._disconnect_event.set()
+        ci._read_thread.join()
+
+        mock_file.assert_called_once_with(
+            "/run/ankaios/control_interface/input", "rb")
+
 
 def test_write_to_pipe():
     """
