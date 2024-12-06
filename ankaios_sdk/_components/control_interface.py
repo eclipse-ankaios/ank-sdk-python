@@ -333,7 +333,7 @@ class ControlInterface:
             try:
                 self._send_initial_hello()
             except BrokenPipeError as _:
-                self.logger.error(
+                self._logger.error(
                     "Waiting for the agent.."
                     )
                 time.sleep(1)
