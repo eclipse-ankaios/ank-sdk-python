@@ -280,9 +280,8 @@ class ControlInterface:
                 if not varint_buffer:
                     self.change_state(
                         ControlInterfaceState.AGENT_DISCONNECTED)
-                    self._logger.error(
-                        "Nothing to read from the input fifo pipe. "
-                        "Is the agent still there?"
+                    self._logger.warning(
+                        "Nothing to read from the input fifo pipe."
                         )
                     self._agent_gone_routine()
                     continue
@@ -322,14 +321,15 @@ class ControlInterface:
         It will attempt to write the hello message to the agent
         until the agent is connected.
         """
+        agent_check_interval = 1  # seconds
         while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
             try:
                 self._send_initial_hello()
             except BrokenPipeError as _:
-                self._logger.error(
+                self._logger.warning(
                     "Waiting for the agent.."
                     )
-                time.sleep(1)
+                time.sleep(agent_check_interval)
             else:
                 self.change_state(ControlInterfaceState.INITIALIZED)
                 break
