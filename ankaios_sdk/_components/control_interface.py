@@ -53,7 +53,6 @@ import os
 import select
 import time
 import threading
-import signal
 from typing import Callable
 from enum import Enum
 from google.protobuf.internal.encoder import _VarintBytes
@@ -64,12 +63,6 @@ from .request import Request
 from .response import Response, ResponseException
 from ..exceptions import ControlInterfaceException, ConnectionClosedException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
-
-
-# Used to redirect the SIGPIPE signal to the SIG_IGN handler.
-# This is done to prevent the program from crashing when
-# writing to a closed pipe.
-signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
 
 class ControlInterfaceState(Enum):
