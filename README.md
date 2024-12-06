@@ -63,71 +63,81 @@ Please make sure the Python SDK is compatible with the version of Ankaios you ar
 After installation, you can use the Ankaios SDK to configure and run workloads and request
 the state of the Ankaios system and the connected agents.
 
-Example:
+The following example assumes that the code is running in a managed by
+Ankaios workload with configured control interface access:
+
 ```python
 from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, AnkaiosException
 
 # Create a new Ankaios object.
 # The connection to the control interface is automatically done at this step.
-ankaios = Ankaios()
+# The Ankaios class supports context manager syntax:
+with Ankaios() as ankaios:
 
-# Create a new workload
-workload = Workload.builder() \
-  .workload_name("dynamic_nginx") \
-  .agent_name("agent_A") \
-  .runtime("podman") \
-  .restart_policy("NEVER") \
-  .runtime_config("image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]") \
-  .build()
+  # Create a new workload
+  workload = Workload.builder() \
+    .workload_name("dynamic_nginx") \
+    .agent_name("agent_A") \
+    .runtime("podman") \
+    .restart_policy("NEVER") \
+    .runtime_config("image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]") \
+    .build()
 
-try:
-  # Run the workload
-  update_response = ankaios.apply_workload(workload)
-
-  # Get the WorkloadInstanceName to check later if the workload is running
-  workload_instance_name = update_response.added_workloads[0]
-
-  # Request the execution state based on the workload instance name
-  ret = ankaios.get_execution_state_for_instance_name(workload_instance_name)
-  if ret is not None:
-    print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
-
-  # Wait until the workload reaches the running state
   try:
-    ankaios.wait_for_workload_to_reach_state(
-      workload_instance_name,
-      state=WorkloadStateEnum.RUNNING,
-      timeout=5
-      )
-  except TimeoutError:
-    print("Workload didn't reach the required state in time.")
-  else:
-    print("Workload reached the RUNNING state.")
+    # Run the workload
+    update_response = ankaios.apply_workload(workload)
 
-# Catch the AnkaiosException in case something went wrong with apply_workload
-except AnkaiosException as e:
-  print("Ankaios Exception occured: ", e)
+    # Get the WorkloadInstanceName to check later if the workload is running
+    workload_instance_name = update_response.added_workloads[0]
 
-# Request the state of the system, filtered with the agent name
-complete_state = ankaios.get_state(
-  timeout=5,
-  field_masks=["workloadStates.agent_A"])
+    # Request the execution state based on the workload instance name
+    ret = ankaios.get_execution_state_for_instance_name(workload_instance_name)
+    if ret is not None:
+      print(f"State: {ret.state}, substate: {ret.substate}, info: {ret.additional_info}")
 
-# Get the workload states present in the complete_state
-workload_states_dict = complete_state.get_workload_states().get_as_dict()
+    # Wait until the workload reaches the running state
+    try:
+      ankaios.wait_for_workload_to_reach_state(
+        workload_instance_name,
+        state=WorkloadStateEnum.RUNNING,
+        timeout=5
+        )
+    except TimeoutError:
+      print("Workload didn't reach the required state in time.")
+    else:
+      print("Workload reached the RUNNING state.")
 
-# Print the states of the workloads:
-for workload_name in workload_states_dict["agent_A"]:
-  for workload_id in workload_states_dict["agent_A"][workload_name]:
-    print(f"Workload {workload_name} with id {workload_id} has the state "
-          + str(workload_states_dict["agent_A"] \
-                [workload_name][workload_id].state))
+  # Catch the AnkaiosException in case something went wrong with apply_workload
+  except AnkaiosException as e:
+    print("Ankaios Exception occured: ", e)
+
+  # Request the state of the system, filtered with the workloadStates
+  complete_state = ankaios.get_state(
+    timeout=5,
+    field_masks=["workloadStates"])
+
+  # Get the workload states present in the complete_state
+  workload_states_dict = complete_state.get_workload_states().get_as_dict()
+
+  # Print the states of the workloads:
+  for agent_name in workload_states_dict:
+    for workload_name in workload_states_dict[agent_name]:
+      for workload_id in workload_states_dict[agent_name][workload_name]:
+        print(f"Workload {workload_name} on agent {agent_name} has the state "
+              + str(workload_states_dict[agent_name] \
+                    [workload_name][workload_id].state))
 ```
+
+For more details, please visit:
+* [Ankaios documentation](https://eclipse-ankaios.github.io/ankaios/latest/)
+* [Python SDK documentation](https://eclipse-ankaios.github.io/ank-sdk-python/)
+
+Especially the Ankaios [fleet management tutorial](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/) gives a great overview on the usage of the SDK.
 
 ## Contributing
 
 This project welcomes contributions and suggestions. Before contributing, make sure to read the
-[contribution guideline](CONTRIBUTING.md).
+[contribution guideline](https://github.com/eclipse-ankaios/ank-sdk-python/blob/main/CONTRIBUTING.md).
 
 ## License
 

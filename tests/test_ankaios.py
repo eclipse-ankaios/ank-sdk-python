@@ -17,22 +17,18 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 """
 
 from io import StringIO
-import time
 import logging
-import threading
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, MagicMock
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
-    WorkloadStateCollection, WorkloadStateEnum, AnkaiosConnectionException, \
+    WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
     AnkaiosException
-from ankaios_sdk.utils import WORKLOADS_PREFIX, ANKAIOS_VERSION
-from ankaios_sdk._protos import _control_api
+from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
 from tests.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
-    MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_UPDATE_SUCCESS, \
-    MESSAGE_BUFFER_UPDATE_SUCCESS, MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH
+    MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_BUFFER_UPDATE_SUCCESS
 from tests.test_manifest import MANIFEST_DICT
 from tests.workload_state.test_workload_state import \
     generate_test_workload_state
@@ -46,8 +42,10 @@ def generate_test_ankaios() -> Ankaios:
     Returns:
         Ankaios: The Ankaios instance.
     """
-    with patch("ankaios_sdk.Ankaios._connect"):
+    with patch("ankaios_sdk.ControlInterface.connect") as mock_connect:
         ankaios = Ankaios()
+        mock_connect.assert_called_once()
+    ankaios._control_interface._state = ControlInterfaceState.INITIALIZED
     return ankaios
 
 
@@ -72,175 +70,51 @@ def test_logger():
 
 def test_connection():
     """
-    Test the connect / disconnect functionality of the Ankaios class.
+    Test the connect and disconnect of the Ankaios class.
     """
-    # Already connected
-    with pytest.raises(AnkaiosConnectionException,
-                       match="Already connected."):
-        ankaios = generate_test_ankaios()
-        ankaios._connected = True
-        ankaios._connect()
-
-    # Test input pipe does not exist
-    with patch("os.path.exists") as mock_exists, \
-        pytest.raises(AnkaiosConnectionException,
-                      match="Control interface input fifo"):
-        mock_exists.side_effect = lambda path: \
-            path != "/run/ankaios/control_interface/input"
-        ankaios = Ankaios()
-
-    # Test output pipe does not exist
-    with patch("os.path.exists") as mock_exists, \
-        pytest.raises(AnkaiosConnectionException,
-                      match="Control interface output fifo"):
-        mock_exists.side_effect = lambda path: \
-            path != "/run/ankaios/control_interface/output"
-        ankaios = Ankaios()
-
-    # Test output pipe error
-    with patch("os.path.exists") as mock_exists, \
-        patch("builtins.open") as mock_open_file, \
-        pytest.raises(AnkaiosConnectionException,
-                      match="Error while opening output fifo"):
-        mock_exists.return_value = True
-        mock_open_file.side_effect = OSError
-        ankaios = Ankaios()
-
-    # Test success
-    with patch("os.path.exists") as mock_exists, \
-            patch("threading.Thread") as mock_thread, \
-            patch("builtins.open") as mock_open_file, \
-            patch("ankaios_sdk.Ankaios._send_initial_hello") \
-            as mock_initial_hello:
-        mock_exists.return_value = True
-        mock_thread_instance = MagicMock()
-        mock_thread.return_value = mock_thread_instance
-        output_file_mock = MagicMock()
-        mock_open_file.return_value = output_file_mock
-
-        # Build ankaios and connect
-        ankaios = Ankaios()
-        mock_thread.assert_called_once_with(
-            target=ankaios._read_from_control_interface
-        )
-        mock_thread_instance.start.assert_called_once()
-        mock_open_file.assert_called_once_with(
-            "/run/ankaios/control_interface/output", "ab"
-        )
-        assert ankaios._read_thread is not None
-        assert ankaios._output_file == output_file_mock
-        mock_initial_hello.assert_called_once()
-        assert ankaios._connected
-
-        # Disconnect
-        ankaios._disconnect()
-
-        mock_thread_instance.join.assert_called_once()
-        output_file_mock.close.assert_called_once()
+    with patch("ankaios_sdk.ControlInterface.connect") as mock_ci_connect, \
+         patch("ankaios_sdk.ControlInterface.disconnect") \
+            as mock_ci_disconnect:
+        with Ankaios() as ankaios:
+            assert isinstance(ankaios, Ankaios)
+            mock_ci_connect.assert_called_once()
+            assert ankaios.logger.level == AnkaiosLogLevel.INFO.value
+        mock_ci_disconnect.assert_called_once()
 
 
-def test_read_from_control_interface():
+def test_state():
     """
-    Test the _read_from_control_interface method of the Ankaios class.
+    Test the state property of the Ankaios class and the state callback.
     """
-    input_file_content = MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + \
-        MESSAGE_BUFFER_UPDATE_SUCCESS
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert ankaios.state == ankaios._control_interface._state
+    ankaios._state_changed(ControlInterfaceState.TERMINATED)
+    ankaios.logger.info.assert_called_with(
+        "State changed to %s", ControlInterfaceState.TERMINATED
+    )
+
+
+def test_add_response():
+    """
+    Test the _add_response method of the Ankaios class.
+    This method is called from the ControlInterface when a response
+    is received.
+    """
+    response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
 
     # Test response comes first
-    with patch("builtins.open", mock_open()) as mock_file:
-        mock_file_handle = mock_file.return_value.__enter__.return_value
-        mock_file_handle.read.side_effect = \
-            [bytes([b]) for b in input_file_content]
-
-        ankaios = generate_test_ankaios()
-
-        # Start thread (similar to _connect)
-        ankaios._read_thread = threading.Thread(
-            target=ankaios._read_from_control_interface
-        )
-        ankaios._connected = True
-        ankaios._read_thread.start()
-        time.sleep(0.01)
-
-        # Stop thread (similar to _disconnect)
-        ankaios._connected = False
-        ankaios._read_thread.join()
-
-        mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb")
-        assert "1234" in list(ankaios._responses)
-        assert ankaios._responses["1234"].is_set()
+    ankaios = generate_test_ankaios()
+    ankaios._add_response(response)
+    assert "1234" in list(ankaios._responses)
+    assert ankaios._responses["1234"].is_set()
 
     # Test request set first
-    with patch("builtins.open", mock_open()) as mock_file:
-        mock_file_handle = mock_file.return_value.__enter__.return_value
-        mock_file_handle.read.side_effect = \
-            [bytes([b]) for b in input_file_content]
-
-        ankaios = generate_test_ankaios()
-        ankaios._responses["1234"] = ResponseEvent()
-
-        # Start thread (similar to _connect)
-        ankaios._read_thread = threading.Thread(
-            target=ankaios._read_from_control_interface
-        )
-        ankaios._connected = True
-        ankaios._read_thread.start()
-        time.sleep(0.01)
-
-        # Stop thread (similar to _disconnect)
-        ankaios._connected = False
-        ankaios._read_thread.join()
-
-        mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb")
-        assert "1234" in list(ankaios._responses)
-        assert ankaios._responses["1234"].is_set()
-
-
-def test_write_to_pipe():
-    """
-    Test the _write_to_pipe method of the Ankaios class.
-    """
     ankaios = generate_test_ankaios()
-    with pytest.raises(AnkaiosConnectionException,
-                       match="Could not write to pipe, not connected."):
-        ankaios._write_to_pipe(None)
-
-    ankaios._connected = True
-    output_file = MagicMock()
-    ankaios._output_file = output_file
-
-    ankaios._write_to_pipe(MESSAGE_UPDATE_SUCCESS)
-
-    output_file.write.assert_called()
-    output_file.flush.assert_called_once()
-
-
-def test_write_request():
-    """
-    Test the _write_request method of the Ankaios class.
-    """
-    ankaios = generate_test_ankaios()
-    with patch("ankaios_sdk.Ankaios._write_to_pipe") as mock_write:
-        request = generate_test_request()
-        ankaios._write_request(request)
-        mock_write.assert_called_once()
-
-
-def test_send_initial_hello():
-    """
-    Test the _send_initial_hello method of the Ankaios class.
-    """
-    ankaios = generate_test_ankaios()
-    with patch("ankaios_sdk.Ankaios._write_to_pipe") as mock_write:
-        initial_hello = _control_api.ToAnkaios(
-            hello=_control_api.Hello(
-                protocolVersion=str(ANKAIOS_VERSION)
-            )
-        )
-        ankaios._send_initial_hello()
-        mock_write.assert_called_once_with(initial_hello)
+    ankaios._responses["1234"] = ResponseEvent()
+    ankaios._add_response(response)
+    assert "1234" in list(ankaios._responses)
+    assert ankaios._responses["1234"].is_set()
 
 
 def test_get_reponse_by_id():
@@ -248,13 +122,6 @@ def test_get_reponse_by_id():
     Test the get_response_by_id method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
-    with pytest.raises(
-            AnkaiosConnectionException,
-            match="Not connected."
-            ):
-        ankaios._get_response_by_id("1234")
-    ankaios._connected = True
-
     assert not ankaios._responses
     with patch("ankaios_sdk.ResponseEvent.wait_for_response") as mock_wait:
         ankaios._get_response_by_id("1234")
@@ -273,10 +140,9 @@ def test_send_request():
     Test the _send_request method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
-    ankaios._connected = True
 
     request = generate_test_request()
-    with patch("ankaios_sdk.Ankaios._write_request") as mock_write, \
+    with patch("ankaios_sdk.ControlInterface.write_request") as mock_write, \
             patch("ankaios_sdk.Ankaios._get_response_by_id") \
             as mock_get_response:
         ankaios._send_request(request)
@@ -285,7 +151,7 @@ def test_send_request():
             request.get_id(), Ankaios.DEFAULT_TIMEOUT
         )
 
-    with patch("ankaios_sdk.Ankaios._write_request") as mock_write, \
+    with patch("ankaios_sdk.ControlInterface.write_request") as mock_write, \
             patch("ankaios_sdk.Ankaios._get_response_by_id") \
             as mock_get_response:
         mock_get_response.side_effect = TimeoutError()

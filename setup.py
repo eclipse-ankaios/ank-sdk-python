@@ -102,7 +102,7 @@ setup(
         "Programming Language :: Python :: 3.13",
     ],
     project_urls={
-        "Documentation": "https://eclipse-ankaios.github.io/ankaios/latest/",
+        "Documentation": "https://eclipse-ankaios.github.io/ank-sdk-python/",
         "Source": "https://github.com/eclipse-ankaios/ank-sdk-python",
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
@@ -112,7 +112,7 @@ setup(
     ],
     setup_requires=[
         "protobuf==5.27.2",  # Protocol Buffers
-        "grpcio-tools>=1.56.2",  # Needed for an OS independent protoc
+        "grpcio-tools==1.67.1",  # Needed for an OS independent protoc
         "requests",  # Used to download the proto files
     ],
     extras_require={

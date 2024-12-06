@@ -13,29 +13,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Ankaios Python SDK
-
-Classes
--------
-
-- Ankaios:
-    The main SDK class.
-- Workload:
-    Represents a workload.
-- WorkloadBuilder:
-    A builder class for workloads.
-- WorkloadState:
-    Represents the state of a workload.
-- WorkloadStateCollection:
-    A collection of workload states.
-- Manifest:
-    Represents a workload manifest.
-- CompleteState:
-    Represents the complete state of the Ankaios cluster.
+Ankaios Python SDK main imports.
 """
 
 from .exceptions import *
 from .ankaios import *
 from ._components import *
+from .utils import AnkaiosLogLevel
 
 __all__ = [name for name in globals() if not name.startswith('_')]

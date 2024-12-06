@@ -25,10 +25,18 @@ Classes
 Usage
 -----
 
-- Create an Ankaios object and connect to the control interface:
+- Create an Ankaios object, connect and disconnect from the control interface:
     .. code-block:: python
 
         ankaios = Ankaios()
+        ...
+        ankaios.disconnect()
+
+- Connect and disconnect using a context manager:
+    .. code-block:: python
+
+        with Ankaios() as ankaios:
+            ...
 
 - Apply a manifest:
     .. code-block:: python
@@ -93,36 +101,36 @@ Usage
 - Wait for a workload to reach a state:
     .. code-block:: python
 
-        ret = ankaios.wait_for_workload_to_reach_state(
-            instance_name,
-            WorkloadStateEnum.RUNNING
-        )
-        if ret:
+        try:
+            ankaios.wait_for_workload_to_reach_state(
+                instance_name,
+                WorkloadStateEnum.RUNNING
+            )
+        except TimeoutError:
+            print(f"State not reached in time.")
+        else:
             print(f"State reached.")
 """
 
-__all__ = ["Ankaios", "AnkaiosLogLevel"]
+__all__ = ["Ankaios"]
 
-import os
 import time
 from typing import Union
 import threading
-from google.protobuf.internal.encoder import _VarintBytes
-from google.protobuf.internal.decoder import _DecodeVarint
 
-from ._protos import _control_api
-from .exceptions import AnkaiosConnectionException, AnkaiosException, \
-                        ResponseException, ConnectionClosedException
-from ._components import Workload, CompleteState, Request, Response, \
-                         UpdateStateSuccess, ResponseEvent, \
-                         WorkloadStateCollection, Manifest, \
+from .exceptions import AnkaiosException
+from ._components import Workload, CompleteState, Request, RequestType, \
+                         Response, ResponseType, UpdateStateSuccess, \
+                         ResponseEvent, WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
-                         WorkloadExecutionState
-from .utils import AnkaiosLogLevel, get_logger, \
-    WORKLOADS_PREFIX, ANKAIOS_VERSION, CONFIGS_PREFIX
+                         WorkloadExecutionState, ControlInterface, \
+                         ControlInterfaceState
+from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
+                   CONFIGS_PREFIX
 
 
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-public-methods, too-many-instance-attributes
+# pylint: disable=too-many-lines
 class Ankaios:
     """
     This class is used to interact with the Ankaios using an intuitive API.
@@ -131,11 +139,7 @@ class Ankaios:
 
     Attributes:
         logger (logging.Logger): The logger for the Ankaios class.
-        path (str): The path to the control interface.
     """
-    ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
-    "(str): The base path for the Ankaios control interface."
-
     DEFAULT_TIMEOUT = 5.0
     "(float): The default timeout, if not manually provided."
 
@@ -146,200 +150,77 @@ class Ankaios:
         Initialize the Ankaios object. The logger will be created and
         the connection to the control interface will be established.
         """
-        self.path = self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH
-
-        self._read_thread = None
-        self._connected = False
-        self._output_file = None
         self._responses_lock = threading.Lock()
         self._responses: dict[str, ResponseEvent] = {}
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
-        self._connect()
 
-    def __del__(self) -> None:
-        """
-        Disconnect from the control interface when the object is deleted.
-        """
-        self._disconnect()
-
-    def _connect(self) -> None:
-        """
-        Connect to the control interface by starting to read
-        from the input fifo and opening the output fifo.
-
-        Raises:
-            AnkaiosConnectionException: If an error occurred.
-        """
-        if self._connected:
-            raise AnkaiosConnectionException("Already connected.")
-        if not os.path.exists(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"):
-            raise AnkaiosConnectionException(
-                "Control interface input fifo does not exist."
+        # Connect to the control interface
+        self._control_interface = ControlInterface(
+            add_response_callback=self._add_response,
+            state_changed_callback=self._state_changed
             )
-        if not os.path.exists(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
-            raise AnkaiosConnectionException(
-                "Control interface output fifo does not exist."
-            )
+        self._control_interface.connect()
 
-        # pylint: disable=consider-using-with
-        try:
-            self._output_file = open(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output", "ab"
-            )
-        except Exception as e:
-            self.logger.error("Error while opening output fifo: %s", e)
-            self._disconnect()
-            raise AnkaiosConnectionException(
-                "Error while opening output fifo."
-            ) from e
-
-        self._read_thread = threading.Thread(
-            target=self._read_from_control_interface
-        )
-        self._connected = True
-        self._read_thread.start()
-        self._send_initial_hello()
-
-    def _disconnect(self) -> None:
+    def __enter__(self) -> "Ankaios":
         """
-        Disconnect from the control interface by stopping to read
-        from the input fifo.
+        Used for context management.
 
-        Raises:
-            AnkaiosConnectionException: If already disconnected.
+        Returns:
+            Ankaios: The current object.
         """
-        self._connected = False
-        if self._read_thread is not None:
-            self._read_thread.join()
-            self._read_thread = None
-        if self._output_file is not None:
-            self._output_file.close()
-            self._output_file = None
+        return self
 
-    def _read_from_control_interface(self) -> None:
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         """
-        Reads from the control interface input fifo and saves the response.
-        This is meant to be run in a separate thread.
-        It reads the response from the control interface and saves it in the
-        responses dictionary, by triggering the corresponding ResponseEvent.
-
-        Raises:
-            AnkaiosConnectionException: If an error occurs
-                while reading the fifo.
-        """
-        # pylint: disable=invalid-name
-        MOST_SIGNIFICANT_BIT_MASK = 0b10000000
-        try:
-            # pylint: disable=consider-using-with
-            input_fifo = open(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb")
-
-            self.logger.info("Started reading from the input pipe.")
-
-            while self._connected:
-                # Buffer for reading in the byte size of the proto msg
-                varint_buffer = bytearray()
-                while True:
-                    # Consume byte for byte
-                    next_byte = input_fifo.read(1)
-                    if not next_byte:  # pragma: no cover
-                        break
-                    varint_buffer += next_byte
-                    # Check if we reached the last byte
-                    if next_byte[0] & MOST_SIGNIFICANT_BIT_MASK == 0:
-                        break
-                # Decode the varint and receive the proto msg length
-                msg_len, _ = _DecodeVarint(varint_buffer, 0)
-
-                # Buffer for the proto msg itself
-                msg_buf = bytearray()
-                for _ in range(msg_len):
-                    # Read the message according to the length
-                    next_byte = input_fifo.read(1)
-                    if not next_byte:  # pragma: no cover
-                        break
-                    msg_buf += next_byte
-
-                try:
-                    response = Response(bytes(msg_buf))
-                except ResponseException as e:  # pragma: no cover
-                    self.logger.error("Error while reading: %s", e)
-                    continue
-
-                request_id = response.get_request_id()
-                self.logger.debug("Received a response with the id %s",
-                                  request_id)
-                with self._responses_lock:
-                    if request_id in self._responses:
-                        self.logger.debug(
-                            "Setting response for existing request.")
-                        self._responses[request_id].set_response(response)
-                    else:
-                        self.logger.debug(
-                            "Adding early response.")
-                        self._responses[request_id] = ResponseEvent(response)
-                        self._responses[request_id].set()
-        except ConnectionClosedException as e:  # pragma: no cover
-            self.logger.error("Connection closed: %s", e)
-            self._disconnect()
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            self.logger.error("Error while reading fifo file: %s", e)
-        finally:
-            input_fifo.close()
-
-    def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
-        """
-        Writes the ToAnkaios proto message to the control
-        interface output fifo.
+        Used for context management. Disconnects from the control interface.
 
         Args:
-            to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
-
-        Raises:
-            AnkaiosConnectionException: If not connected.
+            exc_type (type): The exception type.
+            exc_value (Exception): The exception instance.
+            traceback (traceback): The traceback object.
         """
-        if not self._connected:
-            raise AnkaiosConnectionException(
-                "Could not write to pipe, not connected.")
+        if exc_type is not None:  # pragma: no cover
+            self.logger.error("An exception occurred: %s, %s, %s",
+                              exc_type, exc_value, traceback)
+        self._control_interface.disconnect()
 
-        # Adds the byte length of the proto msg
-        self._output_file.write(_VarintBytes(to_ankaios.ByteSize()))
-        # Adds the proto msg itself
-        self._output_file.write(to_ankaios.SerializeToString())
-        self._output_file.flush()
-
-    def _write_request(self, request: Request) -> None:
+    @property
+    def state(self) -> ControlInterfaceState:
         """
-        Writes the request into the control interface output fifo.
+        Get the state of the control interface.
 
-        Args:
-            request (Request): The request object to be written.
+        Returns:
+            ControlInterfaceState: The state of the control interface.
         """
-        request_to_ankaios = _control_api.ToAnkaios(
-            request=request._to_proto()
-        )
-        self._write_to_pipe(request_to_ankaios)
+        return self._control_interface.state
 
-    def _send_initial_hello(self) -> None:
+    def _state_changed(self, state: ControlInterfaceState) -> None:
         """
-        Send an initial hello message to the control interface with
-        the version in order to check it.
+        Method will be called automatically from the Control Interface
+        when the state changes.
+        """
+        self.logger.info("State changed to %s", state)
 
-        Raises:
-            AnkaiosConnectionException: If an error occurred.
+    def _add_response(self, response: Response) -> None:
         """
-        initial_hello = _control_api.ToAnkaios(
-            hello=_control_api.Hello(
-                protocolVersion=str(ANKAIOS_VERSION)
-            )
-        )
-        self._write_to_pipe(initial_hello)
-        self.logger.debug("Sent initial hello message with the version %s",
-                          ANKAIOS_VERSION)
+        Method will be called automatically from the Control Interface
+        when a response is received.
+        """
+        request_id = response.get_request_id()
+        self.logger.debug("Received a response with the id %s",
+                          request_id)
+        with self._responses_lock:
+            if request_id in self._responses:
+                self.logger.debug(
+                    "Setting response for existing request.")
+                self._responses[request_id].set_response(response)
+            else:
+                self.logger.debug(
+                    "Adding early response.")
+                self._responses[request_id] = ResponseEvent(response)
+                self._responses[request_id].set()
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -358,9 +239,6 @@ class Ankaios:
             AnkaiosConnectionException: If reading from the control interface
                 is not started.
         """
-        if not self._connected:
-            raise AnkaiosConnectionException("Not connected.")
-
         with self._responses_lock:
             if request_id in self._responses:
                 self.logger.debug("Immediate response available.")
@@ -387,7 +265,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosConnectionException: If not connected.
         """
-        self._write_request(request)
+        self._control_interface.write_request(request)
 
         try:
             response = self._get_response_by_id(request.get_id(), timeout)
@@ -422,7 +300,7 @@ class Ankaios:
             AnkaiosException: If an error occurred while applying
                 the manifest.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState.from_manifest(manifest))
         request.set_masks(manifest._calculate_masks())
 
@@ -435,11 +313,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to apply manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -467,7 +345,7 @@ class Ankaios:
             AnkaiosException: If an error occurred while deleting
                 the manifest.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.set_masks(manifest._calculate_masks())
 
@@ -480,11 +358,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete manifest: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -515,7 +393,7 @@ class Ankaios:
         complete_state.add_workload(workload)
 
         # Create the request
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.set_masks(workload.masks)
 
@@ -528,11 +406,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to run workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -577,7 +455,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred while deleting the workload.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(f"{WORKLOADS_PREFIX}.{workload_name}")
 
@@ -589,11 +467,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete workload: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
@@ -619,7 +497,7 @@ class Ankaios:
         complete_state = CompleteState()
         complete_state.set_configs(configs)
 
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.add_mask(CONFIGS_PREFIX)
 
@@ -631,11 +509,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to set the configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -658,7 +536,7 @@ class Ankaios:
         complete_state = CompleteState()
         complete_state.set_configs({name: config})
 
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(complete_state)
         request.add_mask(f"{CONFIGS_PREFIX}.{name}")
 
@@ -670,11 +548,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to add the config: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -712,7 +590,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(CONFIGS_PREFIX)
 
@@ -724,11 +602,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -745,7 +623,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred.
         """
-        request = Request(request_type="update_state")
+        request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
         request.add_mask(f"{CONFIGS_PREFIX}.{name}")
 
@@ -757,11 +635,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "update_state_success":
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosException("Received unexpected content type.")
@@ -784,7 +662,7 @@ class Ankaios:
             TimeoutError: If the request timed out.
             AnkaiosException: If an error occurred while getting the state.
         """
-        request = Request(request_type="get_state")
+        request = Request(request_type=RequestType.GET_STATE)
         if field_masks is not None:
             request.set_masks(field_masks)
         try:
@@ -795,11 +673,11 @@ class Ankaios:
 
         # Interpret response
         (content_type, content) = response.get_content()
-        if content_type == "error":
+        if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to get the state: %s",
                               content)
             raise AnkaiosException(f"Received error: {content}")
-        if content_type == "complete_state":
+        if content_type == ResponseType.COMPLETE_STATE:
             return content
         raise AnkaiosException("Received unexpected content type.")
 
@@ -853,7 +731,7 @@ class Ankaios:
 
         Raises:
             AnkaiosException: If the workload state was not
-                retrieved successfuly.
+                retrieved successfully.
         """
         state = self.get_state(timeout, [instance_name.get_filter_mask()])
         workload_states = state.get_workload_states().get_as_list()

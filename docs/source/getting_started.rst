@@ -4,12 +4,15 @@ Getting started
 For installation of the Ankaios SDK, see the `Installation section <index.html#installation>`_.
 
 Once the SDK is installed, you can start using it by importing the module and creating an Ankaios object.
+The prefered method to use the Ankaios class is by using the context manager.
+This way, the connection to the control interface is automatically closed when the context is exited.
 
 .. code-block:: python
 
     from ankaios_sdk import Ankaios
 
-    ankaios = Ankaios()
+    with Ankaios() as ankaios:
+        # Your code here
 
 The initialization of the Ankaios object will automatically connect to the fifo pipes of the control interface. Once this is done,
 the communication with the Ankaios cluster can be started.
@@ -38,27 +41,27 @@ The manifest can now be applied using the following code:
     from ankaios_sdk import Ankaios, Manifest
 
     # Create an Ankaios object
-    ankaios = Ankaios()
+    with Ankaios() as ankaios:
 
-    # Load the manifest from the file
-    manifest = Manifest.from_file('my_manifest.yaml')
+        # Load the manifest from the file
+        manifest = Manifest.from_file('my_manifest.yaml')
 
-    # Apply the manifest and get the result
-    ret = ankaios.apply_manifest(manifest)
+        # Apply the manifest and get the result
+        ret = ankaios.apply_manifest(manifest)
 
-    # Get the workload instance name
-    wl_instance_name = ret.added_workloads[0]
+        # Get the workload instance name
+        wl_instance_name = ret.added_workloads[0]
 
-    # Print the instance name
-    print(wl_instance_name)
+        # Print the instance name
+        print(wl_instance_name)
 
-    # Get the workload state based on the instance name
-    execution_state = ankaios.get_execution_state_for_instance_name(wl_instance_name)
+        # Get the workload state based on the instance name
+        execution_state = ankaios.get_execution_state_for_instance_name(wl_instance_name)
 
-    # Output the state
-    print(execution_state.state)
-    print(execution_state.substate)
-    print(execution_state.additional_info)
+        # Output the state
+        print(execution_state.state)
+        print(execution_state.substate)
+        print(execution_state.additional_info)
 
 If the operation is successful, the result will be an UpdateStateSuccess object that contains the added and deleted workload instance names.
 The workload instance name contains the name of the workload, the agent it is running on and a unique identifier. Using it, we can request the current execution state of
@@ -74,13 +77,13 @@ The complete state of the Ankaios system can be retrieved using the ``get_state`
     from ankaios_sdk import Ankaios
 
     # Create an Ankaios object
-    ankaios = Ankaios()
+    with Ankaios() as ankaios:
 
-    # Get the complete state
-    complete_state = ankaios.get_state()
+        # Get the complete state
+        complete_state = ankaios.get_state()
 
-    # Output the state
-    print(complete_state)
+        # Output the state
+        print(complete_state)
 
 The complete state contains information regarding the workloads running in the Ankaios cluster, configurations and agents. The state can be filtered using filter masks
 (See `get_state <ankaios.html#ankaios_sdk.ankaios.Ankaios.get_state>`_).
@@ -96,17 +99,17 @@ the exact workload we want to modify, we must know only it's name.
     from ankaios_sdk import Ankaios
 
     # Create an Ankaios object
-    ankaios = Ankaios()
+    with Ankaios() as ankaios:
 
-    # Get the workload based on the name
-    workload = ankaios.get_workload("nginx")
+        # Get the workload based on the name
+        workload = ankaios.get_workload("nginx")
 
-    # Update the restart policy
-    ret = workload.update_restart_policy("ALWAYS")
+        # Update the restart policy
+        ret = workload.update_restart_policy("ALWAYS")
 
-    # Unpack the result
-    added_workloads = ret.added_workloads
-    deleted_workloads = ret.deleted_workloads
+        # Unpack the result
+        added_workloads = ret.added_workloads
+        deleted_workloads = ret.deleted_workloads
 
 Depending on the updated parameter, the workload can be restarted or not. If this is the case, the ``deleted_workloads`` will contain the old instance name and 
 the ``added_workloads`` will contain the new one.
@@ -122,19 +125,19 @@ delete the workload based on its name. In this example, we will delete the workl
     from ankaios_sdk import Ankaios, Manifest
 
     # Create an Ankaios object
-    ankaios = Ankaios()
+    with Ankaios() as ankaios:
 
-    # Load the manifest from the file
-    manifest = Manifest.from_file('my_manifest.yaml')
+        # Load the manifest from the file
+        manifest = Manifest.from_file('my_manifest.yaml')
 
-    # Delete the manifest (this will delete the workload contained in the manifest)
-    ret = ankaios.delete_manifest(manifest)
+        # Delete the manifest (this will delete the workload contained in the manifest)
+        ret = ankaios.delete_manifest(manifest)
 
-    # Get the workload instance name
-    wl_instance_name = ret.deleted_workloads[0]
+        # Get the workload instance name
+        wl_instance_name = ret.deleted_workloads[0]
 
-    # Print the instance name of the deleted workload
-    print(wl_instance_name)
+        # Print the instance name of the deleted workload
+        print(wl_instance_name)
 
 Notes
 -----

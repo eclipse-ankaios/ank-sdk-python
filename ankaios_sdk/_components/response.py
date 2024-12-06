@@ -26,6 +26,13 @@ Classes
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
 
+Enums
+-----
+
+- ResponseType:
+    Enumeration for the different types of response. It includes
+    ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS.
+
 Usage
 ------
 
@@ -49,10 +56,11 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseEvent", "UpdateStateSuccess"]
+__all__ = ["Response", "ResponseType", "ResponseEvent", "UpdateStateSuccess"]
 
 from typing import Union
 from threading import Event
+from enum import Enum
 from .._protos import _control_api
 from ..exceptions import ResponseException, ConnectionClosedException
 from ..utils import get_logger
@@ -124,15 +132,15 @@ class Response:
             ResponseException: If the response type is invalid.
         """
         if self._response.HasField("error"):
-            self.content_type = "error"
+            self.content_type = ResponseType.ERROR
             self.content = self._response.error.message
         elif self._response.HasField("completeState"):
-            self.content_type = "complete_state"
+            self.content_type = ResponseType.COMPLETE_STATE
             self.content = CompleteState()
             self.content._from_proto(self._response.completeState)
         elif self._response.HasField("UpdateStateSuccess"):
             update_state_msg = self._response.UpdateStateSuccess
-            self.content_type = "update_state_success"
+            self.content_type = ResponseType.UPDATE_STATE_SUCCESS
             self.content = UpdateStateSuccess()
             for workload in update_state_msg.addedWorkloads:
                 workload_name, workload_id, agent_name = \
@@ -175,15 +183,37 @@ class Response:
         return self._response.requestId == request_id
 
     def get_content(self) -> \
-            tuple[str, Union[str, 'CompleteState', 'UpdateStateSuccess']]:
+            tuple[
+                'ResponseType',
+                Union[str, 'CompleteState', 'UpdateStateSuccess']
+                ]:
         """
         Gets the content of the response. It can be either a string (if error),
         a CompleteState instance, or a UpdateStateSuccess instance.
 
         Returns:
-            tuple[str, any]: the content type and the content.
+            tuple[ResponseType, any]: the content type and the content.
         """
         return (self.content_type, self.content)
+
+
+class ResponseType(Enum):
+    """ Enumeration for the different types of response. """
+    ERROR = 1
+    "(int): Got an error from Ankaios."
+    COMPLETE_STATE = 2
+    "(int): Got the complete state."
+    UPDATE_STATE_SUCCESS = 3
+    "(int): Got a successful update state response."
+
+    def __str__(self) -> str:
+        """
+        Converts the ResponseType to a string.
+
+        Returns:
+            str: The string representation of the ResponseType.
+        """
+        return self.name.lower()
 
 
 class ResponseEvent(Event):

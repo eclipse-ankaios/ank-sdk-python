@@ -30,16 +30,16 @@ Usage
 - Create a workload using the WorkloadBuilder:
     .. code-block:: python
 
-        workload = Workload.builder()
-            .workload_name("nginx")
-            .agent_name("agent_A")
-            .runtime("podman")
-            .restart_policy("NEVER")
+        workload = Workload.builder() \\
+            .workload_name("nginx") \\
+            .agent_name("agent_A") \\
+            .runtime("podman") \\
+            .restart_policy("NEVER") \\
             .runtime_config("image: docker.io/library/nginx\\n"
-                            + "commandOptions: [\"-p\", \"8080:80\"]")
-            .add_dependency("other_workload", "ADD_COND_RUNNING")
-            .add_tag("key1", "value1")
-            .add_tag("key2", "value2")
+                            + "commandOptions: [\\"-p\\", \\"8080:80\\"]") \\
+            .add_dependency("other_workload", "ADD_COND_RUNNING") \\
+            .add_tag("key1", "value1") \\
+            .add_tag("key2", "value2") \\
             .build()
 
 - Update fields of the workload:
