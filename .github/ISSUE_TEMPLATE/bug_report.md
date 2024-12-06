@@ -24,11 +24,11 @@ assignees: ''
 4.
 
 ## Context (Environment)
-
-<!-- Provide some context to the bug, e.g. on which platform, with which account, ... -->
+<!-- Provide some context to the bug -->
+<!-- e.g. Ankaios cluster configuration, versions, operating system ... -->
 
 ## Logs
-<!-- Please share as many logs as possible. This will help to debug -->
+<!-- Please share as many logs as possible. This will help to debug. For the SDK, please ensure the logger is set to debug. -->
 <!-- If logs are long, considering putting them in a [gist](https://gist.github.com/) and adding the link here. This helps keep this issue report smaller. -->
 <!-- Don't forget to remove any connection string information! -->
 
