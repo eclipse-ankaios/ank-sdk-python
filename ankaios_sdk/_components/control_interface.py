@@ -321,7 +321,7 @@ class ControlInterface:
         It will attempt to write the hello message to the agent
         until the agent is connected.
         """
-        agent_check_interval = 1  # seconds
+        AGENT_RECONNECT_INTERVAL = 1  # seconds
         while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
             try:
                 self._send_initial_hello()
@@ -329,7 +329,7 @@ class ControlInterface:
                 self._logger.warning(
                     "Waiting for the agent.."
                     )
-                time.sleep(agent_check_interval)
+                time.sleep(AGENT_RECONNECT_INTERVAL)
             else:
                 self.change_state(ControlInterfaceState.INITIALIZED)
                 break
