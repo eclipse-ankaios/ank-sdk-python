@@ -192,14 +192,11 @@ def test_read_from_control_interface():
         response_callback.assert_called_once()
 
     # Test agent disconnected case
-    original_sleep = time.sleep
     with patch("builtins.open", mock_open()) as mock_file, \
             patch("os.set_blocking") as _, \
             patch("select.select") as mock_select, \
-            patch("time.sleep",
-                  new=lambda x: original_sleep(x)
-                  if x != 1 else original_sleep(0.01)
-                  ) as _:
+            patch("ankaios_sdk.ControlInterface._agent_gone_routine") \
+            as mock_agent_gone:
 
         # Data is available, but read returns empty
         mock_select.return_value = ([True], [], [])
@@ -229,6 +226,46 @@ def test_read_from_control_interface():
 
         mock_file.assert_called_once_with(
             "/run/ankaios/control_interface/input", "rb")
+        mock_agent_gone.assert_called()
+
+
+def test_agent_gone_routine():
+    """
+    Test the _agent_gone_routine method of the ControlInterface class.
+    """
+    ci = ControlInterface(
+        add_response_callback=lambda _: None,
+        state_changed_callback=lambda _: None
+    )
+    ci._state = ControlInterfaceState.INITIALIZED
+    with patch("ankaios_sdk.ControlInterface._send_initial_hello") \
+            as mock_initial_hello:
+        ci._agent_gone_routine()
+        mock_initial_hello.assert_not_called()
+
+    ci._state = ControlInterfaceState.AGENT_DISCONNECTED
+    original_sleep = time.sleep
+    with patch("time.sleep",
+               new=lambda x: original_sleep(x)
+               if x != 1 else original_sleep(0.01)
+               ) as _, \
+        patch("ankaios_sdk.ControlInterface._send_initial_hello") \
+            as mock_initial_hello:
+
+        mock_initial_hello.side_effect = BrokenPipeError
+
+        agent_gone_thread = threading.Thread(
+            target=ci._agent_gone_routine,
+            daemon=True
+        )
+        agent_gone_thread.start()
+        time.sleep(0.01)
+        mock_initial_hello.side_effect = None
+        time.sleep(0.01)
+        agent_gone_thread.join()
+
+        mock_initial_hello.assert_called()
+        assert ci._state == ControlInterfaceState.INITIALIZED
 
 
 def test_write_to_pipe():
