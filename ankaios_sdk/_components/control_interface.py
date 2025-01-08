@@ -92,9 +92,6 @@ class ControlInterface:
     This class handles the interaction with the Ankaios control interface.
     It provides methods to send and receive data to and from the control
     interface pipes.
-
-    Attributes:
-        path (str): The path to the control interface.
     """
     ANKAIOS_CONTROL_INTERFACE_BASE_PATH = DEFAULT_CONTROL_INTERFACE_PATH
     "(str): The base path for the Ankaios control interface."
