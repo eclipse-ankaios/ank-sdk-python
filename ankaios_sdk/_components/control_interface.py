@@ -96,7 +96,7 @@ class ControlInterface:
     Attributes:
         path (str): The path to the control interface.
     """
-    ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
+    ANKAIOS_CONTROL_INTERFACE_BASE_PATH = DEFAULT_CONTROL_INTERFACE_PATH
     "(str): The base path for the Ankaios control interface."
 
     def __init__(self,
@@ -113,7 +113,6 @@ class ControlInterface:
             state_changed_callback (Callable): The callback function to
                 to call when the state of the control interface changes.
         """
-        self.path = DEFAULT_CONTROL_INTERFACE_PATH
         self._input_file = None
         self._output_file = None
         # The state of the control interface must not be changed directly.
