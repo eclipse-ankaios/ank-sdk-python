@@ -15,8 +15,11 @@
 """
 This script defines the exceptions used in the ankaios_sdk module.
 
+All the exceptions are derived from the AnkaiosException class.
+
 Exceptions
 ----------
+- AnkaiosException: Base exception.
 - WorkloadFieldException: Raised when the workload field is invalid.
 - WorkloadBuilderException: Raised when the workload builder is invalid.
 - InvalidManifestException: Raised when the manifest file is invalid.
@@ -24,22 +27,23 @@ Exceptions
 - RequestException: Raised when the request is invalid.
 - ResponseException: Raised when the response is invalid.
 - ControlInterfaceException: Raised when an operation fails.
-- AnkaiosException: Raised when an update operation fails.
+- AnkaiosUpdateException: Raised when an update operation fails.
 """
 
 import inspect
 
-__all__ = ['WorkloadFieldException', 'WorkloadBuilderException',
-           'InvalidManifestException', 'ConnectionClosedException',
-           'RequestException', 'ResponseException',
-           'ControlInterfaceException', 'AnkaiosException']
+__all__ = ['AnkaiosException', 'WorkloadFieldException',
+           'WorkloadBuilderException', 'InvalidManifestException',
+           'ConnectionClosedException', 'RequestException',
+           'ResponseException', 'ControlInterfaceException',
+           'AnkaiosUpdateException']
 
 
-class AnkaiosBaseException(Exception):
+class AnkaiosException(Exception):
     """Base class for exceptions in this module."""
 
 
-class WorkloadFieldException(AnkaiosBaseException):
+class WorkloadFieldException(AnkaiosException):
     """Raised when the workload field is invalid"""
     def __init__(self, field: str, value: str, accepted_values: list) -> None:
         message = f"Invalid value for {field}: \"{value}\"."
@@ -47,31 +51,31 @@ class WorkloadFieldException(AnkaiosBaseException):
         super().__init__(message)
 
 
-class WorkloadBuilderException(AnkaiosBaseException):
+class WorkloadBuilderException(AnkaiosException):
     """Raised when the workload builder is invalid."""
 
 
-class InvalidManifestException(AnkaiosBaseException):
+class InvalidManifestException(AnkaiosException):
     """Raised when the manifest file is invalid."""
 
 
-class ConnectionClosedException(AnkaiosBaseException):
+class ConnectionClosedException(AnkaiosException):
     """Raised when the connection is closed."""
 
 
-class RequestException(AnkaiosBaseException):
+class RequestException(AnkaiosException):
     """Raised when the request is invalid."""
 
 
-class ResponseException(AnkaiosBaseException):
+class ResponseException(AnkaiosException):
     """Raised when the response is invalid."""
 
 
-class ControlInterfaceException(AnkaiosBaseException):
+class ControlInterfaceException(AnkaiosException):
     """Raised when an operation on the Control Interface fails"""
 
 
-class AnkaiosException(AnkaiosBaseException):
+class AnkaiosUpdateException(AnkaiosException):
     """Raised when an update operation fails."""
     def __init__(self, message):
         function_name = inspect.stack()[1].function

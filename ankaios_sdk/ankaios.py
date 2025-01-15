@@ -118,7 +118,7 @@ import time
 from typing import Union
 import threading
 
-from .exceptions import AnkaiosException
+from .exceptions import AnkaiosUpdateException
 from ._components import Workload, CompleteState, Request, RequestType, \
                          Response, ResponseType, UpdateStateSuccess, \
                          ResponseEvent, WorkloadStateCollection, Manifest, \
@@ -316,7 +316,7 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to apply manifest: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
@@ -325,7 +325,7 @@ class Ankaios:
                 len(content.deleted_workloads)
             )
             return content
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def delete_manifest(self, manifest: Manifest,
                         timeout: float = DEFAULT_TIMEOUT
@@ -361,7 +361,7 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete manifest: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
@@ -370,7 +370,7 @@ class Ankaios:
                 len(content.deleted_workloads)
             )
             return content
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def apply_workload(self, workload: Workload,
                        timeout: float = DEFAULT_TIMEOUT
@@ -409,7 +409,7 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to run workload: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
@@ -418,7 +418,7 @@ class Ankaios:
                 len(content.deleted_workloads)
             )
             return content
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def get_workload(self, workload_name: str,
                      timeout: float = DEFAULT_TIMEOUT) -> Workload:
@@ -470,7 +470,7 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete workload: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
@@ -479,7 +479,7 @@ class Ankaios:
                 len(content.deleted_workloads)
             )
             return content
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def update_configs(self, configs: dict,
                        timeout: float = DEFAULT_TIMEOUT):
@@ -512,11 +512,11 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to set the configs: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def add_config(self, name: str, config: Union[dict, list, str],
                    timeout: float = DEFAULT_TIMEOUT):
@@ -551,11 +551,11 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to add the config: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def get_configs(self,
                     timeout: float = DEFAULT_TIMEOUT) -> dict:
@@ -605,11 +605,11 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def delete_config(self, name: str, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -638,11 +638,11 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to delete all configs: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def get_state(self, field_masks: list[str] = None,
                   timeout: float = DEFAULT_TIMEOUT, ) -> CompleteState:
@@ -676,10 +676,10 @@ class Ankaios:
         if content_type == ResponseType.ERROR:
             self.logger.error("Error while trying to get the state: %s",
                               content)
-            raise AnkaiosException(f"Received error: {content}")
+            raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.COMPLETE_STATE:
             return content
-        raise AnkaiosException("Received unexpected content type.")
+        raise AnkaiosUpdateException("Received unexpected content type.")
 
     def get_agents(
             self, timeout: float = DEFAULT_TIMEOUT
@@ -739,7 +739,7 @@ class Ankaios:
             self.logger.error("Expected exactly one workload state "
                               + "for instance name %s, but got %s",
                               instance_name, len(workload_states))
-            raise AnkaiosException(
+            raise AnkaiosUpdateException(
                 "Expected exactly one workload state for instance name "
                 + f"{instance_name}, but got {len(workload_states)}")
         return workload_states[0].execution_state
