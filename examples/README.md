@@ -8,8 +8,8 @@ In order to run the examples, Ankaios must be installed and available on the sys
 
 Alternatively you can compile from source and provide the path to the executables to the run scripts with the `ANK_BIN_DIR` environment variable.
 
-[!IMPORTANT]
-Make sure that no other Ankaios instance is running on the local machine. If there is an instance running, the example could change its configuration. The stop script would even stop all running instances and **delete all podman containers**. 
+> **IMPORTANT**  
+>Make sure that no other Ankaios instance is running on the local machine. If there is an instance running, the example could change its configuration. The stop script would even stop all running instances and **delete all podman containers**. 
 
 ## Building and running
 
@@ -33,8 +33,8 @@ To stop the example just call
 ./stop_example.sh
 ```
 
-[!WARNING]
-The stop script terminates all running ankaios instances, both server and agents and **delete all podman containers** on the system. If you don't want this, you would need to clean up manually. 
+> **WARNING**  
+> The stop script terminates all running ankaios instances, both server and agents and **delete all podman containers** on the system. If you don't want this, you would need to clean up manually. 
 
 ## Examples
 
