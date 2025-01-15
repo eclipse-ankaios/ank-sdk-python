@@ -1,6 +1,6 @@
 # `hello_ankaios` Example Workload
 
-The `hello_ankaios` example workload runs the example script from the main [README](../../README.md) of the Python SDK.
+The `hello_ankaios` example workload runs the example script from the main [README](../../README.md#usage) of the Python SDK.
 
 ## Running and stopping the workload
 

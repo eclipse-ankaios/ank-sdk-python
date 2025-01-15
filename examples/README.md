@@ -13,7 +13,7 @@ Alternatively you can compile from source and provide the path to the executable
 
 ## Building and running
 
-To build and run an example, just execute the `run_example.sh` script with the name of the target example as an argument. The the `hello_ankaios` example, the command would be:
+To build and run an example, just execute the `run_example.sh` script with the name of the target example as an argument. For the `hello_ankaios` example, the command would be:
 
 ```shell
 ./run_example.sh hello_ankaios
@@ -56,7 +56,7 @@ To view the log of the `hello_ankaios` workload just use the convenience script:
 
 `sleepy` is an "empty" workload that just executes an endless sleep. 
 
-This examples has the Python SDK installed and allows to execute an interactive shell in the container in order to manually trigger Python commands to interact with Ankaios.
+This example has the Python SDK installed and allows to execute an interactive shell in the container in order to manually trigger Python commands to interact with Ankaios.
 
 To `exec` into the container, a convenience script is provided:
 
