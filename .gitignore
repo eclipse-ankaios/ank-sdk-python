@@ -19,3 +19,5 @@ dist/
 
 # Docs build dir
 docs/build/
+
+/venv
