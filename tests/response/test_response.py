@@ -124,11 +124,3 @@ def test_getters():
     assert str(content_type) == "error"
     assert content == "Test error message"
 
-
-def test_check_request_id():
-    """
-    Test the check_request_id method of the Response class.
-    """
-    response = Response(MESSAGE_BUFFER_ERROR)
-    assert response.check_request_id("1234")
-    assert not response.check_request_id("4321")

@@ -170,18 +170,6 @@ class Response:
         """
         return self._response.requestId
 
-    def check_request_id(self, request_id: str) -> bool:
-        """
-        Checks if the request id of the response matches the given request id.
-
-        Args:
-            request_id (str): The request id to check against.
-
-        Returns:
-            bool: True if the request_id matches, False otherwise.
-        """
-        return self._response.requestId == request_id
-
     def get_content(self) -> \
             tuple[
                 'ResponseType',
