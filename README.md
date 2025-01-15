@@ -109,7 +109,7 @@ with Ankaios() as ankaios:
 
   # Catch the AnkaiosException in case something went wrong with apply_workload
   except AnkaiosException as e:
-    print("Ankaios Exception occured: ", e)
+    print("Ankaios Exception occurred: ", e)
 
   # Request the state of the system, filtered with the workloadStates
   complete_state = ankaios.get_state(
