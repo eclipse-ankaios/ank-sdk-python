@@ -307,8 +307,8 @@ def test_get_workload():
         ret = ankaios.get_workload(workload_name)
         assert ret == workload
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT,
-            [f"{WORKLOADS_PREFIX}.nginx"]
+            [f"{WORKLOADS_PREFIX}.nginx"],
+            Ankaios.DEFAULT_TIMEOUT
         )
         mock_state_get_workloads.assert_called_once()
 
@@ -449,7 +449,7 @@ def test_get_configs():
         mock_get_state.return_value = CompleteState()
         ankaios.get_configs()
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT, field_masks=['desiredState.configs']
+            field_masks=['desiredState.configs']
             )
         mock_state_get_configs.assert_called_once()
 
@@ -466,8 +466,7 @@ def test_get_config():
         mock_get_state.return_value = CompleteState()
         ankaios.get_config("config_name")
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT,
-            field_masks=['desiredState.configs.config_name']
+                field_masks=['desiredState.configs.config_name']
             )
         mock_state_get_configs.assert_called_once()
 
@@ -606,7 +605,9 @@ def test_get_agents():
             as mock_state_get_agents:
         mock_get_state.return_value = CompleteState()
         ankaios.get_agents()
-        mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            None, Ankaios.DEFAULT_TIMEOUT
+            )
         mock_state_get_agents.assert_called_once()
 
 
@@ -621,7 +622,9 @@ def test_get_workload_states():
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
         ankaios.get_workload_states()
-        mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            None, Ankaios.DEFAULT_TIMEOUT
+            )
         mock_state_get_workload_states.assert_called_once()
 
 
@@ -676,7 +679,8 @@ def test_get_workload_states_on_agent():
         mock_get_state.return_value = CompleteState()
         ankaios.get_workload_states_on_agent("agent_A")
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT, ["workloadStates.agent_A"]
+            ["workloadStates.agent_A"],
+            Ankaios.DEFAULT_TIMEOUT
         )
         mock_state_get_workload_states.assert_called_once()
 

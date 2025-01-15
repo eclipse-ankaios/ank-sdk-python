@@ -435,7 +435,7 @@ class Ankaios:
             Workload: The workload object.
         """
         return self.get_state(
-            timeout, [f"{WORKLOADS_PREFIX}.{workload_name}"]
+            [f"{WORKLOADS_PREFIX}.{workload_name}"], timeout
         ).get_workloads()[0]
 
     def delete_workload(self, workload_name: str,
@@ -566,7 +566,7 @@ class Ankaios:
             dict: The configs dictionary.
         """
         return self.get_state(
-            timeout, field_masks=[CONFIGS_PREFIX]).get_configs()
+            field_masks=[CONFIGS_PREFIX]).get_configs(), timeout
 
     def get_config(self, name: str,
                    timeout: float = DEFAULT_TIMEOUT) -> dict:
@@ -580,7 +580,7 @@ class Ankaios:
             dict: The config in a dict format.
         """
         return self.get_state(
-            timeout, field_masks=[f"{CONFIGS_PREFIX}.{name}"]).get_configs()
+            field_masks=[f"{CONFIGS_PREFIX}.{name}"]).get_configs(), timeout
 
     def delete_all_configs(self, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -644,16 +644,16 @@ class Ankaios:
             return
         raise AnkaiosException("Received unexpected content type.")
 
-    def get_state(self, timeout: float = DEFAULT_TIMEOUT,
-                  field_masks: list[str] = None) -> CompleteState:
+    def get_state(self, field_masks: list[str] = None,
+                  timeout: float = DEFAULT_TIMEOUT, ) -> CompleteState:
         """
         Send a request to get the complete state.
 
         Args:
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
             field_masks (list[str]): The list of field masks to filter
                 the state.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
 
         Returns:
             CompleteState: The complete state object.
@@ -694,7 +694,7 @@ class Ankaios:
         Returns:
             dict: The agents dictionary.
         """
-        return self.get_state(timeout).get_agents()
+        return self.get_state(None, timeout).get_agents()
 
     def get_workload_states(self,
                             timeout: float = DEFAULT_TIMEOUT
@@ -709,7 +709,7 @@ class Ankaios:
         Returns:
             WorkloadStateCollection: The collection of workload states.
         """
-        return self.get_state(timeout).get_workload_states()
+        return self.get_state(None, timeout).get_workload_states()
 
     def get_execution_state_for_instance_name(
             self,
@@ -733,7 +733,7 @@ class Ankaios:
             AnkaiosException: If the workload state was not
                 retrieved successfully.
         """
-        state = self.get_state(timeout, [instance_name.get_filter_mask()])
+        state = self.get_state([instance_name.get_filter_mask()], timeout)
         workload_states = state.get_workload_states().get_as_list()
         if len(workload_states) != 1:
             self.logger.error("Expected exactly one workload state "
@@ -759,7 +759,7 @@ class Ankaios:
         Returns:
             WorkloadStateCollection: The collection of workload states.
         """
-        state = self.get_state(timeout, ["workloadStates." + agent_name])
+        state = self.get_state(["workloadStates." + agent_name], timeout)
         return state.get_workload_states()
 
     def get_workload_states_for_name(self, workload_name: str,
@@ -778,7 +778,7 @@ class Ankaios:
             WorkloadStateCollection: The collection of workload states.
         """
         state = self.get_state(
-            timeout, ["workloadStates"]
+            ["workloadStates"], timeout
         )
         workload_states = state.get_workload_states().get_as_list()
         workload_states_for_name = WorkloadStateCollection()
