@@ -636,7 +636,7 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to delete all configs: %s",
+            self.logger.error("Error while trying to delete config: %s",
                               content)
             raise AnkaiosUpdateException(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
