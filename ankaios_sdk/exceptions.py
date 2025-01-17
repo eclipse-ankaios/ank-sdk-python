@@ -27,7 +27,8 @@ Exceptions
 - RequestException: Raised when the request is invalid.
 - ResponseException: Raised when the response is invalid.
 - ControlInterfaceException: Raised when an operation fails.
-- AnkaiosUpdateException: Raised when an update operation fails.
+- AnkaiosProtocolException: Raised when something unexpected is received.
+- AnkaiosResponseError: Raised when the response from Ankaios is an error.
 """
 
 import inspect
@@ -36,7 +37,7 @@ __all__ = ['AnkaiosException', 'WorkloadFieldException',
            'WorkloadBuilderException', 'InvalidManifestException',
            'ConnectionClosedException', 'RequestException',
            'ResponseException', 'ControlInterfaceException',
-           'AnkaiosUpdateException']
+           'AnkaiosProtocolException', 'AnkaiosResponseError']
 
 
 class AnkaiosException(Exception):
@@ -75,8 +76,12 @@ class ControlInterfaceException(AnkaiosException):
     """Raised when an operation on the Control Interface fails"""
 
 
-class AnkaiosUpdateException(AnkaiosException):
-    """Raised when an update operation fails."""
+class AnkaiosProtocolException(AnkaiosException):
+    """Raised when something unexpected is received"""
     def __init__(self, message):
         function_name = inspect.stack()[1].function
         super().__init__(f"{function_name}: {message}")
+
+
+class AnkaiosResponseError(AnkaiosException):
+    """Raised when the response from Ankaios is an error"""

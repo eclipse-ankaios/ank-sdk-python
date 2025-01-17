@@ -123,4 +123,3 @@ def test_getters():
     assert content_type == ResponseType.ERROR
     assert str(content_type) == "error"
     assert content == "Test error message"
-

@@ -143,7 +143,7 @@ class ControlInterface:
         from the input fifo and opening the output fifo.
 
         Raises:
-            AnkaiosConnectionException: If an error occurred.
+            ControlInterfaceException: If an error occurred.
         """
         if self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException("Already connected.")
@@ -233,7 +233,7 @@ class ControlInterface:
         The responses are then sent to the Ankaios class to be handled.
 
         Raises:
-            AnkaiosConnectionException: If an error occurs
+            ControlInterfaceException: If an error occurs
                 while reading the fifo.
         """
         # The pragma: no cover is used on small checks that are not expected
@@ -343,7 +343,7 @@ class ControlInterface:
             to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
 
         Raises:
-            AnkaiosConnectionException: If the output pipe is None.
+            ControlInterfaceException: If the output pipe is None.
         """
         if self._output_file is None:
             self._logger.error(
@@ -367,7 +367,7 @@ class ControlInterface:
             request (Request): The request object to be written.
 
         Raises:
-            AnkaiosConnectionException: If not connected.
+            ControlInterfaceException: If not connected.
         """
         if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
@@ -384,7 +384,7 @@ class ControlInterface:
         to the control interface.
 
         Raises:
-            AnkaiosConnectionException: If an error occurred.
+            ControlInterfaceException: If not connected.
         """
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(
