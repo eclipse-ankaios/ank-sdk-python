@@ -1,0 +1,13 @@
+apiVersion: v0.1
+workloads:
+  sleepy:
+    runtime: podman
+    agent: agent_Py_SDK
+    controlInterfaceAccess:
+      allowRules:
+        - type: StateRule
+          operation: ReadWrite
+          filterMask:
+            - "*"
+    runtimeConfig: |
+      image: localhost/sleepy:0.1

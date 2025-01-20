@@ -23,7 +23,7 @@ import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
     WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
-    AnkaiosException
+    AnkaiosProtocolException, AnkaiosResponseError
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
 from tests.test_request import generate_test_request
@@ -180,7 +180,7 @@ def test_apply_manifest():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.apply_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -197,7 +197,7 @@ def test_apply_manifest():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.apply_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -223,7 +223,7 @@ def test_delete_manifest():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.delete_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -240,7 +240,7 @@ def test_delete_manifest():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.delete_manifest(manifest)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -266,7 +266,7 @@ def test_apply_workload():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.apply_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -283,7 +283,7 @@ def test_apply_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.apply_workload(workload)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -307,8 +307,8 @@ def test_get_workload():
         ret = ankaios.get_workload(workload_name)
         assert ret == workload
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT,
-            [f"{WORKLOADS_PREFIX}.nginx"]
+            [f"{WORKLOADS_PREFIX}.nginx"],
+            Ankaios.DEFAULT_TIMEOUT
         )
         mock_state_get_workloads.assert_called_once()
 
@@ -332,7 +332,7 @@ def test_delete_workload():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -349,7 +349,7 @@ def test_delete_workload():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.delete_workload("nginx")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -373,7 +373,7 @@ def test_update_configs():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.update_configs({"name": "config"})
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -390,7 +390,7 @@ def test_update_configs():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.update_configs({"name": "config"})
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -414,7 +414,7 @@ def test_add_config():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.add_config("name", "config")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -431,7 +431,7 @@ def test_add_config():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.add_config("name", "config")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -449,7 +449,7 @@ def test_get_configs():
         mock_get_state.return_value = CompleteState()
         ankaios.get_configs()
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT, field_masks=['desiredState.configs']
+            field_masks=['desiredState.configs']
             )
         mock_state_get_configs.assert_called_once()
 
@@ -466,8 +466,7 @@ def test_get_config():
         mock_get_state.return_value = CompleteState()
         ankaios.get_config("config_name")
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT,
-            field_masks=['desiredState.configs.config_name']
+                field_masks=['desiredState.configs.config_name']
             )
         mock_state_get_configs.assert_called_once()
 
@@ -490,7 +489,7 @@ def test_delete_all_configs():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.delete_all_configs()
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -507,7 +506,7 @@ def test_delete_all_configs():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.delete_all_configs()
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -531,7 +530,7 @@ def test_delete_config():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.delete_config("config_name")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -548,7 +547,7 @@ def test_delete_config():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_COMPLETE_STATE)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.delete_config("config_name")
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -572,7 +571,7 @@ def test_get_state():
     # Test error
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosResponseError):
             ankaios.get_state(field_masks=["invalid_mask"])
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -589,7 +588,7 @@ def test_get_state():
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = \
             Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.get_state()
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
@@ -606,7 +605,9 @@ def test_get_agents():
             as mock_state_get_agents:
         mock_get_state.return_value = CompleteState()
         ankaios.get_agents()
-        mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            None, Ankaios.DEFAULT_TIMEOUT
+            )
         mock_state_get_agents.assert_called_once()
 
 
@@ -621,7 +622,9 @@ def test_get_workload_states():
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
         ankaios.get_workload_states()
-        mock_get_state.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            None, Ankaios.DEFAULT_TIMEOUT
+            )
         mock_state_get_workload_states.assert_called_once()
 
 
@@ -642,7 +645,7 @@ def test_get_execution_state_for_instance_name():
             patch("ankaios_sdk.CompleteState.get_workload_states") \
             as mock_state_get_workload_states:
         mock_get_state.return_value = CompleteState()
-        with pytest.raises(AnkaiosException):
+        with pytest.raises(AnkaiosProtocolException):
             ankaios.get_execution_state_for_instance_name(
                 workload_instance_name)
         mock_state_get_workload_states.assert_called_once()
@@ -676,7 +679,8 @@ def test_get_workload_states_on_agent():
         mock_get_state.return_value = CompleteState()
         ankaios.get_workload_states_on_agent("agent_A")
         mock_get_state.assert_called_once_with(
-            Ankaios.DEFAULT_TIMEOUT, ["workloadStates.agent_A"]
+            ["workloadStates.agent_A"],
+            Ankaios.DEFAULT_TIMEOUT
         )
         mock_state_get_workload_states.assert_called_once()
 

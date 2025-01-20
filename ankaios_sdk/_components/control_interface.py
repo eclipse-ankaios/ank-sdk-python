@@ -92,11 +92,8 @@ class ControlInterface:
     This class handles the interaction with the Ankaios control interface.
     It provides methods to send and receive data to and from the control
     interface pipes.
-
-    Attributes:
-        path (str): The path to the control interface.
     """
-    ANKAIOS_CONTROL_INTERFACE_BASE_PATH = "/run/ankaios/control_interface"
+    ANKAIOS_CONTROL_INTERFACE_BASE_PATH = DEFAULT_CONTROL_INTERFACE_PATH
     "(str): The base path for the Ankaios control interface."
 
     def __init__(self,
@@ -113,7 +110,6 @@ class ControlInterface:
             state_changed_callback (Callable): The callback function to
                 to call when the state of the control interface changes.
         """
-        self.path = DEFAULT_CONTROL_INTERFACE_PATH
         self._input_file = None
         self._output_file = None
         # The state of the control interface must not be changed directly.
@@ -143,7 +139,7 @@ class ControlInterface:
         from the input fifo and opening the output fifo.
 
         Raises:
-            AnkaiosConnectionException: If an error occurred.
+            ControlInterfaceException: If an error occurred.
         """
         if self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException("Already connected.")
@@ -175,8 +171,8 @@ class ControlInterface:
             target=self._read_from_control_interface,
             daemon=True
         )
-        self.change_state(ControlInterfaceState.INITIALIZED)
         self._read_thread.start()
+        self.change_state(ControlInterfaceState.INITIALIZED)
         self._send_initial_hello()
 
     def disconnect(self) -> None:
@@ -233,7 +229,7 @@ class ControlInterface:
         The responses are then sent to the Ankaios class to be handled.
 
         Raises:
-            AnkaiosConnectionException: If an error occurs
+            ControlInterfaceException: If an error occurs
                 while reading the fifo.
         """
         # The pragma: no cover is used on small checks that are not expected
@@ -278,14 +274,12 @@ class ControlInterface:
                         break
 
                 if not varint_buffer:
-                    if self._state != ControlInterfaceState.AGENT_DISCONNECTED:
-                        self.change_state(
-                            ControlInterfaceState.AGENT_DISCONNECTED)
-                    self._logger.error(
-                        "Nothing to read from the input fifo pipe. "
-                        "Is the agent still there?"
+                    self.change_state(
+                        ControlInterfaceState.AGENT_DISCONNECTED)
+                    self._logger.warning(
+                        "Nothing to read from the input fifo pipe."
                         )
-                    time.sleep(1)
+                    self._agent_gone_routine()
                     continue
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
@@ -317,6 +311,25 @@ class ControlInterface:
             self._input_file = None
             self._cleanup()
 
+    def _agent_gone_routine(self) -> None:
+        """
+        Method will be called when the agent is gone.
+        It will attempt to write the hello message to the agent
+        until the agent is connected.
+        """
+        AGENT_RECONNECT_INTERVAL = 1  # seconds
+        while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
+            try:
+                self._send_initial_hello()
+            except BrokenPipeError as _:
+                self._logger.warning(
+                    "Waiting for the agent.."
+                    )
+                time.sleep(AGENT_RECONNECT_INTERVAL)
+            else:
+                self.change_state(ControlInterfaceState.INITIALIZED)
+                break
+
     def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
         """
         Writes the ToAnkaios proto message to the control
@@ -326,7 +339,7 @@ class ControlInterface:
             to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
 
         Raises:
-            AnkaiosConnectionException: If the output pipe is None.
+            ControlInterfaceException: If the output pipe is None.
         """
         if self._output_file is None:
             self._logger.error(
@@ -350,7 +363,7 @@ class ControlInterface:
             request (Request): The request object to be written.
 
         Raises:
-            AnkaiosConnectionException: If not connected.
+            ControlInterfaceException: If not connected.
         """
         if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
@@ -367,7 +380,7 @@ class ControlInterface:
         to the control interface.
 
         Raises:
-            AnkaiosConnectionException: If an error occurred.
+            ControlInterfaceException: If not connected.
         """
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(
