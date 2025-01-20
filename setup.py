@@ -30,9 +30,12 @@ def extract_the_proto_files():
 
     ankaios_version = config['metadata']['ankaios_version']
 
+    if not os.path.exists(f"{PROJECT_DIR}/_protos/{ankaios_version}"):
+        os.makedirs(f"{PROJECT_DIR}/_protos/{ankaios_version}")
+
     for file in PROTO_FILES:
         file_url = ANKAIOS_RELEASE_LINK.format(version=ankaios_version, file=file)
-        file_path = f"{PROJECT_DIR}/_protos/{file}"
+        file_path = f"{PROJECT_DIR}/_protos/{ankaios_version}/{file}"
         if os.path.exists(file_path):
             continue
         try:
@@ -49,7 +52,8 @@ def generate_protos():
     """Generate python protobuf files from the proto files."""
     from grpc_tools import protoc
 
-    protos_dir = f"{PROJECT_DIR}/_protos"
+    ankaios_version = config['metadata']['ankaios_version']
+    protos_dir = f"{PROJECT_DIR}/_protos/{ankaios_version}"
     proto_files = PROTO_FILES
 
     for proto_file in proto_files:
@@ -80,6 +84,11 @@ def generate_protos():
                         "from . import ank_base_pb2 as ank__base__pb2")
                 with open(output_file, 'w') as file:
                     file.write(newdata)
+    
+    # Copy the generated files to the proto directory
+    for file in os.listdir(protos_dir):
+        if file.endswith(".py"):
+            os.popen(f"cp {protos_dir}/{file} {protos_dir}/../")
 
 
 setup(
