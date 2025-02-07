@@ -58,6 +58,10 @@ To view the log of the `hello_ankaios` workload just use the convenience script:
 
 This example has the Python SDK installed and allows to execute an interactive shell in the container in order to manually trigger Python commands to interact with Ankaios.
 
+## `follow_state` 
+
+`follow_state` executes indefinetly with a request to get the state being sent every 5 seconds.
+
 To `exec` into the container, a convenience script is provided:
 
 ```shell
