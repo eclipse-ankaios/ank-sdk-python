@@ -42,7 +42,7 @@ Usage
 - Change the state of the control interface.
     .. code-block:: python
 
-        ci.change_state(ControlInterfaceState.CONNECTED)
+        ci.change_state(ControlInterfaceState.TERMINATED)
 """
 
 
@@ -61,7 +61,7 @@ from google.protobuf.internal.decoder import _DecodeVarint
 from .._protos import _control_api
 from .request import Request
 from .response import Response, ResponseException
-from ..exceptions import ControlInterfaceException, ConnectionClosedException
+from ..exceptions import ControlInterfaceException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
 
@@ -73,8 +73,6 @@ class ControlInterfaceState(Enum):
     "(int): Connection stopped state."
     AGENT_DISCONNECTED = 3
     "(int): Agent disconnected state."
-    CONNECTION_CLOSED = 4
-    "(int): Connection closed state."
 
     def __str__(self) -> str:
         """
@@ -97,8 +95,7 @@ class ControlInterface:
     "(str): The base path for the Ankaios control interface."
 
     def __init__(self,
-                 add_response_callback: Callable,
-                 state_changed_callback: Callable
+                 add_response_callback: Callable
                  ) -> None:
         """
         Initialize the ControlInterface object. This is used
@@ -119,7 +116,6 @@ class ControlInterface:
         self._disconnect_event = threading.Event()
 
         self._add_response_callback = add_response_callback
-        self._state_changed_callback = state_changed_callback
 
         self._logger = get_logger()
 
@@ -219,7 +215,6 @@ class ControlInterface:
             self._logger.debug("State is already %s.", state)
             return
         self._state = state
-        self._state_changed_callback(state)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -298,10 +293,6 @@ class ControlInterface:
                 except ResponseException as e:  # pragma: no cover
                     self._logger.error("Error while reading: %s", e)
                     continue
-                except ConnectionClosedException as e:  # pragma: no cover
-                    self._logger.error("Connection closed: %s", e)
-                    self.change_state(ControlInterfaceState.CONNECTION_CLOSED)
-                    break
 
                 self._add_response_callback(response)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -317,7 +308,7 @@ class ControlInterface:
         It will attempt to write the hello message to the agent
         until the agent is connected.
         """
-        AGENT_RECONNECT_INTERVAL = 1  # seconds
+        agent_reconnect_interval = 1  # seconds
         while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
             try:
                 self._send_initial_hello()
@@ -325,7 +316,7 @@ class ControlInterface:
                 self._logger.warning(
                     "Waiting for the agent.."
                     )
-                time.sleep(AGENT_RECONNECT_INTERVAL)
+                time.sleep(agent_reconnect_interval)
             else:
                 self.change_state(ControlInterfaceState.INITIALIZED)
                 break

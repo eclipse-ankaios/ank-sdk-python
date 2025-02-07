@@ -116,12 +116,13 @@ __all__ = ["Ankaios"]
 
 import time
 from typing import Union
-import threading
+from queue import Queue, Empty
 
-from .exceptions import AnkaiosProtocolException, AnkaiosResponseError
+from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
+                        ConnectionClosedException
 from ._components import Workload, CompleteState, Request, RequestType, \
                          Response, ResponseType, UpdateStateSuccess, \
-                         ResponseEvent, WorkloadStateCollection, Manifest, \
+                         WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState, ControlInterface, \
                          ControlInterfaceState
@@ -150,16 +151,14 @@ class Ankaios:
         Initialize the Ankaios object. The logger will be created and
         the connection to the control interface will be established.
         """
-        self._responses_lock = threading.Lock()
-        self._responses: dict[str, ResponseEvent] = {}
+        self._responses: Queue = Queue()
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
 
         # Connect to the control interface
         self._control_interface = ControlInterface(
-            add_response_callback=self._add_response,
-            state_changed_callback=self._state_changed
+            add_response_callback=self._add_response
             )
         self._control_interface.connect()
 
@@ -196,13 +195,6 @@ class Ankaios:
         """
         return self._control_interface.state
 
-    def _state_changed(self, state: ControlInterfaceState) -> None:
-        """
-        Method will be called automatically from the Control Interface
-        when the state changes.
-        """
-        self.logger.info("State changed to %s", state)
-
     def _add_response(self, response: Response) -> None:
         """
         Method will be called automatically from the Control Interface
@@ -211,16 +203,7 @@ class Ankaios:
         request_id = response.get_request_id()
         self.logger.debug("Received a response with the id %s",
                           request_id)
-        with self._responses_lock:
-            if request_id in self._responses:
-                self.logger.debug(
-                    "Setting response for existing request.")
-                self._responses[request_id].set_response(response)
-            else:
-                self.logger.debug(
-                    "Adding early response.")
-                self._responses[request_id] = ResponseEvent(response)
-                self._responses[request_id].set()
+        self._responses.put(response)
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -237,15 +220,31 @@ class Ankaios:
 
         Raises:
             TimeoutError: If response is not received within the timeout.
+            ConnectionClosedException: If the connection is closed.
         """
-        with self._responses_lock:
-            if request_id in self._responses:
-                self.logger.debug("Immediate response available.")
-                return self._responses.pop(request_id).get_response()
-            self._responses[request_id] = ResponseEvent()
+        response: Response = None
+        response_id = None
+        while True:
+            try:
+                response = self._responses.get(timeout=timeout)
+                response_id = response.get_request_id()
+            except Empty as exc:
+                self.logger.error("Timeout while waiting for response.")
+                raise TimeoutError(
+                    "Timeout while waiting for response."
+                    ) from exc
 
-        self.logger.debug("Waiting on response.")
-        return self._responses[request_id].wait_for_response(timeout)
+            if response.content_type == ResponseType.CONNECTION_CLOSED:
+                self.logger.error("Connection closed.")
+                raise ConnectionClosedException(response.content)
+
+            if response_id != request_id:
+                self.logger.warning(
+                    "Received a response with the wrong id: %s",
+                    response_id)
+                continue
+            break
+        return response
 
     def _send_request(self, request: Request,
                       timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -263,13 +262,10 @@ class Ankaios:
         Raises:
             TimeoutError: If the request timed out.
             ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
         """
         self._control_interface.write_request(request)
-
-        try:
-            response = self._get_response_by_id(request.get_id(), timeout)
-        except TimeoutError as e:
-            raise e
+        response = self._get_response_by_id(request.get_id(), timeout)
         return response
 
     def set_logger_level(self, level: AnkaiosLogLevel) -> None:
@@ -300,6 +296,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState.from_manifest(manifest))
@@ -347,6 +344,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
@@ -394,6 +392,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         complete_state = CompleteState()
         complete_state.add_workload(workload)
@@ -446,6 +445,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(
             [f"{WORKLOADS_PREFIX}.{workload_name}"], timeout
@@ -470,6 +470,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
@@ -512,6 +513,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         complete_state = CompleteState()
         complete_state.set_configs(configs)
@@ -554,6 +556,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         complete_state = CompleteState()
         complete_state.set_configs({name: config})
@@ -593,6 +596,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(
             field_masks=[CONFIGS_PREFIX]).get_configs(), timeout
@@ -614,6 +618,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(
             field_masks=[f"{CONFIGS_PREFIX}.{name}"]).get_configs(), timeout
@@ -628,6 +633,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
@@ -664,6 +670,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If the response has unexpected
                 content type.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.UPDATE_STATE)
         request.set_complete_state(CompleteState())
@@ -706,6 +713,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         request = Request(request_type=RequestType.GET_STATE)
         if field_masks is not None:
@@ -745,6 +753,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(None, timeout).get_agents()
 
@@ -767,6 +776,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(None, timeout).get_workload_states()
 
@@ -794,6 +804,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state([instance_name.get_filter_mask()], timeout)
         workload_states = state.get_workload_states().get_as_list()
@@ -827,6 +838,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state(["workloadStates." + agent_name], timeout)
         return state.get_workload_states()
@@ -852,6 +864,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state(
             ["workloadStates"], timeout
@@ -885,6 +898,7 @@ class Ankaios:
             AnkaiosResponseError: If the response is an error.
             AnkaiosProtocolException: If an error occurred while getting
                 the state.
+            ConnectionClosedException: If the connection is closed.
         """
         start_time = time.time()
         while time.time() - start_time < timeout:

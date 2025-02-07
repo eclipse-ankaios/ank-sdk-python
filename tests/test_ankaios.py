@@ -20,15 +20,16 @@ from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock
 import pytest
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, ResponseEvent, \
+from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
     WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
-    AnkaiosProtocolException, AnkaiosResponseError
+    AnkaiosProtocolException, AnkaiosResponseError, ConnectionClosedException
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
 from tests.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
-    MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_BUFFER_UPDATE_SUCCESS
+    MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_BUFFER_UPDATE_SUCCESS, \
+    MESSAGE_BUFFER_CONNECTION_CLOSED
 from tests.test_manifest import MANIFEST_DICT
 from tests.workload_state.test_workload_state import \
     generate_test_workload_state
@@ -46,6 +47,7 @@ def generate_test_ankaios() -> Ankaios:
         ankaios = Ankaios()
         mock_connect.assert_called_once()
     ankaios._control_interface._state = ControlInterfaceState.INITIALIZED
+    assert ankaios.state == ankaios._control_interface._state
     return ankaios
 
 
@@ -82,19 +84,6 @@ def test_connection():
         mock_ci_disconnect.assert_called_once()
 
 
-def test_state():
-    """
-    Test the state property of the Ankaios class and the state callback.
-    """
-    ankaios = generate_test_ankaios()
-    ankaios.logger = MagicMock()
-    assert ankaios.state == ankaios._control_interface._state
-    ankaios._state_changed(ControlInterfaceState.TERMINATED)
-    ankaios.logger.info.assert_called_with(
-        "State changed to %s", ControlInterfaceState.TERMINATED
-    )
-
-
 def test_add_response():
     """
     Test the _add_response method of the Ankaios class.
@@ -103,18 +92,12 @@ def test_add_response():
     """
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
 
-    # Test response comes first
     ankaios = generate_test_ankaios()
+    assert ankaios._responses.empty()
     ankaios._add_response(response)
-    assert "1234" in list(ankaios._responses)
-    assert ankaios._responses["1234"].is_set()
-
-    # Test request set first
-    ankaios = generate_test_ankaios()
-    ankaios._responses["1234"] = ResponseEvent()
-    ankaios._add_response(response)
-    assert "1234" in list(ankaios._responses)
-    assert ankaios._responses["1234"].is_set()
+    assert ankaios._responses.qsize() == 1
+    assert ankaios._responses.get() == response
+    assert ankaios._responses.empty()
 
 
 def test_get_reponse_by_id():
@@ -122,17 +105,22 @@ def test_get_reponse_by_id():
     Test the get_response_by_id method of the Ankaios class.
     """
     ankaios = generate_test_ankaios()
-    assert not ankaios._responses
-    with patch("ankaios_sdk.ResponseEvent.wait_for_response") as mock_wait:
-        ankaios._get_response_by_id("1234")
-        mock_wait.assert_called_once_with(Ankaios.DEFAULT_TIMEOUT)
-        assert list(ankaios._responses.keys()) == ["1234"]
-        assert isinstance(ankaios._responses["1234"], ResponseEvent)
+    assert ankaios._responses.empty()
 
-        response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
-        ankaios._responses["1234"] = ResponseEvent(response)
-        assert ankaios._get_response_by_id("1234") == response
-        assert not list(ankaios._responses.keys())
+    response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)  # 3344
+    ankaios._responses.put(Response(MESSAGE_BUFFER_COMPLETE_STATE))
+    ankaios._responses.put(response)
+    assert ankaios._responses.qsize() == 2
+    assert ankaios._get_response_by_id("3344") == response
+    assert ankaios._responses.empty()
+
+    with pytest.raises(TimeoutError):
+        ankaios._responses.put(Response(MESSAGE_BUFFER_COMPLETE_STATE))
+        ankaios._get_response_by_id("3344", timeout=0.01)
+
+    with pytest.raises(ConnectionClosedException):
+        ankaios._responses.put(Response(MESSAGE_BUFFER_CONNECTION_CLOSED))
+        ankaios._get_response_by_id("1122")
 
 
 def test_send_request():
