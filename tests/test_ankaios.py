@@ -18,7 +18,7 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 
 from io import StringIO
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, create_autospec
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
@@ -68,6 +68,27 @@ def test_logger():
     assert str_stream.getvalue() == ""
     ankaios.logger.error("Error message")
     assert "Error message" in str_stream.getvalue()
+
+
+def test_callback():
+    """
+    Test the on_connection_closed callback of the Ankaios class.
+    """
+    with patch("ankaios_sdk.ControlInterface.connect") as _:
+        ankaios = Ankaios()
+        assert ankaios._connection_closed_callback is None
+
+    with patch("ankaios_sdk.ControlInterface.connect") as _, \
+            pytest.raises(ValueError):
+        ankaios = Ankaios(on_connection_closed=lambda: None)
+
+    mock_callback = create_autospec(spec=lambda _: None)
+    with patch("ankaios_sdk.ControlInterface.connect") as _:
+        ankaios = Ankaios(on_connection_closed=mock_callback)
+        assert ankaios._connection_closed_callback == mock_callback
+
+        ankaios._state_changed(ControlInterfaceState.CONNECTION_CLOSED)
+        mock_callback.assert_called_once_with('No reason provided.')
 
 
 def test_connection():

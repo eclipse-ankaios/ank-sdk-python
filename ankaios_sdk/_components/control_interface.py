@@ -97,7 +97,8 @@ class ControlInterface:
     "(str): The base path for the Ankaios control interface."
 
     def __init__(self,
-                 add_response_callback: Callable
+                 add_response_callback: Callable,
+                 state_changed_callback: Callable
                  ) -> None:
         """
         Initialize the ControlInterface object. This is used
@@ -118,6 +119,7 @@ class ControlInterface:
         self._disconnect_event = threading.Event()
 
         self._add_response_callback = add_response_callback
+        self._state_changed_callback = state_changed_callback
 
         self._logger = get_logger()
 
@@ -206,12 +208,15 @@ class ControlInterface:
             self._input_file = None
         self._logger.debug("Cleanup happened")
 
-    def change_state(self, state: ControlInterfaceState) -> None:
+    def change_state(
+            self, state: ControlInterfaceState, info: str = None
+            ) -> None:
         """
         Change the state of the control interface.
 
         Args:
             state (ControlInterfaceState): The new state.
+            info (str): Additional information about the state change.
         """
         if state == self._state:
             self._logger.debug("State is already %s.", state)
@@ -220,7 +225,7 @@ class ControlInterface:
             self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
             return
         self._state = state
-        self._logger.info("State changed to %s.", state)
+        self._state_changed_callback(state, info)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -303,7 +308,10 @@ class ControlInterface:
                 self._add_response_callback(response)
 
                 if response.content_type == ResponseType.CONNECTION_CLOSED:
-                    self.change_state(ControlInterfaceState.CONNECTION_CLOSED)
+                    self.change_state(
+                        ControlInterfaceState.CONNECTION_CLOSED,
+                        response.content
+                        )
                     raise ConnectionClosedException(response.content)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
