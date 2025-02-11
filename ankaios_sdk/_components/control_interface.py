@@ -60,8 +60,8 @@ from google.protobuf.internal.decoder import _DecodeVarint
 
 from .._protos import _control_api
 from .request import Request
-from .response import Response, ResponseException
-from ..exceptions import ControlInterfaceException
+from .response import Response, ResponseException, ResponseType
+from ..exceptions import ControlInterfaceException, ConnectionClosedException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
 
@@ -73,6 +73,8 @@ class ControlInterfaceState(Enum):
     "(int): Connection stopped state."
     AGENT_DISCONNECTED = 3
     "(int): Agent disconnected state."
+    CONNECTION_CLOSED = 4
+    "(int): Connection closed state."
 
     def __str__(self) -> str:
         """
@@ -214,7 +216,11 @@ class ControlInterface:
         if state == self._state:
             self._logger.debug("State is already %s.", state)
             return
+        if self._state == ControlInterfaceState.CONNECTION_CLOSED:
+            self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
+            return
         self._state = state
+        self._logger.info("State changed to %s.", state)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -295,6 +301,10 @@ class ControlInterface:
                     continue
 
                 self._add_response_callback(response)
+
+                if response.content_type == ResponseType.CONNECTION_CLOSED:
+                    self.change_state(ControlInterfaceState.CONNECTION_CLOSED)
+                    raise ConnectionClosedException(response.content)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
@@ -355,7 +365,12 @@ class ControlInterface:
 
         Raises:
             ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
         """
+        if self._state == ControlInterfaceState.CONNECTION_CLOSED:
+            raise ConnectionClosedException(
+                "Could not write to pipe, connection closed."
+            )
         if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected.")

@@ -66,11 +66,16 @@ MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     )
 ).SerializeToString()
 
-MESSAGE_BUFFER_CONNECTION_CLOSED = _control_api.FromAnkaios(
+MESSAGE_CONNECTION_CLOSED = _control_api.FromAnkaios(
     connectionClosed=_control_api.ConnectionClosed(
         reason="Connection closed reason",
     )
-).SerializeToString()
+)
+MESSAGE_BUFFER_CONNECTION_CLOSED = \
+    MESSAGE_CONNECTION_CLOSED.SerializeToString()
+MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH = _VarintBytes(
+    MESSAGE_CONNECTION_CLOSED.ByteSize()
+)
 
 
 def test_initialisation():

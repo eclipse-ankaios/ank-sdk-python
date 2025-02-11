@@ -22,12 +22,13 @@ import time
 from unittest.mock import patch, mock_open, MagicMock
 import pytest
 from ankaios_sdk import ControlInterface, ControlInterfaceState, \
-    ControlInterfaceException
+    ControlInterfaceException, ConnectionClosedException
 from ankaios_sdk.utils import ANKAIOS_VERSION
 from ankaios_sdk._protos import _control_api
 from tests.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_UPDATE_SUCCESS, \
-    MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH
+    MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH, MESSAGE_BUFFER_CONNECTION_CLOSED, \
+    MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH
 
 
 def test_state():
@@ -47,6 +48,11 @@ def test_state():
     ci.change_state(ControlInterfaceState.INITIALIZED)
     ci._logger.debug.assert_called_with(
         "State is already %s.", ControlInterfaceState.INITIALIZED)
+
+    ci.change_state(ControlInterfaceState.CONNECTION_CLOSED)
+    ci.change_state(ControlInterfaceState.TERMINATED)
+    ci._logger.debug.assert_called_with(
+        "State CONNECTION_CLOSED is unrecoverable.")
 
 
 def test_connection():
@@ -135,11 +141,12 @@ def test_connection():
     ci._logger.debug.assert_called_with("Already disconnected.")
 
 
-def test_read_from_control_interface():
+def test_read_thread_general():
     """
     Test the _read_from_control_interface method of the Ankaios class.
+    Test success and error with the input file.
     """
-    input_file_content = MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + \
+    update_success_content = MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + \
         MESSAGE_BUFFER_UPDATE_SUCCESS
     response_callback = MagicMock()
 
@@ -161,7 +168,7 @@ def test_read_from_control_interface():
         mock_select.return_value = ([True], [], [])
         mock_file_handle = mock_file.return_value.__enter__.return_value
         mock_file_handle.read.side_effect = \
-            [bytes([b]) for b in input_file_content]
+            [bytes([b]) for b in update_success_content]
 
         ci = ControlInterface(
             add_response_callback=response_callback
@@ -185,7 +192,12 @@ def test_read_from_control_interface():
             "/run/ankaios/control_interface/input", "rb")
         response_callback.assert_called_once()
 
-    # Test agent disconnected case
+
+def test_read_thread_agent_disconnected():
+    """
+    Test the _read_from_control_interface method of the Ankaios class.
+    Test agent disconnected case
+    """
     with patch("builtins.open", mock_open()) as mock_file, \
             patch("os.set_blocking") as _, \
             patch("select.select") as mock_select, \
@@ -220,6 +232,44 @@ def test_read_from_control_interface():
         mock_file.assert_called_once_with(
             "/run/ankaios/control_interface/input", "rb")
         mock_agent_gone.assert_called()
+
+
+def test_read_thread_connection_closed():
+    """
+    Test the _read_from_control_interface method of the Ankaios class.
+    Test connection closed case.
+    """
+    connection_closed_content = MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH + \
+        MESSAGE_BUFFER_CONNECTION_CLOSED
+    response_callback = MagicMock()
+    with patch("builtins.open", mock_open()) as mock_file, \
+            patch("os.set_blocking") as _, \
+            patch("select.select") as mock_select:
+        mock_select.return_value = ([True], [], [])
+        mock_file_handle = mock_file.return_value.__enter__.return_value
+        mock_file_handle.read.side_effect = \
+            [bytes([b]) for b in connection_closed_content]
+
+        ci = ControlInterface(
+            add_response_callback=response_callback
+        )
+
+        # Start thread (similar to _connect)
+        ci._read_thread = threading.Thread(
+            target=ci._read_from_control_interface,
+            daemon=True
+        )
+        ci._state = ControlInterfaceState.INITIALIZED
+        ci._read_thread.start()
+        time.sleep(0.01)
+
+        # Thread should stop automatically
+        ci._read_thread.join()
+
+        mock_file.assert_called_once_with(
+            "/run/ankaios/control_interface/input", "rb")
+        response_callback.assert_called_once()
+        assert ci._input_file is None
 
 
 def test_agent_gone_routine():
@@ -299,6 +349,11 @@ def test_write_request():
     with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
         ci.write_request(generate_test_request())
         mock_write.assert_called_once()
+
+    ci._state = ControlInterfaceState.CONNECTION_CLOSED
+    with pytest.raises(ConnectionClosedException,
+                       match="Could not write to pipe, connection closed."):
+        ci.write_request(generate_test_request())
 
 
 def test_send_initial_hello():
