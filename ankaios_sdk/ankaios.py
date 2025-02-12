@@ -110,15 +110,6 @@ Usage
             print(f"State not reached in time.")
         else:
             print(f"State reached.")
-
-- Register a callback for connection closed:
-    .. code-block:: python
-
-        def on_connection_closed(reason):
-            print(f"Connection closed: {reason}")
-            sys.exit(1)
-
-        with Ankaios(on_connection_closed=on_connection_closed) as ankaios:
 """
 
 __all__ = ["Ankaios"]
@@ -155,8 +146,7 @@ class Ankaios:
     "(float): The default timeout, if not manually provided."
 
     def __init__(self,
-                 log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO,
-                 on_connection_closed: Callable = None
+                 log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO
                  ) -> None:
         """
         Initialize the Ankaios object. The logger will be created and
@@ -164,28 +154,15 @@ class Ankaios:
 
         Args:
             log_level (AnkaiosLogLevel): The log level to be set.
-            on_connection_closed (Callable): The callback function to be
-                called when the connection is closed. It should have one
-                argument, which will be the reason.
 
         Raises:
-            ValueError: If the callback function is invalid.
+            ConnectionClosedException: If the connection is closed
+                at startup.
         """
         self._responses: Queue = Queue()
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
-
-        # Register on connection closed callback
-        self._connection_closed_callback = None
-        if on_connection_closed is not None:
-            sig = inspect.signature(on_connection_closed)
-            if len(sig.parameters) != 1:
-                raise ValueError(
-                    "The on_connection_closed callback should have exactly "
-                    + "one argument."
-                )
-            self._connection_closed_callback = on_connection_closed
 
         # Connect to the control interface
         self._control_interface = ControlInterface(
@@ -193,6 +170,18 @@ class Ankaios:
             state_changed_callback=self._state_changed
             )
         self._control_interface.connect()
+
+        # Test connection
+        try:
+            self.get_state(field_masks=["desiredState.apiVersion"])
+        except (AnkaiosResponseError, AnkaiosProtocolException) as e:
+            self.logger.warning("Connection test failed with: %s", e)
+        except ConnectionClosedException as e:
+            self.logger.error("%s", e)
+            raise e
+        except Exception as e:
+            self.logger.error("An unexpected error occurred: %s", e)
+            raise e
 
     def __enter__(self) -> "Ankaios":
         """
@@ -235,12 +224,6 @@ class Ankaios:
         when the state changes.
         """
         self.logger.info("State changed to %s", state)
-
-        if state == ControlInterfaceState.CONNECTION_CLOSED:
-            if self._connection_closed_callback is not None:
-                self._connection_closed_callback(
-                    info if info is not None else "No reason provided."
-                )
 
     def _add_response(self, response: Response) -> None:
         """

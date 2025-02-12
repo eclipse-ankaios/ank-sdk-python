@@ -18,7 +18,7 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 
 from io import StringIO
 import logging
-from unittest.mock import patch, MagicMock, create_autospec
+from unittest.mock import patch, MagicMock
 import pytest
 from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
@@ -43,9 +43,11 @@ def generate_test_ankaios() -> Ankaios:
     Returns:
         Ankaios: The Ankaios instance.
     """
-    with patch("ankaios_sdk.ControlInterface.connect") as mock_connect:
+    with patch("ankaios_sdk.ControlInterface.connect") as mock_connect, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state:
         ankaios = Ankaios()
         mock_connect.assert_called_once()
+        mock_get_state.assert_called_once()
     ankaios._control_interface._state = ControlInterfaceState.INITIALIZED
     assert ankaios.state == ankaios._control_interface._state
     return ankaios
@@ -70,40 +72,58 @@ def test_logger():
     assert "Error message" in str_stream.getvalue()
 
 
-def test_callback():
-    """
-    Test the on_connection_closed callback of the Ankaios class.
-    """
-    with patch("ankaios_sdk.ControlInterface.connect") as _:
-        ankaios = Ankaios()
-        assert ankaios._connection_closed_callback is None
-
-    with patch("ankaios_sdk.ControlInterface.connect") as _, \
-            pytest.raises(ValueError):
-        ankaios = Ankaios(on_connection_closed=lambda: None)
-
-    mock_callback = create_autospec(spec=lambda _: None)
-    with patch("ankaios_sdk.ControlInterface.connect") as _:
-        ankaios = Ankaios(on_connection_closed=mock_callback)
-        assert ankaios._connection_closed_callback == mock_callback
-
-        ankaios._state_changed(ControlInterfaceState.CONNECTION_CLOSED)
-        mock_callback.assert_called_once_with('No reason provided.')
-
-
-def test_connection():
+def test_connect_disconnect():
     """
     Test the connect and disconnect of the Ankaios class.
     """
     with patch("ankaios_sdk.ControlInterface.connect") as mock_ci_connect, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
          patch("ankaios_sdk.ControlInterface.disconnect") \
             as mock_ci_disconnect:
         with Ankaios() as ankaios:
             assert isinstance(ankaios, Ankaios)
             mock_ci_connect.assert_called_once()
+            mock_get_state.assert_called_once()
             assert ankaios.logger.level == AnkaiosLogLevel.INFO.value
         mock_ci_disconnect.assert_called_once()
 
+
+def test_connection():
+    """
+    Test the get_state from the ctor, used for ensuring the connection
+    is established.
+    """
+    with patch("ankaios_sdk.ControlInterface.connect") as _, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state:
+        mock_get_state.side_effect = AnkaiosResponseError()
+        _ = Ankaios()
+        mock_get_state.assert_called_once()
+
+    with patch("ankaios_sdk.ControlInterface.connect") as _, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+         pytest.raises(ConnectionClosedException):
+        mock_get_state.side_effect = ConnectionClosedException()
+        _ = Ankaios()
+        mock_get_state.assert_called_once()
+
+    with patch("ankaios_sdk.ControlInterface.connect") as _, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
+         pytest.raises(TimeoutError):
+        mock_get_state.side_effect = TimeoutError()
+        _ = Ankaios()
+        mock_get_state.assert_called_once()
+
+def test_state():
+    """
+    Test the state property of the Ankaios class and the state callback.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert ankaios.state == ankaios._control_interface._state
+    ankaios._state_changed(ControlInterfaceState.TERMINATED)
+    ankaios.logger.info.assert_called_with(
+        "State changed to %s", ControlInterfaceState.TERMINATED
+    )
 
 def test_add_response():
     """
