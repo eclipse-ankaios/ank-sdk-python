@@ -113,6 +113,7 @@ def test_connection():
         _ = Ankaios()
         mock_get_state.assert_called_once()
 
+
 def test_state():
     """
     Test the state property of the Ankaios class and the state callback.
@@ -124,6 +125,16 @@ def test_state():
     ankaios.logger.info.assert_called_with(
         "State changed to %s", ControlInterfaceState.TERMINATED
     )
+
+    ankaios._state_changed(
+        ControlInterfaceState.CONNECTION_CLOSED, info="Unsuported version."
+        )
+    ankaios.logger.info.assert_called_with(
+        "State changed to %s: %s",
+        ControlInterfaceState.CONNECTION_CLOSED,
+        "Unsuported version."
+    )
+
 
 def test_add_response():
     """

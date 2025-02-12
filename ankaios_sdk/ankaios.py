@@ -115,8 +115,7 @@ Usage
 __all__ = ["Ankaios"]
 
 import time
-import inspect
-from typing import Union, Callable
+from typing import Union
 from queue import Queue, Empty
 
 from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
@@ -223,7 +222,10 @@ class Ankaios:
         Method will be called automatically from the Control Interface
         when the state changes.
         """
-        self.logger.info("State changed to %s", state)
+        if info is None:
+            self.logger.info("State changed to %s", state)
+        else:
+            self.logger.info("State changed to %s: %s", state, info)
 
     def _add_response(self, response: Response) -> None:
         """
