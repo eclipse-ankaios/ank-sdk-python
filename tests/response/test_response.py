@@ -19,13 +19,13 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
 from ankaios_sdk import Response, ResponseType, CompleteState, \
-    ResponseException, ConnectionClosedException
+    ResponseException
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
 MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
     response=_ank_base.Response(
-        requestId="1234",
+        requestId="1122",
         error=_ank_base.Error(
             message="Test error message",
         )
@@ -34,7 +34,7 @@ MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
 
 MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
     response=_ank_base.Response(
-        requestId="1234",
+        requestId="2233",
         completeState=_ank_base.CompleteState(
             desiredState=_ank_base.State(
                 apiVersion="v0.1",
@@ -48,7 +48,7 @@ MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
 
 MESSAGE_UPDATE_SUCCESS = _control_api.FromAnkaios(
     response=_ank_base.Response(
-        requestId="1234",
+        requestId="3344",
         UpdateStateSuccess=_ank_base.UpdateStateSuccess(
             addedWorkloads=["new_nginx.12345.agent_A"],
             deletedWorkloads=["old_nginx.54321.agent_A"],
@@ -62,15 +62,20 @@ MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(
 
 MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
-        requestId="1234",
+        requestId="4455",
     )
 ).SerializeToString()
 
-MESSAGE_BUFFER_CONNECTION_CLOSED = _control_api.FromAnkaios(
+MESSAGE_CONNECTION_CLOSED = _control_api.FromAnkaios(
     connectionClosed=_control_api.ConnectionClosed(
         reason="Connection closed reason",
     )
-).SerializeToString()
+)
+MESSAGE_BUFFER_CONNECTION_CLOSED = \
+    MESSAGE_CONNECTION_CLOSED.SerializeToString()
+MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH = _VarintBytes(
+    MESSAGE_CONNECTION_CLOSED.ByteSize()
+)
 
 
 def test_initialisation():
@@ -99,6 +104,12 @@ def test_initialisation():
     assert str(added_workloads[0]) == "new_nginx.12345.agent_A"
     assert str(deleted_workloads[0]) == "old_nginx.54321.agent_A"
 
+    # Test connection closed
+    response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
+    assert response.content_type == ResponseType.CONNECTION_CLOSED
+    assert response.content == "Connection closed reason"
+    assert response.get_request_id() is None
+
     # Test invalid buffer
     with pytest.raises(ResponseException, match="Parsing error"):
         _ = Response(b"invalid_buffer{")
@@ -107,18 +118,13 @@ def test_initialisation():
     with pytest.raises(ResponseException, match="Invalid response type"):
         response = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
 
-    # Test connection closed
-    with pytest.raises(ConnectionClosedException,
-                       match="Connection closed reason"):
-        response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
-
 
 def test_getters():
     """
     Test the getter methods of the Response class.
     """
     response = Response(MESSAGE_BUFFER_ERROR)
-    assert response.get_request_id() == "1234"
+    assert response.get_request_id() == "1122"
     content_type, content = response.get_content()
     assert content_type == ResponseType.ERROR
     assert str(content_type) == "error"

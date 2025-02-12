@@ -13,7 +13,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, AnkaiosException
-from time import sleep
 import sys, signal
 
 # Create a new Ankaios object.
@@ -87,3 +86,6 @@ with Ankaios() as ankaios:
                         ].state
                     )
                 )
+    
+    # Delete the workload
+    update_response = ankaios.delete_workload(workload_instance_name.workload_name)
