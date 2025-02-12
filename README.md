@@ -14,10 +14,11 @@
 [![Ankaios](https://img.shields.io/badge/main_project-repo-blue)](https://github.com/eclipse-ankaios/ankaios)
 [![Slack](https://img.shields.io/badge/slack-join-blue?logo=slack)](https://join.slack.com/t/ankaios/shared_invite/zt-2inyhbehh-iVp3YZD09VIgybv8D1gDpQ)
 
-[Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provides workload and container orchestration for automotive
-High Performance Computers (HPCs). While it can be used for various fields of
-applications, it is developed from scratch for automotive use cases and provides
-a slim yet powerful solution to manage containerized applications.
+[Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provides workload and
+container orchestration for automotive High Performance Computing Platforms (HPCs).
+While it can be used for various fields of applications, it is developed from scratch
+for automotive use cases and provides a slim yet powerful solution to manage
+containerized applications.
 
 The Python SDK provides easy access from the container (workload) point-of-view
 to manage the Ankaios system. A workload can use the Python SDK to start, stop and
@@ -46,11 +47,14 @@ pip install -e ".[dev]"
 ```
 
 > **Note:**  
-> Depending on your Linux distribution, it could be that you need to create and activate a [virtual environment](https://docs.python.org/3/library/venv.html) to run the pip commands.
+> Depending on your Linux distribution, it could be that you need to create and
+> activate a [virtual environment](https://docs.python.org/3/library/venv.html)
+> to run the pip commands.
 
 ## Compatibility
 
-Please make sure the Python SDK is compatible with the version of Ankaios you are using. For information regarding versioning, please refer to this table:
+Please make sure the Python SDK is compatible with the version of Ankaios you
+are using. For information regarding versioning, please refer to this table:
 
 | Ankaios    | Python SDK |
 | -------- | ------- |
@@ -59,8 +63,8 @@ Please make sure the Python SDK is compatible with the version of Ankaios you ar
 
 ## Usage
 
-After installation, you can use the Ankaios SDK to configure and run workloads and request
-the state of the Ankaios system and the connected agents.
+After installation, you can use the Ankaios SDK to configure and run workloads
+and request the state of the Ankaios system and the connected agents.
 
 The following example assumes that the code is running in a managed by
 Ankaios workload with configured control interface access:
@@ -131,7 +135,8 @@ For more details, please visit:
 * [Ankaios documentation](https://eclipse-ankaios.github.io/ankaios/latest/)
 * [Python SDK documentation](https://eclipse-ankaios.github.io/ank-sdk-python/)
 
-Especially the Ankaios [fleet management tutorial](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/) gives a great overview on the usage of the SDK.
+Especially the Ankaios [fleet management tutorial](https://eclipse-ankaios.github.io/ankaios/latest/usage/tutorial-fleet-management/)
+gives a great overview on the usage of the SDK.
 
 ## Contributing
 
