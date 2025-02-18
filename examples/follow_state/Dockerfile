@@ -20,6 +20,6 @@ FROM base as dev
 
 COPY . ./ank-sdk-python
 RUN pip install ./ank-sdk-python
-COPY examples/sleepy/app.py ./
+COPY examples/follow_state/app.py ./
 
 CMD [ "python", "-u", "./app.py" ]

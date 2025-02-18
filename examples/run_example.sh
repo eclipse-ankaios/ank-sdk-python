@@ -7,9 +7,10 @@ ANKAIOS_SERVER_URL="http://${ANKAIOS_SERVER_SOCKET}"
 DEFAULT_ANKAIOS_BIN_PATH="/usr/local/bin"
 
 display_usage() {
-    echo -e "Usage: $0 EXAMPLE"
+    echo -e "Usage: $0 <EXAMPLE> [dev] [extra-build-args]"
     echo -e "Build and run an Ankaios Python SDK example."
     echo -e "  EXAMPLE: subfolder of the example, e.g. hello_ankaios"
+    echo -e "If 'dev' is provided as the second argument, will build the sdk from the local source code."
     echo -e "Optionally, set environment variable for alternative Ankaios executable path: export ANK_BIN_DIR=/path/to/ankaios/executables, if not set default path: '${DEFAULT_ANKAIOS_BIN_PATH}'"
 }
 
@@ -29,7 +30,7 @@ run_ankaios() {
 
   sleep 2
   echo "Applying app manifest"
-  ank -k apply $1/app_manifest.yaml
+  ${ANK_BIN_DIR}/ank -k apply $1/app_manifest.yaml
 
   # Wait for any process to exit
   wait -n
@@ -55,8 +56,13 @@ if [[ ! -f ${ANK_BIN_DIR}/ank-server || ! -f ${ANK_BIN_DIR}/ank-agent ]]; then
   exit 2
 fi
 
-echo Build Ankaios Python SDK example ... "${@:2}"
-podman build "${@:2}" -t $1:0.1 -f $1/Dockerfile $1
+if [[ "$2" == "dev" ]]; then
+  echo Build Ankaios Python SDK dev example ...
+  podman build "${@:3}" --target=dev -t $1:0.1 -f examples/$1/Dockerfile ../
+else
+  echo Build Ankaios Python SDK example ...
+  podman build "${@:2}" --target=prod -t $1:0.1 -f $1/Dockerfile $1
+fi
 echo done.
 
 if pgrep -x "ank-server" >/dev/null

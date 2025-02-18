@@ -42,7 +42,7 @@ Usage
 - Change the state of the control interface.
     .. code-block:: python
 
-        ci.change_state(ControlInterfaceState.CONNECTED)
+        ci.change_state(ControlInterfaceState.TERMINATED)
 """
 
 
@@ -60,7 +60,7 @@ from google.protobuf.internal.decoder import _DecodeVarint
 
 from .._protos import _control_api
 from .request import Request
-from .response import Response, ResponseException
+from .response import Response, ResponseException, ResponseType
 from ..exceptions import ControlInterfaceException, ConnectionClosedException
 from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
@@ -208,18 +208,24 @@ class ControlInterface:
             self._input_file = None
         self._logger.debug("Cleanup happened")
 
-    def change_state(self, state: ControlInterfaceState) -> None:
+    def change_state(
+            self, state: ControlInterfaceState, info: str = None
+            ) -> None:
         """
         Change the state of the control interface.
 
         Args:
             state (ControlInterfaceState): The new state.
+            info (str): Additional information about the state change.
         """
         if state == self._state:
             self._logger.debug("State is already %s.", state)
             return
+        if self._state == ControlInterfaceState.CONNECTION_CLOSED:
+            self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
+            return
         self._state = state
-        self._state_changed_callback(state)
+        self._state_changed_callback(state, info)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -298,12 +304,15 @@ class ControlInterface:
                 except ResponseException as e:  # pragma: no cover
                     self._logger.error("Error while reading: %s", e)
                     continue
-                except ConnectionClosedException as e:  # pragma: no cover
-                    self._logger.error("Connection closed: %s", e)
-                    self.change_state(ControlInterfaceState.CONNECTION_CLOSED)
-                    break
 
                 self._add_response_callback(response)
+
+                if response.content_type == ResponseType.CONNECTION_CLOSED:
+                    self.change_state(
+                        ControlInterfaceState.CONNECTION_CLOSED,
+                        response.content
+                        )
+                    raise ConnectionClosedException(response.content)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
@@ -317,7 +326,7 @@ class ControlInterface:
         It will attempt to write the hello message to the agent
         until the agent is connected.
         """
-        AGENT_RECONNECT_INTERVAL = 1  # seconds
+        agent_reconnect_interval = 1  # seconds
         while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
             try:
                 self._send_initial_hello()
@@ -325,7 +334,7 @@ class ControlInterface:
                 self._logger.warning(
                     "Waiting for the agent.."
                     )
-                time.sleep(AGENT_RECONNECT_INTERVAL)
+                time.sleep(agent_reconnect_interval)
             else:
                 self.change_state(ControlInterfaceState.INITIALIZED)
                 break
@@ -364,7 +373,12 @@ class ControlInterface:
 
         Raises:
             ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
         """
+        if self._state == ControlInterfaceState.CONNECTION_CLOSED:
+            raise ConnectionClosedException(
+                "Could not write to pipe, connection closed."
+            )
         if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected.")

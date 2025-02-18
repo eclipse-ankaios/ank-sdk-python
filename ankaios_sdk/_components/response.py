@@ -13,7 +13,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Response and ResponseEvent classes,
+This script defines the Response and UpdateStateSuccess classes,
 used for receiving messages from the control interface.
 
 Classes
@@ -21,8 +21,6 @@ Classes
 
 - Response:
     Represents a response from the control interface.
-- ResponseEvent:
-    Represents an event used to wait for a response.
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
 
@@ -31,7 +29,7 @@ Enums
 
 - ResponseType:
     Enumeration for the different types of response. It includes
-    ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS.
+    ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
 
 Usage
 ------
@@ -56,13 +54,12 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "ResponseEvent", "UpdateStateSuccess"]
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess"]
 
 from typing import Union
-from threading import Event
 from enum import Enum
 from .._protos import _control_api
-from ..exceptions import ResponseException, ConnectionClosedException
+from ..exceptions import ResponseException
 from ..utils import get_logger
 from .complete_state import CompleteState
 from .workload_state import WorkloadInstanceName
@@ -95,7 +92,6 @@ class Response:
         self.content = None
 
         self._parse_response()
-        self._from_proto()
 
     def _parse_response(self) -> None:
         """
@@ -115,12 +111,13 @@ class Response:
             raise ResponseException(f"Parsing error: '{e}'") from e
         if from_ankaios.HasField("response"):
             self._response = from_ankaios.response
+            self._from_proto()
+        elif from_ankaios.HasField("connectionClosed"):
+            self.content_type = ResponseType.CONNECTION_CLOSED
+            self.content = from_ankaios.connectionClosed.reason
         else:
-            logger.error(
-                "Connection closed by the server."
-            )
-            raise ConnectionClosedException(
-                from_ankaios.connectionClosed.reason)
+            raise ResponseException(  # pragma: no cover
+                "Invalid response type.")
 
     def _from_proto(self) -> None:
         """
@@ -168,6 +165,8 @@ class Response:
         Returns:
             str: The request id of the response.
         """
+        if self.content_type == ResponseType.CONNECTION_CLOSED:
+            return None
         return self._response.requestId
 
     def get_content(self) -> \
@@ -193,6 +192,8 @@ class ResponseType(Enum):
     "(int): Got the complete state."
     UPDATE_STATE_SUCCESS = 3
     "(int): Got a successful update state response."
+    CONNECTION_CLOSED = 4
+    "(int): Connection closed by the server."
 
     def __str__(self) -> str:
         """
@@ -202,60 +203,6 @@ class ResponseType(Enum):
             str: The string representation of the ResponseType.
         """
         return self.name.lower()
-
-
-class ResponseEvent(Event):
-    """
-    Represents an event that holds a Response object.
-    """
-    def __init__(self, response: Response = None) -> None:
-        """
-        Initializes the ResponseEvent with an optional Response object.
-
-        Args:
-            response Optional(Response): The response to associate with
-                the event. Defaults to None.
-        """
-        super().__init__()
-        self._response = response
-
-    def set_response(self, response: Response) -> None:
-        """
-        Sets the response and triggers the event.
-
-        Args:
-            response (Response): The response to set.
-        """
-        self._response = response
-        self.set()
-
-    def get_response(self) -> Response:
-        """
-        Gets the response associated with the event.
-
-        Returns:
-            Response: The response associated with the event.
-        """
-        return self._response
-
-    def wait_for_response(self, timeout: int) -> Response:
-        """
-        Waits for the response to be set, with a specified timeout.
-
-        Args:
-            timeout (int): The maximum time to wait for the response,
-                in seconds.
-
-        Returns:
-            Response: The response associated with the event.
-
-        Raises:
-            TimeoutError: If the response is not set within the
-                specified timeout.
-        """
-        if not self.wait(timeout):
-            raise TimeoutError("Timeout while waiting for the response.")
-        return self.get_response()
 
 
 class UpdateStateSuccess:
