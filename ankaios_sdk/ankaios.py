@@ -158,6 +158,7 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed
                 at startup.
         """
+        # Thread safe queue for responses
         self._responses: Queue = Queue()
 
         self.logger = get_logger()

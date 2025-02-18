@@ -13,11 +13,19 @@ Alternatively you can compile from source and provide the path to the executable
 
 ## Building and running
 
-To build and run an example, just execute the `run_example.sh` script with the name of the target example as an argument. For the `hello_ankaios` example, the command would be:
+To build and run an example, just execute the `run_example.sh` script. The signature is as follows:
+
+```shell
+./run_example.sh <example-name> [dev] [extra-build-args]
+```
+
+For example, running the default example, by installing the sdk from PyPi:
 
 ```shell
 ./run_example.sh hello_ankaios
 ```
+
+For development, you can run with the `dev` argument, that will copy the local repository and install it in the container directly. Also, you can provide additional arguments, if needed.
 
 Of course, you are free to build manually if needed by calling the following command from inside an example folder:
 
@@ -52,15 +60,17 @@ To view the log of the `hello_ankaios` workload just use the convenience script:
  ./ank-logs.sh hello_ankaios
 ```
 
-## `sleepy` 
+### `sleepy` 
 
 `sleepy` is an "empty" workload that just executes an endless sleep. 
 
 This example has the Python SDK installed and allows to execute an interactive shell in the container in order to manually trigger Python commands to interact with Ankaios.
 
-## `follow_state` 
+### `follow_state` 
 
 `follow_state` executes indefinetly with a request to get the state being sent every 5 seconds.
+
+## Enter a container
 
 To `exec` into the container, a convenience script is provided:
 
