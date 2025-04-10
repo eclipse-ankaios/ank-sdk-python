@@ -26,11 +26,15 @@ Functions
 
 - get_logger:
     Creates and returns the logger.
+- _to_config_item:
+    Converts a base type to an ank_base.ConfigItem.
 """
 
 import logging
+from typing import Union
 from enum import Enum
 import threading
+from ._protos import _ank_base
 
 
 SUPPORTED_API_VERSION = "v0.1"
@@ -85,3 +89,24 @@ def get_logger(name="Ankaios logger"):
             logger.addHandler(handler)
 
     return logger
+
+
+def _to_config_item(item: Union[str, list, dict]
+                    ) -> _ank_base.ConfigItem:
+    """
+    Returns an ank_base.ConfigItem from a base type.
+
+    Args:
+        item (str / list / dict): The item to convert.
+    """
+    config_item = _ank_base.ConfigItem()
+    if isinstance(item, str):
+        config_item.String = item
+    elif isinstance(item, list):
+        for value in [_to_config_item(value) for value in item]:
+            config_item.array.values.append(value)
+    elif isinstance(item, dict):
+        for key, value in item.items():
+            config_item.object.fields[key]. \
+                CopyFrom(_to_config_item(value))
+    return config_item

@@ -133,8 +133,7 @@ class Response:
             self.content = self._response.error.message
         elif self._response.HasField("completeState"):
             self.content_type = ResponseType.COMPLETE_STATE
-            self.content = CompleteState()
-            self.content._from_proto(self._response.completeState)
+            self.content = CompleteState(_proto=self._response.completeState)
         elif self._response.HasField("UpdateStateSuccess"):
             update_state_msg = self._response.UpdateStateSuccess
             self.content_type = ResponseType.UPDATE_STATE_SUCCESS

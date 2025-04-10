@@ -39,19 +39,13 @@ Usage
     .. code-block:: python
 
         manifest = Manifest.from_dict({"apiVersion": "1.0", "workloads": {}})
-
-- Check if the manifest is valid:
-    .. code-block:: python
-
-        try:
-            manifest = Manifest.from_file("path/to/manifest.yaml")
-        except InvalidManifestException as e:
-            print(f"Invalid manifest: {e}")
 """
 
 import yaml
+from .._protos import _ank_base
 from ..exceptions import InvalidManifestException
-from ..utils import WORKLOADS_PREFIX, CONFIGS_PREFIX
+from .workload import Workload
+from ..utils import WORKLOADS_PREFIX, CONFIGS_PREFIX, _to_config_item
 
 
 class Manifest():
@@ -59,18 +53,20 @@ class Manifest():
     Represents a workload manifest.
     The manifest can be loaded from a yaml file, string or dictionary.
     """
-    def __init__(self, manifest: dict) -> None:
+    def __init__(self, desired_state: _ank_base.State) -> None:
         """
         Initializes a Manifest instance with the given manifest data.
+        For creation, it is recommended to use the from_file, from_string or
+        from_dict methods.
+        The manifest data is validated upon initialization.
 
         Args:
-            manifest (dict): The manifest data.
+            desired_state (_ank_base.State): The desired state proto.
 
         Raises:
             ValueError: If the manifest data is invalid.
         """
-        self._manifest: dict = manifest
-        self.check()
+        self._desired_state: _ank_base.State = desired_state
 
     @staticmethod
     def from_file(file_path: str) -> 'Manifest':
@@ -123,34 +119,31 @@ class Manifest():
         Returns:
             Manifest: An instance of the Manifest class with the given data.
         """
-        return Manifest(manifest)
-
-    def check(self) -> None:
-        """
-        Validates the manifest data.
-
-        Raises:
-            InvalidManifestException: If the manifest is invalid.
-        """
-        if "apiVersion" not in self._manifest.keys():
-            raise InvalidManifestException("apiVersion is missing.")
-        if "workloads" in self._manifest.keys():
-            wl_allowed_keys = ["runtime", "agent", "restartPolicy",
-                               "runtimeConfig", "dependencies", "tags",
-                               "controlInterfaceAccess", "configs"]
-            wl_mandatory_keys = ["runtime", "runtimeConfig", "agent"]
-            for wl_name in self._manifest["workloads"]:
-                # Check allowed keys
-                for key in self._manifest["workloads"][wl_name].keys():
-                    if key not in wl_allowed_keys:
-                        raise InvalidManifestException(
-                            f"Invalid key in workload {wl_name}: {key}")
-                # Check mandatory keys
-                for key in wl_mandatory_keys:
-                    if key not in self._manifest["workloads"][wl_name].keys():
-                        raise InvalidManifestException(
-                            f"Mandatory key {key} "
-                            f"missing in workload {wl_name}")
+        desired_state = _ank_base.State()
+        if "apiVersion" not in manifest.keys():
+            raise InvalidManifestException(
+                "apiVersion is missing."
+            )
+        desired_state.apiVersion = manifest["apiVersion"]
+        if "workloads" in manifest.keys():
+            workloads = manifest["workloads"]
+            for wl_name, wl_data in workloads.items():
+                try:
+                    workload = Workload._from_dict(wl_name, wl_data)
+                    desired_state.workloads.workloads[wl_name].CopyFrom(
+                        workload._to_proto()
+                    )
+                except Exception as e:
+                    raise InvalidManifestException(
+                        f"Error building workload {wl_name}: {e}"
+                    ) from e
+        if "configs" in manifest.keys():
+            configs = manifest["configs"]
+            for key, value in configs.items():
+                desired_state.configs.configs[key].CopyFrom(
+                    _to_config_item(value)
+                )
+        return Manifest(desired_state)
 
     def _calculate_masks(self) -> list[str]:
         """
@@ -161,10 +154,23 @@ class Manifest():
             list[str]: A list of masks.
         """
         masks = []
-        if "workloads" in self._manifest.keys():
-            masks.extend([f"{WORKLOADS_PREFIX}.{key}"
-                          for key in self._manifest["workloads"].keys()])
-        if "configs" in self._manifest.keys():
-            masks.extend([f"{CONFIGS_PREFIX}.{key}"
-                          for key in self._manifest["configs"].keys()])
+        if self._desired_state.workloads.workloads:
+            masks.extend([
+                f"{WORKLOADS_PREFIX}.{key}"
+                for key in self._desired_state.workloads.workloads.keys()
+            ])
+        if self._desired_state.configs.configs:
+            masks.extend([
+                f"{CONFIGS_PREFIX}.{key}"
+                for key in self._desired_state.configs.configs.keys()
+            ])
         return masks
+
+    def _to_desired_state(self) -> _ank_base.State:
+        """
+        Returns the desired state proto.
+
+        Returns:
+            _ank_base.State: The desired state proto.
+        """
+        return self._desired_state
