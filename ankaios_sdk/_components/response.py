@@ -13,8 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Response and UpdateStateSuccess classes,
-used for receiving messages from the control interface.
+This script defines the Response class and its associated types for handling
+responses from the control interface. It includes methods for parsing the
+received messages and converting them into appropriate Python objects.
 
 Classes
 --------
@@ -23,6 +24,8 @@ Classes
     Represents a response from the control interface.
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
+- LogEntry:
+    Represents a log entry received from the Ankaios system.
 
 Enums
 -----
@@ -54,11 +57,11 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess"]
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess", "LogEntry"]
 
-from typing import Union
+from typing import Any
 from enum import Enum
-from .._protos import _control_api
+from .._protos import _ank_base, _control_api
 from ..exceptions import ResponseException
 from ..utils import get_logger
 from .complete_state import CompleteState
@@ -118,6 +121,10 @@ class Response:
         else:
             raise ResponseException(  # pragma: no cover
                 "Invalid response type.")
+        logger.debug(
+            "Got response of type '%s' with request id '%s'",
+            self.content_type, self.get_request_id()
+        )
 
     def _from_proto(self) -> None:
         """
@@ -154,6 +161,13 @@ class Response:
                         agent_name, workload_name, workload_id
                     )
                 )
+        elif self._response.HasField("logsResponse"):
+            self.content_type = ResponseType.LOGS
+            self.content = []
+            for log_entry in self._response.logsResponse.logEntries:
+                self.content.append(
+                    LogEntry(log_entry)
+                )
         else:
             raise ResponseException("Invalid response type.")
 
@@ -168,14 +182,13 @@ class Response:
             return None
         return self._response.requestId
 
-    def get_content(self) -> \
-            tuple[
-                'ResponseType',
-                Union[str, 'CompleteState', 'UpdateStateSuccess']
-                ]:
+    def get_content(self) -> tuple['ResponseType', Any]:
         """
-        Gets the content of the response. It can be either a string (if error),
-        a CompleteState instance, or a UpdateStateSuccess instance.
+        Gets the content of the response. It can be either:
+          - a string (error / connection closed)
+          - a CompleteState object
+          - an UpdateStateSuccess object
+          - a list of LogEntry objects
 
         Returns:
             tuple[ResponseType, any]: the content type and the content.
@@ -191,7 +204,9 @@ class ResponseType(Enum):
     "(int): Got the complete state."
     UPDATE_STATE_SUCCESS = 3
     "(int): Got a successful update state response."
-    CONNECTION_CLOSED = 4
+    LOGS = 4
+    "(int): Got logs."
+    CONNECTION_CLOSED = 5
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -243,3 +258,44 @@ class UpdateStateSuccess:
             str(instance_name) for instance_name in self.deleted_workloads]
         return f"Added workloads: {added_workloads}, " \
                f"Deleted workloads: {deleted_workloads}"
+
+
+class LogEntry:
+    """
+    Represents a log entry received from the Ankaios system.
+    """
+    def __init__(self, log: _ank_base.LogEntry) -> None:
+        """
+        Initializes the LogEntry with the given attributes.
+
+        Args:
+            log (_ank_base.LogEntry): The log entry from the Ankaios system.
+        """
+        self.workload_instance_name = WorkloadInstanceName(
+            log.workloadInstanceName.agentName,
+            log.workloadInstanceName.workloadName,
+            log.workloadInstanceName.workloadId
+        )
+        self.message = log.message
+
+    def __str__(self) -> str:
+        """
+        Converts the LogEntry to a string.
+
+        Returns:
+            str: The string representation of the log entry.
+        """
+        return f"Workload Instance Name: {self.workload_instance_name}, " \
+               f"Message: {self.message}"
+    
+    def to_dict(self) -> dict:
+        """
+        Converts the LogEntry to a dictionary.
+
+        Returns:
+            dict: The dictionary representation of the log entry.
+        """
+        return {
+            "workload_instance_name": self.workload_instance_name.to_dict(),
+            "message": self.message
+        }

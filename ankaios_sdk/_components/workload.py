@@ -13,16 +13,17 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Workload and WorkloadBuilder classes for
-creating and managing workloads.
+This script defines the Workload class for creating and managing workloads and
+the AccessRightRule class for managing access rights.
 
 Classes
 --------
 
 - Workload:
     Represents a workload with various attributes and methods to update them.
-- WorkloadBuilder:
-    A builder class to create a Workload object with a fluent interface.
+- AccessRightRule:
+    Represents an access right rule for a workload. It can be either a
+    state rule or a log rule.
 
 Usage
 ------
@@ -30,17 +31,7 @@ Usage
 - Create a workload using the WorkloadBuilder:
     .. code-block:: python
 
-        workload = Workload.builder() \\
-            .workload_name("nginx") \\
-            .agent_name("agent_A") \\
-            .runtime("podman") \\
-            .restart_policy("NEVER") \\
-            .runtime_config("image: docker.io/library/nginx\\n"
-                            + "commandOptions: [\\"-p\\", \\"8080:80\\"]") \\
-            .add_dependency("other_workload", "ADD_COND_RUNNING") \\
-            .add_tag("key1", "value1") \\
-            .add_tag("key2", "value2") \\
-            .build()
+        workload = Workload.builder().build()
 
 - Update fields of the workload:
     .. code-block:: python
@@ -65,15 +56,30 @@ Usage
     .. code-block:: python
 
         print(workload)
+
+- Create an access state rule:
+    .. code-block:: python
+
+        rule = AccessRightRule.state_rule("Read", ["*"])
+
+- Create an access log rule:
+    .. code-block:: python
+
+        rule = AccessRightRule.log_rule(['workload_A'])
 """
 
 
-__all__ = ["Workload", "WorkloadBuilder"]
+__all__ = ["Workload", "AccessRightRule"]
 
-
+from typing import TYPE_CHECKING
 from .._protos import _ank_base
-from ..exceptions import WorkloadFieldException, WorkloadBuilderException
+from ..exceptions import WorkloadFieldException
 from ..utils import get_logger, WORKLOADS_PREFIX
+
+
+logger = get_logger()
+if TYPE_CHECKING:
+    from .workload_builder import WorkloadBuilder
 
 
 # pylint: disable=too-many-public-methods
@@ -98,7 +104,6 @@ class Workload:
         self.name = name
         self._main_mask = f"{WORKLOADS_PREFIX}.{self.name}"
         self.masks = [self._main_mask]
-        self.logger = get_logger()
 
     def __str__(self) -> str:
         """
@@ -110,13 +115,14 @@ class Workload:
         return str(self._to_proto())
 
     @staticmethod
-    def builder() -> "WorkloadBuilder":
+    def builder() -> 'WorkloadBuilder':
         """
         Return a WorkloadBuilder object.
 
         Returns:
             WorkloadBuilder: A builder object to create a Workload.
         """
+        from .workload_builder import WorkloadBuilder
         return WorkloadBuilder()
 
     def update_workload_name(self, name: str) -> None:
@@ -181,7 +187,7 @@ class Workload:
             WorkloadFieldException: If an invalid restart policy is provided.
         """
         if policy not in _ank_base.RestartPolicy.keys():
-            self.logger.error(
+            logger.error(
                 "Invalid restart policy provided.")
             raise WorkloadFieldException(
                 "restart policy", policy, _ank_base.RestartPolicy.keys()
@@ -218,7 +224,7 @@ class Workload:
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
             if condition not in _ank_base.AddCondition.keys():
-                self.logger.error(
+                logger.error(
                     "Invalid dependency condition provided.")
                 raise WorkloadFieldException(
                     "dependency condition", condition,
@@ -269,124 +275,55 @@ class Workload:
             )]
         self._add_mask(f"{self._main_mask}.tags")
 
-    def _generate_access_right_rule(self,
-                                    operation: str,
-                                    filter_masks: list[str]
-                                    ) -> _ank_base.AccessRightsRule:
-        """
-        Generate an access rights rule for the workload.
-
-        Args:
-            operation (str): The operation the rule allows.
-            filter_masks (list): The list of filter masks.
-
-        Returns:
-            _ank_base.AccessRightsRule: The access rights rule generated.
-
-        Raises:
-            WorkloadFieldException: If an invalid operation is provided.
-        """
-        enum_mapper = {
-            "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
-            "Write": _ank_base.ReadWriteEnum.RW_WRITE,
-            "Read": _ank_base.ReadWriteEnum.RW_READ,
-            "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
-        }
-        if operation not in enum_mapper:
-            self.logger.error(
-                "Invalid rule operation provided.")
-            raise WorkloadFieldException(
-                "rule operation", operation, enum_mapper.keys()
-            )
-        return _ank_base.AccessRightsRule(
-            stateRule=_ank_base.StateRule(
-                operation=enum_mapper[operation],
-                filterMasks=filter_masks
-            )
-        )
-
-    def _access_right_rule_to_str(self, rule: _ank_base.AccessRightsRule
-                                  ) -> tuple[str, list[str]]:
-        """
-        Convert an access rights rule to a tuple.
-
-        Args:
-            rule (_ank_base.AccessRightsRule): The access
-                rights rule to convert.
-
-        Returns:
-            tuple: A tuple containing operation and filter masks.
-        """
-        enum_mapper = {
-            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
-            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
-            _ank_base.ReadWriteEnum.RW_READ: "Read",
-            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
-        }
-        return (
-            enum_mapper[rule.stateRule.operation],
-            rule.stateRule.filterMasks
-        )
-
-    def get_allow_rules(self) -> list[tuple[str, list[str]]]:
+    def get_allow_rules(self) -> list['AccessRightRule']:
         """
         Return the allow rules of the workload.
 
         Returns:
-            list: A list of tuples containing operation and filter masks.
+            list: A list of AccessRightRules
         """
         rules = []
         for rule in self._workload.controlInterfaceAccess.allowRules:
-            rules.append(self._access_right_rule_to_str(rule))
+            rules.append(AccessRightRule(rule))
         return rules
 
-    def update_allow_rules(self, rules: list[tuple[str, list[str]]]) -> None:
+    def update_allow_rules(self, rules: list['AccessRightRule']) -> None:
         """
         Update the allow rules of the workload.
-        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
-            rules (list): A list of tuples containing
-                operation and filter masks.
-
-        Raises:
-            WorkloadFieldException: If an invalid operation is provided
+            rules (list): A list of AccessRightRules.
         """
         del self._workload.controlInterfaceAccess.allowRules[:]
-        for operation, filter_masks in rules:
+        for rule in rules:
             self._workload.controlInterfaceAccess.allowRules.append(
-                self._generate_access_right_rule(operation, filter_masks)
+                rule._to_proto()
             )
         self._add_mask(f"{self._main_mask}.controlInterfaceAccess.allowRules")
 
-    def get_deny_rules(self) -> list[tuple[str, list[str]]]:
+    def get_deny_rules(self) -> list['AccessRightRule']:
         """
         Return the deny rules of the workload.
 
         Returns:
-            list: A list of tuples containing operation and filter masks.
+            list: A list of AccessRightRules
         """
         rules = []
         for rule in self._workload.controlInterfaceAccess.denyRules:
-            rules.append(self._access_right_rule_to_str(rule))
+            rules.append(AccessRightRule(rule))
         return rules
 
-    def update_deny_rules(self, rules: list[tuple[str, list[str]]]) -> None:
+    def update_deny_rules(self, rules: list['AccessRightRule']) -> None:
         """
         Update the deny rules of the workload.
-        Supported values: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
-            rules (list): A list of tuples containing
-                operation and filter masks.
-
-        Raises:
-            WorkloadFieldException: If an invalid operation is provided
+            rules (list): A list of AccessRightRules.
         """
         del self._workload.controlInterfaceAccess.denyRules[:]
-        for operation, filter_masks in rules:
-            self._workload.controlInterfaceAccess.denyRules.append(
-                self._generate_access_right_rule(operation, filter_masks)
+        for rule in rules:
+            self._workload.controlInterfaceAccess.allowRules.append(
+                rule._to_proto()
             )
         self._add_mask(f"{self._main_mask}.controlInterfaceAccess.denyRules")
 
@@ -469,7 +406,7 @@ class Workload:
         if self._workload.controlInterfaceAccess:
             workload_dict["controlInterfaceAccess"]["allowRules"] = []
             for rule in self._workload.controlInterfaceAccess.allowRules:
-                operation, filter_masks = self._access_right_rule_to_str(rule)
+                operation, filter_masks = self._state_rule_to_str(rule)
                 workload_dict["controlInterfaceAccess"]["allowRules"].append({
                         "type": "StateRule",
                         "operation": operation,
@@ -477,7 +414,7 @@ class Workload:
                 )
             workload_dict["controlInterfaceAccess"]["denyRules"] = []
             for rule in self._workload.controlInterfaceAccess.denyRules:
-                operation, filter_masks = self._access_right_rule_to_str(rule)
+                operation, filter_masks = self._state_rule_to_str(rule)
                 workload_dict["controlInterfaceAccess"]["denyRules"].append({
                     "type": "StateRule",
                     "operation": operation,
@@ -560,232 +497,162 @@ class Workload:
         self.masks = []
 
 
-# pylint: disable=too-many-instance-attributes
-class WorkloadBuilder:
+class AccessRightRule:
     """
-    A builder class to create a Workload object.
-
-    Attributes:
-        wl_name (str): The workload name.
-        wl_agent_name (str): The agent name.
-        wl_runtime (str): The runtime.
-        wl_runtime_config (str): The runtime configuration.
-        wl_restart_policy (str): The restart policy.
-        dependencies (dict): The dependencies.
-        tags (list): The tags.
+    Represents an access right rule for a workload. It can be either a
+    state rule or a log rule.
     """
-    def __init__(self) -> None:
+    def __init__(self, rule: _ank_base.AccessRightsRule) -> None:
         """
-        Initialize a WorkloadBuilder object.
-        """
-        self.wl_name = None
-        self.wl_agent_name = None
-        self.wl_runtime = None
-        self.wl_runtime_config = None
-        self.wl_restart_policy = None
-        self.dependencies = {}
-        self.tags = []
-        self.allow_rules = []
-        self.deny_rules = []
-        self.configs = {}
-
-    def workload_name(self, workload_name: str) -> "WorkloadBuilder":
-        """
-        Set the workload name.
+        Initializes the AccessRightRule. For initialization, use
+        the static methods `state_rule` or `log_rule`, depending
+        on the type of rule you want to create.
 
         Args:
-            workload_name (str): The workload name to set.
+            rule (_ank_base.AccessRightsRule): The access right rule.
+        """
+        self._rule = rule
+
+    def __str__(self) -> str:
+        """
+        Returns the string representation of the access right rule.
 
         Returns:
-            WorkloadBuilder: The builder object.
+            str: The string representation of the access right rule.
         """
-        self.wl_name = workload_name
-        return self
+        if self.type == "StateRule":
+            operation, filter_masks = self._state_rule_to_str(
+                self._rule.stateRule
+            )
+            return f"StateRule: {operation}, {filter_masks}"
+        if self.type == "LogRule":
+            return f"LogRule: {self._rule.logRule.workloadNames}"
+        return "Unknown rule"
 
-    def agent_name(self, agent_name: str) -> "WorkloadBuilder":
+    @property
+    def type(self) -> str:
         """
-        Set the agent name.
-
-        Args:
-            agent_name (str): The agent name to set.
+        Returns the type of the access right rule.
 
         Returns:
-            WorkloadBuilder: The builder object.
+            str: The type of the access right rule.
         """
-        self.wl_agent_name = agent_name
-        return self
+        if self._rule.HasField("stateRule"):
+            return "StateRule"
+        if self._rule.HasField("logRule"):
+            return "LogRule"
+        return "Unknown"
 
-    def runtime(self, runtime: str) -> "WorkloadBuilder":
+    @staticmethod
+    def state_rule(
+            operation: str, filter_masks: list[str]
+            ) -> 'AccessRightRule':
         """
-        Set the runtime.
-
-        Args:
-            runtime (str): The runtime to set.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.wl_runtime = runtime
-        return self
-
-    def runtime_config(self, runtime_config: str) -> "WorkloadBuilder":
-        """
-        Set the runtime configuration.
-
-        Args:
-            runtime_config (str): The runtime configuration to set.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.wl_runtime_config = runtime_config
-        return self
-
-    def runtime_config_from_file(
-            self, runtime_config_path: str
-            ) -> "WorkloadBuilder":
-        """
-        Set the runtime configuration using a file.
-
-        Args:
-            runtime_config_path (str): The path to the configuration file.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        with open(runtime_config_path, "r", encoding="utf-8") as file:
-            self.wl_runtime_config = file.read()
-        return self
-
-    def restart_policy(self, restart_policy: str) -> "WorkloadBuilder":
-        """
-        Set the restart policy.
-
-        Args:
-            restart_policy (str): The restart policy to set.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.wl_restart_policy = restart_policy
-        return self
-
-    def add_dependency(
-            self, workload_name: str, condition: str
-            ) -> "WorkloadBuilder":
-        """
-        Add a dependency.
-
-        Args:
-            workload_name (str): The name of the dependent workload.
-            condition (str): The condition for the dependency.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.dependencies[workload_name] = condition
-        return self
-
-    def add_tag(self, key: str, value: str) -> "WorkloadBuilder":
-        """
-        Add a tag.
-
-        Args:
-            key (str): The key of the tag.
-            value (str): The value of the tag.
-
-        Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.tags.append((key, value))
-        return self
-
-    def add_allow_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> "WorkloadBuilder":
-        """
-        Add an allow rule to the workload.
+        Create an access state rule for a workload.
+        Supported operations: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
         Args:
             operation (str): The operation the rule allows.
             filter_masks (list): The list of filter masks.
 
         Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.allow_rules.append((operation, filter_masks))
-        return self
+            AccessRightRule: The access right rule object.
 
-    def add_deny_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> "WorkloadBuilder":
+        Raises:
+            WorkloadFieldException: If an invalid operation is provided.
         """
-        Add a deny rule to the workload.
+        return AccessRightRule(
+            _ank_base.AccessRightsRule(
+                stateRule=AccessRightRule._generate_state_rule(
+                    operation, filter_masks
+                )
+            )
+        )
+
+    @staticmethod
+    def log_rule(
+            workload_names: list[str]
+            ) -> 'AccessRightRule':
+        """
+        Create an access log rule for a workload.
 
         Args:
-            operation (str): The operation the rule denies.
+            workload_names (list): The list of workload names.
+
+        Returns:
+            AccessRightRule: The access right rule object.
+        """
+        return AccessRightRule(
+            _ank_base.AccessRightsRule(
+                logRule=_ank_base.LogRule(
+                    workloadNames=workload_names
+                )
+            )
+        )
+
+    def _to_proto(self) -> _ank_base.AccessRightsRule:
+        """
+        Convert the AccessRightRule object to a proto message.
+
+        Returns:
+            _ank_base.AccessRightsRule: The proto message representation
+                of the AccessRightRule object.
+        """
+        return self._rule
+
+    @staticmethod
+    def _generate_state_rule(operation: str,
+                             filter_masks: list[str]
+                             ) -> _ank_base.StateRule:
+        """
+        Generate an access rights rule for the workload.
+
+        Args:
+            operation (str): The operation the rule allows.
             filter_masks (list): The list of filter masks.
 
         Returns:
-            WorkloadBuilder: The builder object.
-        """
-        self.deny_rules.append((operation, filter_masks))
-        return self
-
-    def add_config(self, alias: str, name: str) -> "WorkloadBuilder":
-        """
-        Link a configuration to the workload.
-
-        Args:
-            alias (str): The alias of the configuration.
-            name (str): The name of the configuration.
-        """
-        self.configs[alias] = name
-        return self
-
-    def build(self) -> Workload:
-        """
-        Build the Workload object.
-        Required fields: workload name, agent name, runtime and
-        runtime configuration.
-
-        Returns:
-            Workload: The built Workload object.
+            _ank_base.StateRule: The state rule generated.
 
         Raises:
-            WorkloadBuilderException: If required fields are not set.
+            WorkloadFieldException: If an invalid operation is provided.
         """
-        if self.wl_name is None:
-            raise WorkloadBuilderException(
-                "Workload can not be built without a name.")
+        enum_mapper = {
+            "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
+            "Write": _ank_base.ReadWriteEnum.RW_WRITE,
+            "Read": _ank_base.ReadWriteEnum.RW_READ,
+            "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
+        }
+        if operation not in enum_mapper:
+            logger.error(
+                "Invalid state rule operation provided.")
+            raise WorkloadFieldException(
+                "state rule operation", operation, enum_mapper.keys()
+            )
+        return _ank_base.StateRule(
+            operation=enum_mapper[operation],
+            filterMasks=filter_masks
+        )
 
-        workload = Workload(self.wl_name)
+    @staticmethod
+    def _state_rule_to_str(rule: _ank_base.StateRule
+                           ) -> tuple[str, list[str]]:
+        """
+        Convert an access rights rule to a tuple.
 
-        if self.wl_agent_name is None:
-            raise WorkloadBuilderException(
-                "Workload can not be built without an agent name.")
-        if self.wl_runtime is None:
-            raise WorkloadBuilderException(
-                "Workload can not be built without a runtime.")
-        if self.wl_runtime_config is None:
-            raise WorkloadBuilderException(
-                "Workload can not be built without a runtime configuration.")
+        Args:
+            rule (_ank_base.StateRule): The state rule to convert.
 
-        workload.update_agent_name(self.wl_agent_name)
-        workload.update_runtime(self.wl_runtime)
-        workload.update_runtime_config(self.wl_runtime_config)
-
-        if self.wl_restart_policy is not None:
-            workload.update_restart_policy(self.wl_restart_policy)
-        if len(self.dependencies) > 0:
-            workload.update_dependencies(self.dependencies)
-        if len(self.tags) > 0:
-            workload.update_tags(self.tags)
-        if len(self.allow_rules) > 0:
-            workload.update_allow_rules(self.allow_rules)
-        if len(self.deny_rules) > 0:
-            workload.update_deny_rules(self.deny_rules)
-        if len(self.configs) > 0:
-            workload.update_configs(self.configs)
-
-        return workload
+        Returns:
+            tuple: A tuple containing operation and filter masks.
+        """
+        enum_mapper = {
+            _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",
+            _ank_base.ReadWriteEnum.RW_WRITE: "Write",
+            _ank_base.ReadWriteEnum.RW_READ: "Read",
+            _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
+        }
+        return (
+            enum_mapper[rule.operation],
+            rule.filterMasks
+        )

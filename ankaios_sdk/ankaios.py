@@ -116,6 +116,7 @@ __all__ = ["Ankaios"]
 
 import time
 from typing import Union
+from datetime import datetime
 from queue import Queue, Empty
 
 from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
@@ -125,7 +126,8 @@ from ._components import Workload, CompleteState, Request, \
                          ResponseType, UpdateStateSuccess, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
-                         WorkloadExecutionState, ControlInterface
+                         WorkloadExecutionState, ControlInterface, \
+                         LogsRequest, LogsCancelRequest, LogEntry
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -158,15 +160,17 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed
                 at startup.
         """
-        # Thread safe queue for responses
+        # Thread safe queue for responses and logs
         self._responses: Queue = Queue()
+        self._logs: Queue = Queue()
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
 
         # Connect to the control interface
         self._control_interface = ControlInterface(
-            add_response_callback=self._add_response
+            add_response_callback=self._add_response,
+            add_log_callback=self._logs.put,
             )
         self._control_interface.connect()
 
@@ -909,6 +913,7 @@ class Ankaios:
             state (WorkloadStateEnum): The state to wait for.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
+
         Raises:
             TimeoutError: If the request timed out or if the workload
                 did not reach the state in time.
@@ -929,3 +934,62 @@ class Ankaios:
         raise TimeoutError(
             "Timeout while waiting for workload to reach state."
             )
+
+    def request_logs(self, workload_names: list[WorkloadInstanceName],
+                     follow: bool = False, tail: int = -1,
+                     since: Union[str, datetime] = "",
+                     until: Union[str, datetime] = "") -> None:
+        """
+        Request logs for the specified workloads.
+
+        Args:
+            workload_names (list[WorkloadInstanceName]): The workload
+                instance names for which to get logs.
+            follow (bool): If true, the logs will be continuously streamed.
+            tail (int): The number of lines to display from the end of the logs.
+            since (str / datetime): The start time for the logs. If string, it must
+                be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string, it must
+                be in the RFC3339 format.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
+        """
+        request = LogsRequest(
+            workload_names=workload_names,
+            follow=follow, tail=tail,
+            since=since, until=until
+        )
+        self._control_interface.write_request(request)
+
+    def stop_receiving_logs(self) -> None:
+        """
+        Stop receiving logs.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
+        """
+        request = LogsCancelRequest()
+        self._control_interface.write_request(request)
+
+    def get_log(self, block: bool = False, timeout: float = None) -> LogEntry:
+        """
+        Method will attempt to extract and return a log entry from the
+        received logs.
+
+        Args:
+            block (bool): If True, will block until a log entry is
+                available.
+            timeout (float): The maximum time to wait for the log entry,
+                in seconds, if blocked.
+
+        Returns:
+            LogEntry: The log entry object or None if no log entry is
+                available.
+        """
+        try:
+            return self._logs.get(block=block, timeout=timeout)
+        except Empty:
+            return None

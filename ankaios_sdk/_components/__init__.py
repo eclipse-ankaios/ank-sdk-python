@@ -34,6 +34,7 @@ Imports
 """
 
 from .workload import *
+from .workload_builder import *
 from .workload_state import *
 from .complete_state import *
 from .request import *
