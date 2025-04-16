@@ -302,7 +302,9 @@ class ControlInterface:
 
                 # Filter out the logs responses
                 if response.content_type == ResponseType.LOGS:
-                    self._add_log_callback(response.content)
+                    self._add_log_callback(
+                        response.get_request_id(), response.content
+                    )
                     continue
 
                 # Send out the response to the Ankaios class

@@ -87,9 +87,12 @@ class Request:
     """
     Represents a request to the Ankaios system.
     """
-    def __init__(self) -> None:
+    def __init__(self, _id: str = None) -> None:
         """
         Initializes a Request instance.
+
+        Args:
+            _id (str): The request ID. If None, a new UUID will be generated.
 
         Raises:
             TypeError: If the Request class is instantiated directly.
@@ -97,7 +100,7 @@ class Request:
         if self.__class__ is Request:
             raise TypeError("Request cannot be instantiated directly.")
         self._request = _ank_base.Request()
-        self._request.requestId = str(uuid.uuid4())
+        self._set_id(_id if _id else str(uuid.uuid4()))
         self.logger = get_logger()
 
     def __str__(self) -> str:
@@ -117,6 +120,15 @@ class Request:
             str: The request ID.
         """
         return self._request.requestId
+
+    def _set_id(self, request_id: str) -> None:
+        """
+        Sets the request ID.
+
+        Args:
+            request_id (str): The request ID to set.
+        """
+        self._request.requestId = request_id
 
     def _to_proto(self) -> _ank_base.Request:
         """
@@ -184,7 +196,7 @@ class LogsRequest(Request):
     def __init__(
             self, workload_names: list[WorkloadInstanceName], follow: bool = False,
             tail: int = -1, since: Union[str, datetime] = "",
-            until: Union[str, datetime] = ""
+            until: Union[str, datetime] = "",
             ) -> None:
         """
         Initializes an LogsRequest instance.
@@ -232,11 +244,14 @@ class LogsCancelRequest(Request):
     Represents a request for stopping the real-time log stream
     from the Ankaios system.
     """
-    def __init__(self) -> None:
+    def __init__(self, id: str) -> None:
         """
         Initializes an LogsCancelRequest instance.
+
+        Args:
+            id (str): The request ID.
         """
-        super().__init__()
+        super().__init__(_id=id)
         self._request.logsCancelRequest = _ank_base.LogsCancelRequest()
 
         self.logger.debug("Created request of type LogsCancelRequest with id %s",

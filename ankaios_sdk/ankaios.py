@@ -115,7 +115,7 @@ Usage
 __all__ = ["Ankaios"]
 
 import time
-from typing import Union
+from typing import Union, Callable
 from datetime import datetime
 from queue import Queue, Empty
 
@@ -127,7 +127,7 @@ from ._components import Workload, CompleteState, Request, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState, ControlInterface, \
-                         LogsRequest, LogsCancelRequest, LogEntry
+                         LogQueue, LogEntry
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -162,7 +162,7 @@ class Ankaios:
         """
         # Thread safe queue for responses and logs
         self._responses: Queue = Queue()
-        self._logs: Queue = Queue()
+        self._logs_callbacks: dict[str, Callable] = {}
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
@@ -170,7 +170,7 @@ class Ankaios:
         # Connect to the control interface
         self._control_interface = ControlInterface(
             add_response_callback=self._add_response,
-            add_log_callback=self._logs.put,
+            add_log_callback=self._add_logs,
             )
         self._control_interface.connect()
 
@@ -218,6 +218,18 @@ class Ankaios:
         self.logger.debug("Received a response with the id %s",
                           request_id)
         self._responses.put(response)
+
+    def _add_logs(self, request_id: str, logs: list[LogEntry]) -> None:
+        """
+        Method will be called automatically from the Control Interface
+        when a log is received.
+        """
+        if request_id in self._logs_callbacks:
+            for log in logs:
+                self._logs_callbacks[request_id](log)
+        else:
+            self.logger.warning(
+                "Received logs for unknown request id %s", request_id)
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -800,7 +812,7 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(None, timeout).get_workload_states()
+        return self.get_state(["workloadStates"], timeout).get_workload_states()
 
     def get_execution_state_for_instance_name(
             self,
@@ -938,7 +950,7 @@ class Ankaios:
     def request_logs(self, workload_names: list[WorkloadInstanceName],
                      follow: bool = False, tail: int = -1,
                      since: Union[str, datetime] = "",
-                     until: Union[str, datetime] = "") -> None:
+                     until: Union[str, datetime] = "") -> LogQueue:
         """
         Request logs for the specified workloads.
 
@@ -956,40 +968,27 @@ class Ankaios:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
-        request = LogsRequest(
+        log_queue = LogQueue(
             workload_names=workload_names,
             follow=follow, tail=tail,
             since=since, until=until
         )
-        self._control_interface.write_request(request)
+        log_request = log_queue.get_request()
+        self._control_interface.write_request(log_request)
+        self._logs_callbacks[log_request.get_id()] = log_queue.put
+        return log_queue
 
-    def stop_receiving_logs(self) -> None:
+    def stop_receiving_logs(self, log_queue: LogQueue) -> None:
         """
-        Stop receiving logs.
+        Stop receiving logs from the specified LogQueue.
+
+        Args:
+            log_queue (LogQueue): The log queue to stop receiving logs from.
 
         Raises:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
-        request = LogsCancelRequest()
+        request = log_queue.get_cancel_request()
         self._control_interface.write_request(request)
-
-    def get_log(self, block: bool = False, timeout: float = None) -> LogEntry:
-        """
-        Method will attempt to extract and return a log entry from the
-        received logs.
-
-        Args:
-            block (bool): If True, will block until a log entry is
-                available.
-            timeout (float): The maximum time to wait for the log entry,
-                in seconds, if blocked.
-
-        Returns:
-            LogEntry: The log entry object or None if no log entry is
-                available.
-        """
-        try:
-            return self._logs.get(block=block, timeout=timeout)
-        except Empty:
-            return None
+        self._logs_callbacks.pop(request.get_id(), None)
