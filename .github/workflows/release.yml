@@ -89,6 +89,10 @@ jobs:
         reports/pylint-report.zip \
         reports/codestyle-report.zip
 
+  docs:
+    needs: release
+    uses: ./.github/workflows/documentation.yml
+
   publish:
     needs: release
     environment:
