@@ -147,12 +147,13 @@ class CompleteState:
             Workload: The workload with the specified name,
                 or None if not found.
         """
-        for wl_name, proto_workload in self._complete_state. \
-                desiredState.workloads.workloads.items():
-            if wl_name == workload_name:
-                workload = Workload(wl_name)
-                workload._from_proto(proto_workload)
-                return workload
+        if workload_name in self._complete_state. \
+                desiredState.workloads.workloads.keys():
+            proto_workload = self._complete_state. \
+                desiredState.workloads.workloads[workload_name]
+            workload = Workload(workload_name)
+            workload._from_proto(proto_workload)
+            return workload
         return None
 
     def get_workloads(self) -> list[Workload]:
