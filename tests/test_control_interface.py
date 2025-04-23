@@ -25,10 +25,11 @@ from ankaios_sdk import ControlInterface, ControlInterfaceState, \
     ControlInterfaceException, ConnectionClosedException
 from ankaios_sdk.utils import ANKAIOS_VERSION
 from ankaios_sdk._protos import _control_api
-from tests.test_request import generate_test_request
+from tests.request.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_UPDATE_SUCCESS, \
     MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH, MESSAGE_BUFFER_CONNECTION_CLOSED, \
-    MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH
+    MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH, MESSAGE_BUFFER_LOGS_RESPONSE, \
+    MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH
 
 
 def test_state():
@@ -36,7 +37,8 @@ def test_state():
     Test the state enum and the changing of the state.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
     )
     ci._logger = MagicMock()
     assert ci._state == ControlInterfaceState.TERMINATED
@@ -57,7 +59,8 @@ def test_connection():
     Test the connect / disconnect functionality.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
     )
     ci._state = ControlInterfaceState.INITIALIZED
 
@@ -151,7 +154,8 @@ def test_read_thread_general():
     with patch("builtins.open", side_effect=OSError), \
          patch("ankaios_sdk.ControlInterface.disconnect") as mock_disconnect:
         ci = ControlInterface(
-            add_response_callback=response_callback
+            add_response_callback=response_callback,
+            add_log_callback=lambda _: None
         )
         with pytest.raises(ControlInterfaceException,
                            match="Error while opening input fifo"):
@@ -168,7 +172,8 @@ def test_read_thread_general():
             [bytes([b]) for b in update_success_content]
 
         ci = ControlInterface(
-            add_response_callback=response_callback
+            add_response_callback=response_callback,
+            add_log_callback=lambda _: None
         )
 
         # Start thread (similar to _connect)
@@ -190,6 +195,48 @@ def test_read_thread_general():
         response_callback.assert_called_once()
 
 
+def test_read_thread_logs():
+    """
+    Test the _read_from_control_interface method of the Ankaios class.
+    Test the logs callback.
+    """
+    message_logs = MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH + \
+        MESSAGE_BUFFER_LOGS_RESPONSE
+    response_callback = MagicMock()
+    logs_callback = MagicMock()
+    with patch("builtins.open", mock_open()) as mock_file, \
+            patch("os.set_blocking") as _, \
+            patch("select.select") as mock_select:
+        mock_select.return_value = ([True], [], [])
+        mock_file_handle = mock_file.return_value.__enter__.return_value
+        mock_file_handle.read.side_effect = \
+            [bytes([b]) for b in message_logs]
+
+        ci = ControlInterface(
+            add_response_callback=response_callback,
+            add_log_callback=logs_callback
+        )
+
+        # Start thread (similar to _connect)
+        ci._read_thread = threading.Thread(
+            target=ci._read_from_control_interface,
+            daemon=True
+        )
+        ci._state = ControlInterfaceState.INITIALIZED
+        ci._read_thread.start()
+        time.sleep(0.05)
+
+        # Stop thread (similar to disconnect)
+        ci._state = ControlInterfaceState.TERMINATED
+        ci._disconnect_event.set()
+        ci._read_thread.join()
+
+        mock_file.assert_called_once_with(
+            "/run/ankaios/control_interface/input", "rb")
+        response_callback.assert_not_called()
+        logs_callback.assert_called_once()
+
+
 def test_read_thread_agent_disconnected():
     """
     Test the _read_from_control_interface method of the Ankaios class.
@@ -207,7 +254,8 @@ def test_read_thread_agent_disconnected():
         mock_file_handle.read.return_value = b""
 
         ci = ControlInterface(
-            add_response_callback=lambda _: None
+            add_response_callback=lambda _: None,
+            add_log_callback=lambda _: None
         )
 
         # Start thread (similar to _connect)
@@ -248,7 +296,8 @@ def test_read_thread_connection_closed():
             [bytes([b]) for b in connection_closed_content]
 
         ci = ControlInterface(
-            add_response_callback=response_callback
+            add_response_callback=response_callback,
+            add_log_callback=lambda _: None
         )
 
         # Start thread (similar to _connect)
@@ -274,7 +323,8 @@ def test_agent_gone_routine():
     Test the _agent_gone_routine method of the ControlInterface class.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
     )
     ci._state = ControlInterfaceState.INITIALIZED
     with patch("ankaios_sdk.ControlInterface._send_initial_hello") \
@@ -312,8 +362,9 @@ def test_write_to_pipe():
     Test the _write_to_pipe method of the ControlInterface class.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
-        )
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
+    )
 
     ci._output_file = None
     with pytest.raises(ControlInterfaceException,
@@ -334,8 +385,9 @@ def test_write_request():
     Test the write_request method of the ControlInterface class.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
-        )
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
+    )
 
     ci._state = ControlInterfaceState.TERMINATED
     with pytest.raises(ControlInterfaceException,
@@ -358,8 +410,9 @@ def test_send_initial_hello():
     Test the _send_initial_hello method of the Ankaios class.
     """
     ci = ControlInterface(
-        add_response_callback=lambda _: None
-        )
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None
+    )
     with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(

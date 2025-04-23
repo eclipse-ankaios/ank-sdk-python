@@ -106,24 +106,70 @@ def test_add_tag(
     assert builder.tags == [("key_test", "abc"), ("key_test", "bcd")]
 
 
-def test_add_rule(
+def test_add_state_rule(
         builder: WorkloadBuilder
         ):  # pylint: disable=redefined-outer-name
     """
-    Test adding rules to the WorkloadBuilder instance.
+    Test adding state rules to the WorkloadBuilder instance.
 
     Args:
         builder (WorkloadBuilder): The WorkloadBuilder fixture.
     """
     assert len(builder.allow_rules) == 0
 
-    assert builder.add_allow_rule("Write", ["mask"]) == builder
-    assert builder.allow_rules == [("Write", ["mask"])]
+    assert builder.add_allow_state_rule("Write", ["mask"]) == builder
+    assert len(builder.allow_rules) == 1
+    assert builder.allow_rules[0]._to_proto() == \
+        _ank_base.AccessRightsRule(
+            stateRule=_ank_base.StateRule(
+                operation=_ank_base.ReadWriteEnum.RW_WRITE,
+                filterMasks=["mask"]
+            )
+        )
 
     assert len(builder.deny_rules) == 0
 
-    assert builder.add_deny_rule("Read", ["mask"]) == builder
-    assert builder.deny_rules == [("Read", ["mask"])]
+    assert builder.add_deny_state_rule("Read", ["mask"]) == builder
+    assert len(builder.deny_rules) == 1
+    assert builder.deny_rules[0]._to_proto() == \
+        _ank_base.AccessRightsRule(
+            stateRule=_ank_base.StateRule(
+                operation=_ank_base.ReadWriteEnum.RW_READ,
+                filterMasks=["mask"]
+            )
+        )
+
+
+def test_add_log_rule(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
+    """
+    Test adding log rules to the WorkloadBuilder instance.
+
+    Args:
+        builder (WorkloadBuilder): The WorkloadBuilder fixture.
+    """
+    assert len(builder.allow_rules) == 0
+
+    assert builder.add_allow_log_rule(['nginx', 'nginx2']) == builder
+    assert len(builder.allow_rules) == 1
+    assert builder.allow_rules[0]._to_proto() == \
+        _ank_base.AccessRightsRule(
+            logRule=_ank_base.LogRule(
+                workloadNames=["nginx", "nginx2"]
+            )
+        )
+
+    assert len(builder.deny_rules) == 0
+
+    assert builder.add_deny_log_rule(['nginx', 'nginx2']) == builder
+    assert len(builder.deny_rules) == 1
+    assert builder.deny_rules[0]._to_proto() == \
+        _ank_base.AccessRightsRule(
+            logRule=_ank_base.LogRule(
+                workloadNames=["nginx", "nginx2"]
+            )
+        )
 
 
 def test_add_config(
@@ -181,7 +227,7 @@ def test_build(
         .restart_policy("NEVER") \
         .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key_test", "abc") \
-        .add_allow_rule("Write", ["mask"]) \
+        .add_allow_state_rule("Write", ["mask"]) \
         .build()
 
     assert workload is not None

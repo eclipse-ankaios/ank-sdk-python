@@ -79,7 +79,7 @@ from ..utils import get_logger, WORKLOADS_PREFIX
 
 logger = get_logger()
 if TYPE_CHECKING:
-    from .workload_builder import WorkloadBuilder
+    from .workload_builder import WorkloadBuilder # pragma: no cover
 
 
 # pylint: disable=too-many-public-methods
@@ -322,7 +322,7 @@ class Workload:
         """
         del self._workload.controlInterfaceAccess.denyRules[:]
         for rule in rules:
-            self._workload.controlInterfaceAccess.allowRules.append(
+            self._workload.controlInterfaceAccess.denyRules.append(
                 rule._to_proto()
             )
         self._add_mask(f"{self._main_mask}.controlInterfaceAccess.denyRules")
@@ -406,19 +406,15 @@ class Workload:
         if self._workload.controlInterfaceAccess:
             workload_dict["controlInterfaceAccess"]["allowRules"] = []
             for rule in self._workload.controlInterfaceAccess.allowRules:
-                operation, filter_masks = self._state_rule_to_str(rule)
-                workload_dict["controlInterfaceAccess"]["allowRules"].append({
-                        "type": "StateRule",
-                        "operation": operation,
-                        "filterMask": [str(mask) for mask in filter_masks]}
+                access_rule = AccessRightRule(rule)
+                workload_dict["controlInterfaceAccess"]["allowRules"].append(
+                    access_rule.to_dict()
                 )
             workload_dict["controlInterfaceAccess"]["denyRules"] = []
             for rule in self._workload.controlInterfaceAccess.denyRules:
-                operation, filter_masks = self._state_rule_to_str(rule)
-                workload_dict["controlInterfaceAccess"]["denyRules"].append({
-                    "type": "StateRule",
-                    "operation": operation,
-                    "filterMask": [str(mask) for mask in filter_masks]}
+                access_rule = AccessRightRule(rule)
+                workload_dict["controlInterfaceAccess"]["denyRules"].append(
+                    access_rule.to_dict()
                 )
         workload_dict["configs"] = {}
         for alias, name in self._workload.configs.configs.items():
@@ -459,7 +455,7 @@ class Workload:
                         "controlInterfaceAccess"][
                         "allowRules"
                         ]:
-                    workload = workload.add_allow_rule(
+                    workload = workload.add_allow_state_rule(
                         rule["operation"], rule["filterMask"]
                     )
             if "denyRules" in dict_workload["controlInterfaceAccess"]:
@@ -467,7 +463,7 @@ class Workload:
                         "controlInterfaceAccess"][
                         "denyRules"
                         ]:
-                    workload = workload.add_deny_rule(
+                    workload = workload.add_deny_state_rule(
                         rule["operation"], rule["filterMask"]
                     )
         if "configs" in dict_workload:
@@ -599,6 +595,33 @@ class AccessRightRule:
                 of the AccessRightRule object.
         """
         return self._rule
+
+    def to_dict(self) -> dict:
+        """
+        Convert the AccessRightRule object to a dictionary.
+
+        Returns:
+            dict: The dictionary representation of the AccessRightRule object.
+        """
+        if self.type == "StateRule":
+            operation, filter_masks = self._state_rule_to_str(
+                self._rule.stateRule
+            )
+            return {
+                "type": "StateRule",
+                "operation": operation,
+                "filterMask": [str(mask) for mask in filter_masks]
+            }
+        if self.type == "LogRule":
+            return {
+                "type": "LogRule",
+                "workloadNames": [
+                    str(name) for name in self._rule.logRule.workloadNames
+                    ]
+            }
+        return {
+            "type": "Unknown"
+        }
 
     @staticmethod
     def _generate_state_rule(operation: str,

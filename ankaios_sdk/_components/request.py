@@ -252,7 +252,7 @@ class LogsCancelRequest(Request):
             id (str): The request ID.
         """
         super().__init__(_id=id)
-        self._request.logsCancelRequest = _ank_base.LogsCancelRequest()
+        self._request.logsCancelRequest.CopyFrom(_ank_base.LogsCancelRequest())
 
         self.logger.debug("Created request of type LogsCancelRequest with id %s",
                           self._request.requestId)

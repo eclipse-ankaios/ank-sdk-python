@@ -20,16 +20,16 @@ from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock
 import pytest
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, Response, \
+from ankaios_sdk import Ankaios, AnkaiosLogLevel, LogEntry, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
     WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
     AnkaiosProtocolException, AnkaiosResponseError, ConnectionClosedException
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
-from tests.test_request import generate_test_request
-from tests.response.test_response import MESSAGE_BUFFER_ERROR, \
-    MESSAGE_BUFFER_COMPLETE_STATE, MESSAGE_BUFFER_UPDATE_SUCCESS, \
-    MESSAGE_BUFFER_CONNECTION_CLOSED
+from tests.request.test_request import generate_test_request
+from tests.response.test_response import generate_test_log_entry, \
+    MESSAGE_BUFFER_ERROR, MESSAGE_BUFFER_COMPLETE_STATE, \
+    MESSAGE_BUFFER_UPDATE_SUCCESS, MESSAGE_BUFFER_CONNECTION_CLOSED
 from tests.test_manifest import MANIFEST_DICT
 from tests.workload_state.test_workload_state import \
     generate_test_workload_state
@@ -127,6 +127,34 @@ def test_add_response():
     assert ankaios._responses.qsize() == 1
     assert ankaios._responses.get() == response
     assert ankaios._responses.empty()
+
+
+def test_add_logs():
+    """
+    Test the _add_logs method of the Ankaios class.
+    This method is called from the ControlInterface when a response
+    of type Logs is received.
+    """
+    log_entries = [
+        LogEntry(generate_test_log_entry(name="nginx_A")),
+        LogEntry(generate_test_log_entry(name="nginx_B"))
+    ]
+    put_mock = MagicMock()
+
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert len(ankaios._logs_callbacks) == 0
+    ankaios._logs_callbacks = {
+        "correct_id": put_mock
+    }
+    ankaios._add_logs("correct_id", log_entries)
+    assert put_mock.call_count == 2
+    ankaios.logger.warning.assert_not_called()
+
+    ankaios._add_logs("wrong_id", log_entries)
+    assert put_mock.call_count == 2
+    ankaios.logger.warning.assert_called_once()
+
 
 
 def test_get_reponse_by_id():
@@ -640,7 +668,7 @@ def test_get_workload_states():
         mock_get_state.return_value = CompleteState()
         ankaios.get_workload_states()
         mock_get_state.assert_called_once_with(
-            None, Ankaios.DEFAULT_TIMEOUT
+            ['workloadStates'], Ankaios.DEFAULT_TIMEOUT
             )
         mock_state_get_workload_states.assert_called_once()
 
@@ -755,3 +783,32 @@ def test_wait_for_workload_to_reach_state():
             instance_name, WorkloadStateEnum.RUNNING
         )
         mock_get_state.assert_called()
+
+
+def test_logs():
+    """
+    Test the request_logs and stop-receiving_logs methods of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    workload_instance_name = WorkloadInstanceName(
+        agent_name="agent_Test",
+        workload_name="workload_Test",
+        workload_id="1234"
+    )
+    assert len(ankaios._logs_callbacks) == 0
+
+    with patch("ankaios_sdk.ControlInterface.write_request") as mock_write:
+        log_queue = ankaios.request_logs([workload_instance_name])
+        request = log_queue.get_request()
+        mock_write.assert_called_once_with(request)
+
+        assert len(ankaios._logs_callbacks) == 1
+        assert ankaios._logs_callbacks[request.get_id()] == log_queue.put
+
+    with patch("ankaios_sdk.ControlInterface.write_request") as mock_write:
+        cancel_request = log_queue.get_cancel_request()
+        ankaios.stop_receiving_logs(log_queue)
+        mock_write.assert_called_once()
+        request = mock_write.call_args[0][0]
+        assert cancel_request._to_proto() == request._to_proto()
+        assert len(ankaios._logs_callbacks) == 0

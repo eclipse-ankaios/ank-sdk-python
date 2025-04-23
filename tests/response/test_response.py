@@ -19,7 +19,8 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
 from ankaios_sdk import Response, ResponseType, CompleteState, \
-    ResponseException
+    ResponseException, LogEntry
+from tests.response.test_log_entry import generate_test_log_entry
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
@@ -60,9 +61,24 @@ MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(
     MESSAGE_UPDATE_SUCCESS.ByteSize()
 )
 
-MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
+MESSAGE_LOGS_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
+        logsResponse=_ank_base.LogsResponse(
+            logEntries=[
+                generate_test_log_entry()
+            ]
+        )
+    )
+)
+MESSAGE_BUFFER_LOGS_RESPONSE = MESSAGE_LOGS_RESPONSE.SerializeToString()
+MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH = _VarintBytes(
+    MESSAGE_LOGS_RESPONSE.ByteSize()
+)
+
+MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="5566",
     )
 ).SerializeToString()
 
@@ -103,6 +119,13 @@ def test_initialisation():
     assert len(deleted_workloads) == 1
     assert str(added_workloads[0]) == "new_nginx.12345.agent_A"
     assert str(deleted_workloads[0]) == "old_nginx.54321.agent_A"
+
+    # Test logs response
+    response = Response(MESSAGE_BUFFER_LOGS_RESPONSE)
+    assert response.content_type == ResponseType.LOGS
+    assert isinstance(response.content, list)
+    assert len(response.content) == 1
+    assert isinstance(response.content[0], LogEntry)
 
     # Test connection closed
     response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
