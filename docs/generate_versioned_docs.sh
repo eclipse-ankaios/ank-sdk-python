@@ -20,7 +20,7 @@ set -e
 GIT_DIR="../"
 
 # Get sorted tags
-tags=$(git -C "$GIT_DIR" tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
+tags=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
 
 declare -A latest_versions=()
 
