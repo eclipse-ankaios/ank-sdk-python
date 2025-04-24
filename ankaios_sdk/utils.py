@@ -31,7 +31,7 @@ Functions
 """
 
 import logging
-from typing import Union, List, Dict
+from typing import Union
 from enum import Enum
 import threading
 from ._protos import _ank_base
@@ -91,7 +91,7 @@ def get_logger(name="Ankaios logger"):
     return logger
 
 
-def _to_config_item(item: Union[str, List, Dict]
+def _to_config_item(item: Union[str, list, dict]
                     ) -> _ank_base.ConfigItem:
     """
     Returns an ank_base.ConfigItem from a base type.
@@ -102,10 +102,10 @@ def _to_config_item(item: Union[str, List, Dict]
     config_item = _ank_base.ConfigItem()
     if isinstance(item, str):
         config_item.String = item
-    elif isinstance(item, List):
+    elif isinstance(item, list):
         for value in [_to_config_item(value) for value in item]:
             config_item.array.values.append(value)
-    elif isinstance(item, Dict):
+    elif isinstance(item, dict):
         for key, value in item.items():
             config_item.object.fields[key]. \
                 CopyFrom(_to_config_item(value))
