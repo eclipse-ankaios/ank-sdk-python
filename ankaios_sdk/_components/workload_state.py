@@ -358,7 +358,7 @@ class WorkloadInstanceName:
         return f"workloadStates.{self.agent_name}." \
                + f"{self.workload_name}.{self.workload_id}"
 
-    def to_proto(self) -> _ank_base.WorkloadInstanceName:
+    def _to_proto(self) -> _ank_base.WorkloadInstanceName:
         """
         Converts the workload instance name to a proto message.
 
@@ -369,7 +369,7 @@ class WorkloadInstanceName:
         return _ank_base.WorkloadInstanceName(
             agentName=self.agent_name,
             workloadName=self.workload_name,
-            workloadId=self.workload_id
+            id=self.workload_id
         )
 
 

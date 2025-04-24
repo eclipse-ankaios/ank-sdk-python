@@ -218,11 +218,11 @@ class LogsRequest(Request):
             raise ValueError("At least one workload name must be provided.")
 
         super().__init__()
-        self._request.logsRequest = _ank_base.LogsRequest(
+        self._request.logsRequest.CopyFrom(_ank_base.LogsRequest(
             workloadNames=[name._to_proto() for name in workload_names],
             follow=follow,
             tail=tail
-        )
+        ))
         if since:
             if isinstance(since, str):
                 self._request.logsRequest.since = since

@@ -272,9 +272,9 @@ class LogEntry:
             log (_ank_base.LogEntry): The log entry from the Ankaios system.
         """
         self.workload_instance_name = WorkloadInstanceName(
-            log.workloadInstanceName.agentName,
-            log.workloadInstanceName.workloadName,
-            log.workloadInstanceName.workloadId
+            log.workloadName.agentName,
+            log.workloadName.workloadName,
+            log.workloadName.id
         )
         self.message = log.message
 
