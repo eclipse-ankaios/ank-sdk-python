@@ -146,7 +146,7 @@ jobs:
           name: codestyle-report
           path: reports/codestyle
 
-  docs:
+  check_docs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
