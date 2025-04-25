@@ -138,6 +138,7 @@ setup(
             'sphinx-rtd-theme',  # Read the Docs theme
             'sphinx-autodoc-typehints',  # Type hints support
             'sphinx-mdinclude',  # Markdown include support
+            'sphinx-versioned-docs',  # Versioned docs support
             'google-api-python-client',  # Required for the Google API docstring extension
         ],
     },
