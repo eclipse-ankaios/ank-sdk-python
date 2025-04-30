@@ -1,6 +1,6 @@
 apiVersion: v0.1
 workloads:
-  sleepy:
+  example:
     runtime: podman
     agent: agent_Py_SDK
     controlInterfaceAccess:
@@ -10,4 +10,4 @@ workloads:
           filterMask:
             - "*"
     runtimeConfig: |
-      image: localhost/sleepy:0.1
+      image: localhost/app:0.1

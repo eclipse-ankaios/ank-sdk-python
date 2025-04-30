@@ -22,3 +22,6 @@ docs/build/
 docs/build_versioned/
 
 /venv
+
+# Tests
+examples/app/app.py

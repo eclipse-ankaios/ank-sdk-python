@@ -12,7 +12,7 @@ FROM base as prod
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ./app.py ./
+COPY app.py ./
 
 CMD [ "python", "-u", "./app.py" ]
 
@@ -20,6 +20,6 @@ FROM base as dev
 
 COPY . ./ank-sdk-python
 RUN pip install ./ank-sdk-python
-COPY examples/follow_state/app.py ./
+COPY examples/app/app.py ./
 
 CMD [ "python", "-u", "./app.py" ]
