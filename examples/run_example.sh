@@ -76,7 +76,7 @@ if pgrep -x "ank-server" >/dev/null
 then
   echo -e "\nAbort startup. Ankaios server is already running."
   echo "Shutdown the Ankaios server instance manually or"
-  echo -e "if 'run_example.sh' was executed previously,\nexecute 'shutdown_example.sh' afterwards to stop the example."
+  echo -e "if 'run_example.sh' was executed previously,\nexecute 'stop_example.sh' afterwards to stop the example."
   exit 3
 fi
 
