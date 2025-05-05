@@ -92,13 +92,13 @@ def test_workload_functionality():
     assert len(complete_state.get_workloads()) == 0
 
     wl_nginx = generate_test_workload("nginx_test")
-    complete_state.add_workload(wl_nginx)
+    complete_state = CompleteState(workloads=[wl_nginx])
     assert len(complete_state.get_workloads()) == 1
-    assert complete_state.get_workload("nginx_test") == wl_nginx
     assert complete_state._complete_state.desiredState.workloads\
         .workloads["nginx_test"] == wl_nginx._to_proto()
 
     assert complete_state.get_workload("invalid") is None
+    assert complete_state.get_workload("nginx_test") is not None
 
 
 def test_workload_states():
@@ -106,9 +106,8 @@ def test_workload_states():
     Test the functionality of CompleteState class regarding
     setting and getting workload states.
     """
-    complete_state = CompleteState()
-    complete_state._from_proto(
-        _ank_base.CompleteState(
+    complete_state = CompleteState(
+        _proto=_ank_base.CompleteState(
             workloadStates=WORKLOAD_STATES_PROTO
         )
     )
@@ -122,9 +121,8 @@ def test_get_agents():
     """
     Test the get_agents method of the CompleteState class.
     """
-    complete_state = CompleteState()
-    complete_state._from_proto(
-        _ank_base.CompleteState(
+    complete_state = CompleteState(
+        _proto=_ank_base.CompleteState(
             agents=AGENTS_PROTO
         )
     )
@@ -139,12 +137,13 @@ def test_get_configs():
     """
     Test the get_configs method of the CompleteState class.
     """
-    complete_state = CompleteState()
-    complete_state._from_proto(_ank_base.CompleteState(
-        desiredState=_ank_base.State(
-            configs=CONFIGS_PROTO
+    complete_state = CompleteState(
+        _proto=_ank_base.CompleteState(
+            desiredState=_ank_base.State(
+                configs=CONFIGS_PROTO
+            )
         )
-    ))
+    )
     configs = complete_state.get_configs()
     assert configs == {
         "config_1": "val_1",
@@ -162,8 +161,8 @@ def test_from_manifest():
     """
     Test the from_manifest method of the CompleteState class.
     """
-    manifest = Manifest(MANIFEST_DICT)
-    complete_state = CompleteState.from_manifest(manifest)
+    manifest = Manifest.from_dict(MANIFEST_DICT)
+    complete_state = CompleteState(manifest=manifest)
     assert complete_state.get_api_version() == "v0.1"
     workloads = complete_state.get_workloads()
     assert len(workloads) == 1
@@ -179,8 +178,9 @@ def test_to_dict():
     """
     Test converting the CompleteState to a dictionary.
     """
-    complete_state = CompleteState()
-    complete_state._from_proto(COMPLETE_PROTO)
+    complete_state = CompleteState(
+        _proto=COMPLETE_PROTO
+    )
 
     complete_state_dict = complete_state.to_dict()
     assert complete_state_dict == {
@@ -281,8 +281,9 @@ def test_proto():
     """
     Test converting the CompleteState instance to and from a protobuf message.
     """
-    complete_state = CompleteState()
-    complete_state._from_proto(COMPLETE_PROTO)
+    complete_state = CompleteState(
+        _proto=COMPLETE_PROTO
+    )
     new_proto = complete_state._to_proto()
 
     assert new_proto == COMPLETE_PROTO

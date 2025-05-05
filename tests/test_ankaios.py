@@ -49,7 +49,6 @@ def generate_test_ankaios() -> Ankaios:
         mock_connect.assert_called_once()
         mock_get_state.assert_called_once()
     ankaios._control_interface._state = ControlInterfaceState.INITIALIZED
-    assert ankaios.state == ankaios._control_interface._state
     return ankaios
 
 
@@ -112,28 +111,6 @@ def test_connection():
         mock_get_state.side_effect = TimeoutError()
         _ = Ankaios()
         mock_get_state.assert_called_once()
-
-
-def test_state():
-    """
-    Test the state property of the Ankaios class and the state callback.
-    """
-    ankaios = generate_test_ankaios()
-    ankaios.logger = MagicMock()
-    assert ankaios.state == ankaios._control_interface._state
-    ankaios._state_changed(ControlInterfaceState.TERMINATED)
-    ankaios.logger.info.assert_called_with(
-        "State changed to %s", ControlInterfaceState.TERMINATED
-    )
-
-    ankaios._state_changed(
-        ControlInterfaceState.CONNECTION_CLOSED, info="Unsuported version."
-        )
-    ankaios.logger.info.assert_called_with(
-        "State changed to %s: %s",
-        ControlInterfaceState.CONNECTION_CLOSED,
-        "Unsuported version."
-    )
 
 
 def test_add_response():
@@ -206,7 +183,7 @@ def test_apply_manifest():
     """
     ankaios = generate_test_ankaios()
     ankaios.logger = MagicMock()
-    manifest = Manifest(MANIFEST_DICT)
+    manifest = Manifest.from_dict(MANIFEST_DICT)
 
     # Test success
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
@@ -249,7 +226,7 @@ def test_delete_manifest():
     """
     ankaios = generate_test_ankaios()
     ankaios.logger = MagicMock()
-    manifest = Manifest(MANIFEST_DICT)
+    manifest = Manifest.from_dict(MANIFEST_DICT)
 
     # Test success
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
@@ -345,7 +322,7 @@ def test_get_workload():
         mock_get_state.return_value = CompleteState()
         mock_state_get_workloads.return_value = [workload]
         ret = ankaios.get_workload(workload_name)
-        assert ret == workload
+        assert ret == [workload]
         mock_get_state.assert_called_once_with(
             [f"{WORKLOADS_PREFIX}.nginx"],
             Ankaios.DEFAULT_TIMEOUT

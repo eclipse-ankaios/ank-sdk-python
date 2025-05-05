@@ -120,12 +120,12 @@ from queue import Queue, Empty
 
 from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
                         ConnectionClosedException
-from ._components import Workload, CompleteState, Request, RequestType, \
-                         Response, ResponseType, UpdateStateSuccess, \
+from ._components import Workload, CompleteState, Request, \
+                         UpdateStateRequest, GetStateRequest, Response, \
+                         ResponseType, UpdateStateSuccess, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
-                         WorkloadExecutionState, ControlInterface, \
-                         ControlInterfaceState
+                         WorkloadExecutionState, ControlInterface
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -166,8 +166,7 @@ class Ankaios:
 
         # Connect to the control interface
         self._control_interface = ControlInterface(
-            add_response_callback=self._add_response,
-            state_changed_callback=self._state_changed
+            add_response_callback=self._add_response
             )
         self._control_interface.connect()
 
@@ -205,28 +204,6 @@ class Ankaios:
             self.logger.error("An exception occurred: %s, %s, %s",
                               exc_type, exc_value, traceback)
         self._control_interface.disconnect()
-
-    @property
-    def state(self) -> ControlInterfaceState:
-        """
-        Get the state of the control interface.
-
-        Returns:
-            ControlInterfaceState: The state of the control interface.
-        """
-        return self._control_interface.state
-
-    def _state_changed(
-            self, state: ControlInterfaceState, info: str = None
-            ) -> None:
-        """
-        Method will be called automatically from the Control Interface
-        when the state changes.
-        """
-        if info is None:
-            self.logger.info("State changed to %s", state)
-        else:
-            self.logger.info("State changed to %s: %s", state, info)
 
     def _add_response(self, response: Response) -> None:
         """
@@ -331,9 +308,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(CompleteState.from_manifest(manifest))
-        request.set_masks(manifest._calculate_masks())
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(manifest=manifest),
+            manifest._calculate_masks()
+        )
 
         # Send request
         try:
@@ -379,9 +358,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(CompleteState())
-        request.set_masks(manifest._calculate_masks())
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(),
+            manifest._calculate_masks()
+        )
 
         # Send request
         try:
@@ -427,13 +408,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        complete_state = CompleteState()
-        complete_state.add_workload(workload)
-
         # Create the request
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(complete_state)
-        request.set_masks(workload.masks)
+        request = UpdateStateRequest(
+            CompleteState(workloads=[workload]),
+            workload.masks
+        )
 
         # Send request
         try:
@@ -459,10 +438,12 @@ class Ankaios:
         raise AnkaiosProtocolException("Received unexpected content type.")
 
     def get_workload(self, workload_name: str,
-                     timeout: float = DEFAULT_TIMEOUT) -> Workload:
+                     timeout: float = DEFAULT_TIMEOUT) -> list[Workload]:
         """
         Get the workload with the provided name from the
         requested complete state.
+        If the workload name contains a wildcard, all workloads matching
+        the pattern will be returned.
 
         Args:
             workload_name (str): The name of the workload.
@@ -470,7 +451,7 @@ class Ankaios:
                 in seconds.
 
         Returns:
-            Workload: The workload object.
+            list[Workload]: The workloads that match the name.
 
         Raises:
             TimeoutError: If the request timed out.
@@ -482,7 +463,7 @@ class Ankaios:
         """
         return self.get_state(
             [f"{WORKLOADS_PREFIX}.{workload_name}"], timeout
-        ).get_workloads()[0]
+        ).get_workloads()
 
     def delete_workload(self, workload_name: str,
                         timeout: float = DEFAULT_TIMEOUT
@@ -505,9 +486,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(CompleteState())
-        request.add_mask(f"{WORKLOADS_PREFIX}.{workload_name}")
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(),
+            [f"{WORKLOADS_PREFIX}.{workload_name}"]
+        )
 
         try:
             response = self._send_request(request, timeout)
@@ -548,12 +531,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        complete_state = CompleteState()
-        complete_state.set_configs(configs)
-
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(complete_state)
-        request.add_mask(CONFIGS_PREFIX)
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(configs=configs),
+            [CONFIGS_PREFIX]
+        )
 
         try:
             response = self._send_request(request, timeout)
@@ -591,12 +573,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        complete_state = CompleteState()
-        complete_state.set_configs({name: config})
-
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(complete_state)
-        request.add_mask(f"{CONFIGS_PREFIX}.{name}")
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(configs={name: config}),
+            [f"{CONFIGS_PREFIX}.{name}"]
+        )
 
         try:
             response = self._send_request(request, timeout)
@@ -668,9 +649,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(CompleteState())
-        request.add_mask(CONFIGS_PREFIX)
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(),
+            [CONFIGS_PREFIX]
+        )
 
         try:
             response = self._send_request(request, timeout)
@@ -705,9 +688,11 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.UPDATE_STATE)
-        request.set_complete_state(CompleteState())
-        request.add_mask(f"{CONFIGS_PREFIX}.{name}")
+        # Create the request
+        request = UpdateStateRequest(
+            CompleteState(),
+            [f"{CONFIGS_PREFIX}.{name}"]
+        )
 
         try:
             response = self._send_request(request, timeout)
@@ -748,9 +733,9 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        request = Request(request_type=RequestType.GET_STATE)
-        if field_masks is not None:
-            request.set_masks(field_masks)
+        request = GetStateRequest(
+            field_masks if field_masks is not None else []
+        )
         try:
             response = self._send_request(request, timeout)
         except TimeoutError as e:

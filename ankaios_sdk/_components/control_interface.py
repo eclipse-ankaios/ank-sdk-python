@@ -97,8 +97,7 @@ class ControlInterface:
     "(str): The base path for the Ankaios control interface."
 
     def __init__(self,
-                 add_response_callback: Callable,
-                 state_changed_callback: Callable
+                 add_response_callback: Callable
                  ) -> None:
         """
         Initialize the ControlInterface object. This is used
@@ -119,19 +118,8 @@ class ControlInterface:
         self._disconnect_event = threading.Event()
 
         self._add_response_callback = add_response_callback
-        self._state_changed_callback = state_changed_callback
 
         self._logger = get_logger()
-
-    @property
-    def state(self) -> ControlInterfaceState:
-        """
-        Returns the current state of the control interface.
-
-        Returns:
-            ControlInterfaceState: The state of the control interface.
-        """
-        return self._state
 
     def connect(self) -> None:
         """
@@ -225,7 +213,12 @@ class ControlInterface:
             self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
             return
         self._state = state
-        self._state_changed_callback(state, info)
+        if info is None:
+            self._logger.debug("State changed to %s.", state)
+        else:
+            self._logger.debug(
+                "State changed to %s: %s", state, info
+            )
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -327,7 +320,7 @@ class ControlInterface:
         until the agent is connected.
         """
         agent_reconnect_interval = 1  # seconds
-        while self.state == ControlInterfaceState.AGENT_DISCONNECTED:
+        while self._state == ControlInterfaceState.AGENT_DISCONNECTED:
             try:
                 self._send_initial_hello()
             except BrokenPipeError as _:

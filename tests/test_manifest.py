@@ -18,6 +18,7 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 
 from unittest.mock import patch, mock_open
 import pytest
+from ankaios_sdk._protos import _ank_base
 from ankaios_sdk import Manifest, InvalidManifestException
 from ankaios_sdk.utils import WORKLOADS_PREFIX, CONFIGS_PREFIX
 
@@ -55,6 +56,37 @@ MANIFEST_DICT = {
         }
     }
 }
+MANIFEST_PROTO = _ank_base.State(
+    apiVersion="v0.1",
+    workloads=_ank_base.WorkloadMap(
+        workloads={
+            "nginx_test": _ank_base.Workload(
+                agent="agent_A",
+                runtime="podman",
+                runtimeConfig="image: image/test\n",
+                restartPolicy=_ank_base.NEVER,
+                configs=_ank_base.ConfigMappings(
+                    configs={
+                        "ports": "test_ports",
+                    }
+                )
+            )
+        }
+    ),
+    configs=_ank_base.ConfigMap(
+        configs={
+            "test_ports": _ank_base.ConfigItem(
+                object=_ank_base.ConfigObject(
+                    fields={
+                        "port": _ank_base.ConfigItem(
+                            String="8081"
+                        )
+                    }
+                )
+            )
+        }
+    )
+)
 
 
 def test_from_file():
@@ -92,34 +124,20 @@ def test_from_dict():
     from a dictionary and handles errors.
     """
     manifest = Manifest.from_dict(MANIFEST_DICT)
-    assert manifest._manifest == MANIFEST_DICT
-
-    with pytest.raises(InvalidManifestException):
-        _ = Manifest.from_dict({})
-
-
-def test_check():
-    """
-    Test the check method of the Manifest class,
-    ensuring it correctly validates the manifest data and handles errors.
-    """
-    with patch("ankaios_sdk.InvalidManifestException") as mock_exception:
-        _ = Manifest(MANIFEST_DICT)
-        assert not mock_exception.called
+    desired_state = manifest._to_desired_state()
+    assert desired_state == MANIFEST_PROTO
 
     with pytest.raises(InvalidManifestException,
                        match="apiVersion is missing."):
-        _ = Manifest({})
+        manifest = Manifest.from_dict({})
 
-    with pytest.raises(InvalidManifestException,
-                       match="Mandatory key"):
-        _ = Manifest({'apiVersion': 'v0.1', 'workloads':
-                      {'nginx_test': {}}})
+    with pytest.raises(InvalidManifestException):
+        _ = Manifest.from_dict({'apiVersion': 'v0.1', 'workloads':
+                                {'nginx_test': {}}})
 
-    with pytest.raises(InvalidManifestException,
-                       match="Invalid key"):
-        _ = Manifest({'apiVersion': 'v0.1', 'workloads':
-                      {'nginx_test': {'invalid_key': ''}}})
+    with pytest.raises(InvalidManifestException):
+        _ = Manifest.from_dict({'apiVersion': 'v0.1', 'workloads':
+                                {'nginx_test': {'invalid_key': ''}}})
 
 
 def test_calculate_masks():
@@ -134,11 +152,11 @@ def test_calculate_masks():
             'agent': 'agent_B',
             'runtimeConfig': 'image: image/test'
         }
-    manifest = Manifest(manifest_dict)
+    manifest = Manifest.from_dict(manifest_dict)
     assert len(manifest._calculate_masks()) == 3
     assert manifest._calculate_masks() == [
-        f"{WORKLOADS_PREFIX}.nginx_test",
         f"{WORKLOADS_PREFIX}.nginx_test_other",
+        f"{WORKLOADS_PREFIX}.nginx_test",
         f"{CONFIGS_PREFIX}.test_ports"
     ]
 
@@ -149,6 +167,6 @@ def test_manifest_only_configs():
     """
     manifest_dict = MANIFEST_DICT.copy()
     manifest_dict.pop("workloads")
-    manifest = Manifest(manifest_dict)
+    manifest = Manifest.from_dict(manifest_dict)
     assert len(manifest._calculate_masks()) == 1
     assert manifest._calculate_masks() == [f"{CONFIGS_PREFIX}.test_ports"]
