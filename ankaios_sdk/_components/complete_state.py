@@ -30,15 +30,16 @@ Usage
 
         complete_state = CompleteState()
 
+- Create a CompleteState instance from a Manifest:
+    .. code-block:: python
+
+        manifest = Manifest()
+        complete_state = CompleteState(manifest=manifest)
+
 - Get the API version of the complete state:
     .. code-block:: python
 
         api_version = complete_state.get_api_version()
-
-- Add a workload to the complete state:
-    .. code-block:: python
-
-        complete_state.add_workload(workload)
 
 - Get a workload from the complete state:
     .. code-block:: python
@@ -59,11 +60,6 @@ Usage
     .. code-block:: python
 
         workload_states = complete_state.get_workload_states()
-
-- Create a CompleteState instance from a Manifest:
-    .. code-block:: python
-
-        complete_state = CompleteState.from_manifest(manifest)
 """
 
 __all__ = ["CompleteState"]
@@ -73,22 +69,45 @@ from .._protos import _ank_base
 from .workload import Workload
 from .workload_state import WorkloadStateCollection
 from .manifest import Manifest
-from ..utils import SUPPORTED_API_VERSION
+from ..utils import SUPPORTED_API_VERSION, _to_config_item
 
 
 class CompleteState:
     """
     A class to represent the complete state.
     """
-    def __init__(self) -> None:
+    def __init__(self,
+                 manifest: Manifest = None,
+                 configs: dict = None,
+                 workloads: list[Workload] = None,
+                 _proto: _ank_base.CompleteState = None
+                 ) -> None:
         """
-        Initializes an empty CompleteState instance with the given API version.
+        Initializes a CompleteState instance with the provided data.
+
+        Args:
+            manifest (Manifest): The manifest to initialize the complete state.
+            configs (dict): The configurations to set in the complete state.
+            workloads (list[Workload]): The workloads to set
+                in the complete state.
+            _proto (_ank_base.CompleteState): The proto message to initialize
+                the complete state.
         """
         self._complete_state = _ank_base.CompleteState()
         self._set_api_version(SUPPORTED_API_VERSION)
-        self._workloads: list[Workload] = []
-        self._workload_state_collection = WorkloadStateCollection()
-        self._configs = {}
+        if manifest:
+            self._complete_state.desiredState.CopyFrom(
+                manifest._to_desired_state()
+            )
+        if configs:
+            self.set_configs(configs)
+        if workloads:
+            self._complete_state.desiredState.workloads.workloads.clear()
+            for workload in workloads:
+                self._complete_state.desiredState.workloads.workloads[
+                    workload.name].CopyFrom(workload._to_proto())
+        if _proto:
+            self._complete_state = _proto
 
     def __str__(self) -> str:
         """
@@ -117,17 +136,6 @@ class CompleteState:
         """
         return str(self._complete_state.desiredState.apiVersion)
 
-    def add_workload(self, workload: Workload) -> None:
-        """
-        Adds a workload to the complete state.
-
-        Args:
-            workload (Workload): The workload to add.
-        """
-        self._workloads.append(workload)
-        self._complete_state.desiredState.workloads.\
-            workloads[workload.name].CopyFrom(workload._to_proto())
-
     def get_workload(self, workload_name: str) -> Workload:
         """
         Gets a workload from the complete state by its name.
@@ -139,9 +147,12 @@ class CompleteState:
             Workload: The workload with the specified name,
                 or None if not found.
         """
-        for wl in self._workloads:
-            if wl.name == workload_name:
-                return wl
+        for wl_name, proto_workload in self._complete_state. \
+                desiredState.workloads.workloads.items():
+            if wl_name == workload_name:
+                workload = Workload(wl_name)
+                workload._from_proto(proto_workload)
+                return workload
         return None
 
     def get_workloads(self) -> list[Workload]:
@@ -151,7 +162,13 @@ class CompleteState:
         Returns:
             list[Workload]: A list of workloads in the complete state.
         """
-        return self._workloads
+        workloads = []
+        for wl_name, proto_workload in self._complete_state. \
+                desiredState.workloads.workloads.items():
+            workload = Workload(wl_name)
+            workload._from_proto(proto_workload)
+            workloads.append(workload)
+        return workloads
 
     def get_workload_states(self) -> WorkloadStateCollection:
         """
@@ -160,7 +177,11 @@ class CompleteState:
         Returns:
             WorkloadStateCollection: The collection of workload states.
         """
-        return self._workload_state_collection
+        workload_state_collection = WorkloadStateCollection()
+        workload_state_collection._from_proto(
+            self._complete_state.workloadStates
+        )
+        return workload_state_collection
 
     def get_agents(self) -> dict[str, dict]:
         """
@@ -184,23 +205,8 @@ class CompleteState:
         Args:
             configs (dict): The configurations to set in the complete state.
         """
-        def _to_config_item(item: Union[str, list, dict]
-                            ) -> _ank_base.ConfigItem:
-            config_item = _ank_base.ConfigItem()
-            if isinstance(item, str):
-                config_item.String = item
-            elif isinstance(item, list):
-                for value in [_to_config_item(value) for value in item]:
-                    config_item.array.values.append(value)
-            elif isinstance(item, dict):
-                for key, value in item.items():
-                    config_item.object.fields[key]. \
-                        CopyFrom(_to_config_item(value))
-            return config_item
-
-        self._configs = configs
         self._complete_state.desiredState.configs.configs.clear()
-        for key, value in self._configs.items():
+        for key, value in configs.items():
             self._complete_state.desiredState.configs.configs[key].CopyFrom(
                 _to_config_item(value)
             )
@@ -212,33 +218,22 @@ class CompleteState:
         Returns:
             dict: The configurations from the complete state
         """
-        return self._configs
-
-    @staticmethod
-    def from_manifest(manifest: Manifest) -> 'CompleteState':
-        """
-        Creates a CompleteState instance from a Manifest.
-
-        Args:
-            manifest (Manifest): The manifest to create the
-                complete state from.
-        """
-        state = CompleteState()
-        state._complete_state = _ank_base.CompleteState()
-        dict_state = manifest._manifest
-        state._set_api_version(
-            dict_state.get("apiVersion", state.get_api_version())
-        )
-        state._workloads = []
-        if dict_state.get("workloads") is not None:
-            for workload_name, workload_dict in \
-                    dict_state.get("workloads").items():
-                state.add_workload(
-                    Workload._from_dict(workload_name, workload_dict)
-                )
-        if dict_state.get("configs") is not None:
-            state.set_configs(dict_state.get("configs"))
-        return state
+        def _from_config_item(item: _ank_base.ConfigItem
+                              ) -> Union[str, list, dict]:
+            if item.HasField("String"):
+                return item.String
+            if item.HasField("array"):
+                return [_from_config_item(value)
+                        for value in item.array.values]
+            if item.HasField("object"):
+                return {key: _from_config_item(value)
+                        for key, value in item.object.fields.items()}
+            return None  # pragma: no cover
+        configs = {}
+        for key, value in self._complete_state.desiredState. \
+                configs.configs.items():
+            configs[key] = _from_config_item(value)
+        return configs
 
     def to_dict(self) -> dict:
         """
@@ -251,15 +246,15 @@ class CompleteState:
             "desired_state": {
                 "api_version": self.get_api_version(),
                 "workloads": {},
-                "configs": self._configs
+                "configs": self.get_configs()
             },
             "workload_states": {},
             "agents": {}
         }
-        for wl in self._workloads:
-            data["desired_state"]["workloads"][wl.name] = \
-                wl.to_dict()
-        wl_states = self._workload_state_collection.get_as_dict()
+        for workload in self.get_workloads():
+            data["desired_state"]["workloads"][workload.name] = \
+                workload.to_dict()
+        wl_states = self.get_workload_states().get_as_dict()
         for agent_name, exec_states in wl_states.items():
             data["workload_states"][agent_name] = {}
             for workload_name, exec_states_id in exec_states.items():
@@ -279,39 +274,3 @@ class CompleteState:
                 the complete state.
         """
         return self._complete_state
-
-    def _from_proto(self, proto: _ank_base.CompleteState) -> None:
-        """
-        Converts the proto message to a CompleteState object.
-
-        Args:
-            proto (_ank_base.CompleteState): The protobuf message representing
-                the complete state.
-        """
-        def _from_config_item(item: _ank_base.ConfigItem
-                              ) -> Union[str, list, dict]:
-            if item.HasField("String"):
-                return item.String
-            if item.HasField("array"):
-                return [_from_config_item(value)
-                        for value in item.array.values]
-            if item.HasField("object"):
-                return {key: _from_config_item(value)
-                        for key, value in item.object.fields.items()}
-            return None  # pragma: no cover
-
-        self._complete_state = proto
-        self._workloads = []
-        for workload_name, proto_workload in self._complete_state. \
-                desiredState.workloads.workloads.items():
-            workload = Workload(workload_name)
-            workload._from_proto(proto_workload)
-            self._workloads.append(workload)
-        self._workload_state_collection._from_proto(
-            self._complete_state.workloadStates
-        )
-        configs = {}
-        for key, value in self._complete_state.desiredState. \
-                configs.configs.items():
-            configs[key] = _from_config_item(value)
-        self.set_configs(configs)

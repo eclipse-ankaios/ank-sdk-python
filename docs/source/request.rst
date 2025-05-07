@@ -12,11 +12,18 @@ Request Class
     :undoc-members:
     :show-inheritance:
 
-RequestType Enum
------------------
+UpdateStateRequest Class
+------------------------
 
-.. autoclass:: ankaios_sdk._components.request.RequestType
-    :special-members: __str__
+.. autoclass:: ankaios_sdk._components.request.UpdateStateRequest
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GetStateRequest Class
+---------------------
+
+.. autoclass:: ankaios_sdk._components.request.GetStateRequest
     :members:
     :undoc-members:
     :show-inheritance:

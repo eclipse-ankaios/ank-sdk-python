@@ -20,15 +20,17 @@ Classes
 -------
 
 - Request:
-    Represents a request to the Ankaios system and provides \
-    methods to get and set the state of the system.
-
-Enums
------
-
-- RequestType:
-    Enumeration for the different types of requests. It includes
-    UPDATE_STATE and GET_STATE.
+    Represents the base request to the Ankaios system. It is an abstract
+    class that should be subclassed for specific request types.
+- GetStateRequest:
+    Represents a request to get the state of the Ankaios system.
+- UpdateStateRequest:
+    Represents a request to update the state of the Ankaios system.
+- LogsRequest:
+    Represents a request to get logs from the Ankaios system.
+- LogsCancelRequest:
+    Represents a request to stop the real-time log stream from the
+    Ankaios system.
 
 Usage
 -----
@@ -36,64 +38,70 @@ Usage
 - Create a Request for updating the state:
     .. code-block:: python
 
-        request = Request(RequestType.UPDATE_STATE)
-        request.set_complete_state(complete_state)
+        complete_state = CompleteState()
+        request = UpdateStateRequest(
+            complete_state, masks=["desiredState.workloads"]
+        )
 
 - Create a Request for getting the state:
     .. code-block:: python
 
-        request = Request(RequestType.GET_STATE)
+        request = GetStateRequest(masks=["desiredState.workloads"])
+
+- Create a Request for getting logs for a workload:
+    .. code-block:: python
+
+        workload_name: WorkloadInstanceName = ...
+        request = LogsRequest(workload_names=[workload_name])
+
+- Create a Request for getting a continuous stream of logs:
+    .. code-block:: python
+
+        workload_name: WorkloadInstanceName = ...
+        request = LogsRequest(workload_names=[workload_name], follow=True)
+
+- Create a Request for stopping the log stream:
+    .. code-block:: python
+
+        request = LogsCancelRequest()
 
 - Get the request ID:
     .. code-block:: python
 
         request_id = request.get_id()
-
-- Add a mask to the request:
-    .. code-block:: python
-
-        request.add_mask("desiredState.workloads")
 """
 
-__all__ = ["Request", "RequestType"]
+__all__ = ["Request", "GetStateRequest", "UpdateStateRequest",
+           "LogsRequest", "LogsCancelRequest"]
 
 import uuid
-from enum import Enum
+from typing import Union
+from datetime import datetime
 from .._protos import _ank_base
-from ..exceptions import RequestException
 from ..utils import get_logger
 from .complete_state import CompleteState
+from .workload_state import WorkloadInstanceName
 
 
 class Request:
     """
     Represents a request to the Ankaios system.
     """
-    def __init__(self, request_type: 'RequestType') -> None:
+    def __init__(self, _id: str = None) -> None:
         """
-        Initializes a Request instance with the given request type.
+        Initializes a Request instance.
 
         Args:
-            request_type (RequestType): The type of the request.
+            _id (str): The request ID. If None, a new UUID will be generated.
 
         Raises:
-            RequestException: If the request type is invalid.
+            TypeError: If the Request class is instantiated directly.
         """
+        if self.__class__ is Request:
+            raise TypeError("Request cannot be instantiated directly.")
         self._request = _ank_base.Request()
-        self._request.requestId = str(uuid.uuid4())
-        self._request_type = request_type
+        self._set_id(_id if _id else str(uuid.uuid4()))
         self.logger = get_logger()
-
-        if request_type == RequestType.UPDATE_STATE:
-            self._request.updateStateRequest.updateMask[:] = []
-        elif request_type == RequestType.GET_STATE:
-            self._request.completeStateRequest.fieldMask[:] = []
-        else:
-            self.logger.error("Invalid request type.")
-            raise RequestException("Invalid request type. "
-                                   "Check the RequestType enum.")
-        self.logger.debug("Created request of type %s with id %s",
-                          str(request_type), self._request.requestId)
 
     def __str__(self) -> str:
         """
@@ -113,48 +121,14 @@ class Request:
         """
         return self._request.requestId
 
-    def set_complete_state(self, complete_state: CompleteState) -> None:
+    def _set_id(self, request_id: str) -> None:
         """
-        Sets the complete state for the request.
+        Sets the request ID.
 
         Args:
-            complete_state (CompleteState): The complete state to
-                set for the request.
-
-        Raises:
-            RequestException: If the request type is not UPDATE_STATE.
+            request_id (str): The request ID to set.
         """
-        if self._request_type != RequestType.UPDATE_STATE:
-            raise RequestException("Complete state can only be set "
-                                   + "for an update state request.")
-
-        self._request.updateStateRequest.newState.CopyFrom(
-            complete_state._to_proto()
-        )
-
-    def add_mask(self, mask: str) -> None:
-        """
-        Sets the update mask for the request.
-
-        Args:
-            mask (str): The mask to set for the request.
-        """
-        if self._request_type == RequestType.UPDATE_STATE:
-            self._request.updateStateRequest.updateMask.append(mask)
-        elif self._request_type == RequestType.GET_STATE:
-            self._request.completeStateRequest.fieldMask.append(mask)
-
-    def set_masks(self, masks: list) -> None:
-        """
-        Sets the update masks for the request.
-
-        Args:
-            masks (list): The masks to set for the request.
-        """
-        if self._request_type == RequestType.UPDATE_STATE:
-            self._request.updateStateRequest.updateMask[:] = masks
-        elif self._request_type == RequestType.GET_STATE:
-            self._request.completeStateRequest.fieldMask[:] = masks
+        self._request.requestId = request_id
 
     def _to_proto(self) -> _ank_base.Request:
         """
@@ -166,18 +140,119 @@ class Request:
         return self._request
 
 
-class RequestType(Enum):
-    """ Enumeration for the different types of requests. """
-    UPDATE_STATE = 1
-    "(int): Request for updating the state."
-    GET_STATE = 2
-    "(int): Request for getting the state."
-
-    def __str__(self) -> str:
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class GetStateRequest(Request):
+    """
+    Represents a request for getting the state of the Ankaios system.
+    This request includes an optional list of masks to specify which
+    fields should be included in the response.
+    """
+    def __init__(self, masks: list = []) -> None:
         """
-        Return the string representation of the enum value.
+        Initializes a GetStateRequest instance.
 
-        Returns:
-            str: The enum value as a string.
+        Args:
+            masks (list): The masks to set for the request.
         """
-        return self.name.lower()
+        super().__init__()
+        self._request.completeStateRequest.fieldMask[:] = masks
+
+        self.logger.debug("Created request of type GetState with id %s",
+                          self._request.requestId)
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class UpdateStateRequest(Request):
+    """
+    Represents a request for updating the state of the Ankaios system.
+    This request includes the new state and an optional list of masks
+    to specify which fields should be updated.
+    """
+    def __init__(
+            self, complete_state: CompleteState, masks: list = []
+            ) -> None:
+        """
+        Initializes an UpdateStateRequest instance.
+
+        Args:
+            complete_state (CompleteState): The new state to set.
+            masks (list): The masks to set for the request.
+        """
+        super().__init__()
+        self._request.updateStateRequest.updateMask[:] = masks
+        self._request.updateStateRequest.newState.CopyFrom(
+            complete_state._to_proto()
+        )
+
+        self.logger.debug("Created request of type UpdateState with id %s",
+                          self._request.requestId)
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class LogsRequest(Request):
+    """
+    Represents a request for getting logs from the Ankaios system.
+    """
+    def __init__(
+            self, workload_names: list[WorkloadInstanceName], follow: bool = False,
+            tail: int = -1, since: Union[str, datetime] = "",
+            until: Union[str, datetime] = "",
+            ) -> None:
+        """
+        Initializes an LogsRequest instance.
+
+        Args:
+            workload_names (list[WorkloadInstanceName]): The workload instance
+                names for which to get logs.
+            follow (bool): If true, the logs will be continuously streamed.
+            tail (int): The number of lines to display from the end of the logs.
+            since (str / datetime): The start time for the logs. If string, it must
+                be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string, it must
+                be in the RFC3339 format.
+
+        Raises:
+            ValueError: If no workload names are provided.
+        """
+        if len(workload_names) == 0:
+            raise ValueError("At least one workload name must be provided.")
+
+        super().__init__()
+        self._request.logsRequest.CopyFrom(_ank_base.LogsRequest(
+            workloadNames=[name._to_proto() for name in workload_names],
+            follow=follow,
+            tail=tail
+        ))
+        if since:
+            if isinstance(since, str):
+                self._request.logsRequest.since = since
+            else:
+                self._request.logsRequest.since = since.isoformat()
+        if until:
+            if isinstance(until, str):
+                self._request.logsRequest.until = until
+            else:
+                self._request.logsRequest.until = until.isoformat()
+
+        self.logger.debug("Created request of type LogsRequest with id %s",
+                          self._request.requestId)
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class LogsCancelRequest(Request):
+    """
+    Represents a request for stopping the real-time log stream
+    from the Ankaios system.
+    """
+    def __init__(self, id: str) -> None:
+        """
+        Initializes an LogsCancelRequest instance.
+
+        Args:
+            id (str): The request ID.
+        """
+        super().__init__(_id=id)
+        self._request.logsCancelRequest.CopyFrom(_ank_base.LogsCancelRequest())
+
+        self.logger.debug("Created request of type LogsCancelRequest with id %s",
+                          self._request.requestId)
