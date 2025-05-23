@@ -17,7 +17,8 @@ This module contains unit tests for the Request class in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk import Request, RequestType, CompleteState, RequestException
+from ankaios_sdk import Request, GetStateRequest, \
+    UpdateStateRequest, CompleteState
 from tests.workload.test_workload import generate_test_workload
 
 
@@ -28,54 +29,34 @@ def generate_test_request(request_type: str = "update_state") -> Request:
     Returns:
         Request: A Request instance.
     """
+    with pytest.raises(
+            TypeError, match="Request cannot be instantiated directly."
+            ):
+        _ = Request()
     if request_type == "update_state":
-        request = Request(RequestType.UPDATE_STATE)
-        complete_state = CompleteState()
-        complete_state.add_workload(generate_test_workload())
-        request.set_complete_state(complete_state)
+        complete_state = CompleteState(workloads=[generate_test_workload()])
+        request = UpdateStateRequest(complete_state)
         return request
-    return Request(RequestType.GET_STATE)
-
-
-def test_general_functionality():
-    """
-    Test general functionality of the Request class.
-    """
-    with pytest.raises(RequestException, match="Invalid request type."):
-        Request("invalid")
-
-    request = Request(RequestType.UPDATE_STATE)
-    assert request.get_id() is not None
-    assert str(request) == f"requestId: \"{request.get_id()}\"\n" \
-        + "updateStateRequest {\n}\n"
+    return GetStateRequest()
 
 
 def test_update_state():
     """
     Test the update state request type.
     """
-    request = Request(RequestType.UPDATE_STATE)
     complete_state = CompleteState()
-    request.set_complete_state(complete_state)
+    request = UpdateStateRequest(complete_state, ["test_mask"])
     assert request._request.updateStateRequest.newState == \
         complete_state._to_proto()
-
-    request.add_mask("test_mask")
     assert request._request.updateStateRequest.updateMask == ["test_mask"]
-
-    with pytest.raises(
-            RequestException,
-            match="Complete state can only be set for an update state request."
-            ):
-        Request(RequestType.GET_STATE).set_complete_state(CompleteState())
+    assert str(request) == str(request._to_proto())
 
 
 def test_get_state():
     """
     Test the get state request type.
     """
-    request = Request(RequestType.GET_STATE)
-    request.add_mask("test_mask")
+    request = GetStateRequest(["test_mask"])
     assert request._request.completeStateRequest.fieldMask == ["test_mask"]
 
 
@@ -83,8 +64,8 @@ def test_proto():
     """
     Test the conversion to proto message.
     """
-    request = Request(RequestType.UPDATE_STATE)
+    request = UpdateStateRequest(CompleteState())
     assert request._to_proto().requestId == request.get_id()
 
-    request = Request(RequestType.GET_STATE)
+    request = GetStateRequest()
     assert request._to_proto().requestId == request.get_id()

@@ -24,7 +24,6 @@ Exceptions
 - WorkloadBuilderException: Raised when the workload builder is invalid.
 - InvalidManifestException: Raised when the manifest file is invalid.
 - ConnectionClosedException: Raised when the connection is closed.
-- RequestException: Raised when the request is invalid.
 - ResponseException: Raised when the response is invalid.
 - ControlInterfaceException: Raised when an operation fails.
 - AnkaiosProtocolException: Raised when something unexpected is received.
@@ -35,9 +34,9 @@ import inspect
 
 __all__ = ['AnkaiosException', 'WorkloadFieldException',
            'WorkloadBuilderException', 'InvalidManifestException',
-           'ConnectionClosedException', 'RequestException',
-           'ResponseException', 'ControlInterfaceException',
-           'AnkaiosProtocolException', 'AnkaiosResponseError']
+           'ConnectionClosedException', 'ResponseException',
+           'ControlInterfaceException', 'AnkaiosProtocolException',
+           'AnkaiosResponseError']
 
 
 class AnkaiosException(Exception):
@@ -62,10 +61,6 @@ class InvalidManifestException(AnkaiosException):
 
 class ConnectionClosedException(AnkaiosException):
     """Raised when the connection is closed."""
-
-
-class RequestException(AnkaiosException):
-    """Raised when the request is invalid."""
 
 
 class ResponseException(AnkaiosException):
