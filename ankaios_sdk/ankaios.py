@@ -174,7 +174,7 @@ class Ankaios:
         try:
             self.get_state(field_masks=["desiredState.apiVersion"])
         except AnkaiosResponseError as e:
-            pass
+            self.logger.warning("%s", e)
         except AnkaiosProtocolException:
             self.logger.warning("Connection test failed with: %s", e)
         except ConnectionClosedException as e:
