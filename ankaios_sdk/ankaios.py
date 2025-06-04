@@ -442,8 +442,6 @@ class Ankaios:
         """
         Get the workload with the provided name from the
         requested complete state.
-        If the workload name contains a wildcard, all workloads matching
-        the pattern will be returned.
 
         Args:
             workload_name (str): The name of the workload.
