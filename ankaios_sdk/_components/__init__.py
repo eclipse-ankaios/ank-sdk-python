@@ -34,11 +34,13 @@ Imports
 """
 
 from .workload import *
+from .workload_builder import *
 from .workload_state import *
 from .complete_state import *
 from .request import *
 from .response import *
 from .manifest import *
+from .log_queue import *
 from .control_interface import *
 
 __all__ = [name for name in globals() if not name.startswith('_')]
