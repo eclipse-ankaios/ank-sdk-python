@@ -4,48 +4,8 @@ import sys
 import json
 from unittest.mock import patch, MagicMock
 
-# Define a mock ManifestV2 class for testing
-class ManifestV2:
-    """Mock implementation of ManifestV2 for testing purposes."""
-    
-    def __init__(self, manifest_version="2.0", workloads=None, dependencies=None, metadata=None):
-        self.manifest_version = manifest_version
-        self.workloads = workloads or {}
-        self.dependencies = dependencies or []
-        self.metadata = metadata or {}
-        
-        # Validate required fields
-        if not workloads:
-            raise ValueError("workloads is required")
-    
-    def to_dict(self):
-        """Convert manifest to dictionary."""
-        return {
-            "manifest_version": self.manifest_version,
-            "workloads": self.workloads,
-            "dependencies": self.dependencies,
-            "metadata": self.metadata
-        }
-    
-    @classmethod
-    def from_dict(cls, data):
-        """Create manifest from dictionary."""
-        return cls(
-            manifest_version=data.get("manifest_version", "2.0"),
-            workloads=data.get("workloads", {}),
-            dependencies=data.get("dependencies", []),
-            metadata=data.get("metadata", {})
-        )
-    
-    def __eq__(self, other):
-        """Compare two manifests for equality."""
-        if not isinstance(other, ManifestV2):
-            return False
-        return (self.manifest_version == other.manifest_version and
-                self.workloads == other.workloads and
-                self.dependencies == other.dependencies and
-                self.metadata == other.metadata)
-
+# Import the actual ManifestV2 class
+from ankaios_sdk._components.manifest_v2 import ManifestV2
 
 # Test initialization with valid parameters
 def test_manifestv2_initialization():
@@ -60,6 +20,21 @@ def test_manifestv2_initialization():
     )
     assert manifest is not None
     assert manifest.manifest_version == "2.0"
+    assert "test-workload" in manifest.workloads
+
+
+# Test initialization with default manifest_version
+def test_manifestv2_initialization_default_version():
+    manifest = ManifestV2(
+        workloads={
+            "test-workload": {
+                "runtime": "test-runtime",
+                "command": ["test-command"],
+            }
+        }
+    )
+    assert manifest is not None
+    assert manifest.manifest_version == "2.0"  # Default version
     assert "test-workload" in manifest.workloads
 
 
@@ -101,6 +76,26 @@ def test_manifestv2_from_dict():
     assert manifest is not None
     assert manifest.manifest_version == "2.0"
     assert "test-workload" in manifest.workloads
+    assert manifest.dependencies == []  # Check default for optional field
+    assert manifest.metadata == {}    # Check default for optional field
+
+
+# Test from_dict method with missing manifest_version
+def test_manifestv2_from_dict_missing_manifest_version():
+    manifest_dict = {
+        "workloads": {
+            "test-workload": {
+                "runtime": "test-runtime",
+                "command": ["test-command"],
+            }
+        }
+    }
+    manifest = ManifestV2.from_dict(manifest_dict)
+    assert manifest is not None
+    assert manifest.manifest_version == "2.0"  # Should default to 2.0
+    assert "test-workload" in manifest.workloads
+    assert manifest.dependencies == []
+    assert manifest.metadata == {}
 
 
 # Test equality comparison
@@ -124,6 +119,41 @@ def test_manifestv2_equality():
         }
     )
     assert manifest1 == manifest2
+
+
+# Test inequality: different manifest_version
+def test_manifestv2_inequality_different_version():
+    manifest1 = ManifestV2(workloads={"wl1": {}})
+    manifest2 = ManifestV2(manifest_version="2.1", workloads={"wl1": {}})
+    assert manifest1 != manifest2
+
+
+# Test inequality: different workloads
+def test_manifestv2_inequality_different_workloads():
+    manifest1 = ManifestV2(workloads={"wl1": {}})
+    manifest2 = ManifestV2(workloads={"wl2": {}})
+    assert manifest1 != manifest2
+
+
+# Test inequality: different dependencies
+def test_manifestv2_inequality_different_dependencies():
+    manifest1 = ManifestV2(workloads={"wl1": {}}, dependencies=["dep1"])
+    manifest2 = ManifestV2(workloads={"wl1": {}}, dependencies=["dep2"])
+    assert manifest1 != manifest2
+
+
+# Test inequality: different metadata
+def test_manifestv2_inequality_different_metadata():
+    manifest1 = ManifestV2(workloads={"wl1": {}}, metadata={"k": "v1"})
+    manifest2 = ManifestV2(workloads={"wl1": {}}, metadata={"k": "v2"})
+    assert manifest1 != manifest2
+
+
+# Test inequality: different types
+def test_manifestv2_inequality_different_type():
+    manifest1 = ManifestV2(workloads={"wl1": {}})
+    other_object = object()
+    assert manifest1 != other_object
 
 
 # Test optional fields
