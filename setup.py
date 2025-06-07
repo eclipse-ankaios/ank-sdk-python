@@ -13,6 +13,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 from setuptools import setup, find_packages
 import configparser
 
@@ -41,8 +42,10 @@ def extract_the_proto_files():
         try:
             response = requests.get(file_url)
             response.raise_for_status()
+            print(f"Attempting to download {file} from {file_url} to {file_path}") # Added print
             with open(file_path, 'w', encoding="utf-8") as f:
                 f.write(response.text)
+            print(f"Successfully downloaded and saved {file} to {file_path}") # Added print
         except requests.exceptions.RequestException as e:
             print(f"Error: Failed to download {file} from {file_url}.")
             raise e
@@ -86,9 +89,17 @@ def generate_protos():
                     file.write(newdata)
     
     # Copy the generated files to the proto directory
-    for file in os.listdir(protos_dir):
-        if file.endswith(".py"):
-            os.popen(f"cp {protos_dir}/{file} {protos_dir}/../")
+    print(f"Copying .py files from {protos_dir} to {os.path.join(protos_dir, '..')}") # Added print
+    for file_name in os.listdir(protos_dir):
+        if file_name.endswith(".py"):
+            source_file = os.path.join(protos_dir, file_name)
+            destination_file = os.path.join(protos_dir, "..", file_name)
+            print(f"Copying {source_file} to {destination_file}") # Added print
+            try:
+                shutil.copy(source_file, destination_file)
+                print(f"Successfully copied {file_name}") # Added print
+            except Exception as e:
+                print(f"Error copying {file_name}: {e}") # Added print
 
 
 setup(
