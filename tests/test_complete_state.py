@@ -209,6 +209,12 @@ def test_to_dict():
                                 'filterMask': [
                                     'desiredState.workloads.dynamic_nginx'
                                 ]
+                            },
+                            {
+                                'type': 'LogRule',
+                                'workloadNames': [
+                                    'nginx'
+                                ]
                             }
                         ],
                         'denyRules': [
