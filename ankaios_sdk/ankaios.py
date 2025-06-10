@@ -174,6 +174,7 @@ class Ankaios:
         # Test connection
         try:
             self.get_state(field_masks=["desiredState.apiVersion"])
+            self.CONNECTION_ESTABLISHED = True
         except AnkaiosResponseError as e:
             self.CONNECTION_ESTABLISHED = True
         except AnkaiosProtocolException:
