@@ -78,6 +78,18 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                     "array": "config_2",
                     "dict": "config_3",
                 }
+            ),
+            files=_ank_base.Files(
+                files=[
+                    _ank_base.File(
+                        mountPoint="./mount_point",
+                        data="data_1"
+                    ),
+                    _ank_base.File(
+                        mountPoint="./mount_point_2",
+                        binaryData="binary_data_1"
+                    )
+                ]
             )
         )
     }
@@ -105,6 +117,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_deny_rule("Read",
                        ["workloadStates.agent_Test.another_workload"]) \
         .add_config("alias_test", "config1") \
+        .add_file("./dummy_mount_point", data="dummy_data") \
         .build()
 
 
@@ -258,6 +271,30 @@ def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
 
     assert len(workload.get_configs()) == 3
 
+def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
+    """
+    Test adding and updating files of the Workload instance.
+    Args:
+        workload (Workload): The Workload fixture.
+    """
+    assert len(workload.get_files()) == 1
+
+    print(workload)
+
+    workload.add_file("./new_mount_point", data="new_data")
+    files = workload.get_files()
+    assert len(files) == 2
+
+    files.append({
+        "mountPoint": "./another_new_mount_point",
+        "data": "another_new_data",
+        "binaryData": None
+    })
+    workload.update_files(files)
+    assert len(workload.get_files()) == 3
+
+    with pytest.raises(WorkloadFieldException):
+        workload.add_file("./invalid_mount_point", data="some_data", binary_data="some_binary_data")
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
@@ -295,6 +332,10 @@ def test_from_to_dict():
 
     workload_other = Workload._from_dict(
         workload_new.name, workload_new.to_dict())
+    
+    print(f"Workload new: {workload_new.to_dict()}")
+    print(f"Workload other: {workload_other.to_dict()}")
+
     assert str(workload_new) == str(workload_other)
 
 
@@ -323,7 +364,10 @@ def test_from_to_dict():
         f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
-        f"{WORKLOADS_PREFIX}.workload_test.configs")
+        f"{WORKLOADS_PREFIX}.workload_test.configs"),
+    ("add_file", {"mount_point": "./dummy_mount_point",
+                  "data": "dummy_data"},
+        f"{WORKLOADS_PREFIX}.workload_test.files")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """
