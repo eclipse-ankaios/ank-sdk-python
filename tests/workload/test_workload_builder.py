@@ -140,6 +140,21 @@ def test_add_config(
     assert builder.add_config("alias_Test", "config1") == builder
     assert builder.configs == {"alias_Test": "config1"}
 
+def test_add_file(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
+    """
+    Test adding files to the WorkloadBuilder instance.
+    Args:
+        builder (WorkloadBuilder): The WorkloadBuilder fixture.
+    """
+    assert len(builder.files) == 0
+
+    assert builder.add_file("file_mount_point", data="file_content") == builder
+    assert builder.add_file("file_mount_point", binary_data="binary_file_content") == builder
+    assert builder.files == [{"mountPoint": "file_mount_point", "data": "file_content", "binaryData": None}, 
+                             {"mountPoint": "file_mount_point", "binaryData": "binary_file_content", "data": None}]
+
 
 def test_build(
         builder: WorkloadBuilder
