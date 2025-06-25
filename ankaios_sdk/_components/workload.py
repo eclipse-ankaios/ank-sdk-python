@@ -426,27 +426,25 @@ class Workload:
         for alias, name in configs.items():
             self.add_config(alias, name)
 
-    def add_file(self, mount_point: str, data: str = None, binary_data: str = None) -> None:
+    def add_file(self, mount_point: str, data: str | None = None, binary_data: str | None = None) -> None:
         """
         Link a workload file to the workload.
 
         Args:
             mount_point (str): The mount point of the file.
-            data (str): The data of the file.
-            binary_data (str): The binary data of the file.
+            data (str | None): The data of the file.
+            binary_data (str | None): The binary data of the file.
 
         Raises:
-            WorkloadFieldException: If both data and binary_data are provided.
+            WorkloadBuilderException: If both data and binary_data are provided.
         """
         if data and binary_data:
             self.logger.error(
                 "Both data and binary_data are provided. "
                 "Please provide only one of them."
             )
-            raise WorkloadFieldException(
-                "file data", f"{data}, {binary_data}",
-                "Only one of data or binary_data should be provided."
-            )
+            raise WorkloadBuilderException("Only one of data or binary_data should be provided.")
+
         if data is not None:
             self._workload.files.files.append(_ank_base.File(
                 mountPoint=mount_point,
@@ -457,9 +455,11 @@ class Workload:
                 binaryData=binary_data
             ))
         else:
-            self._workload.files.files.append(_ank_base.File(
-                mountPoint=mount_point
-            ))
+            self.logger.error(
+                "Neither data nor binary_data is provided. "
+                "Please provide one of them."
+            )
+            raise WorkloadBuilderException("No data or binary data provided.")
         
         self._add_mask(f"{self._main_mask}.files")
 
@@ -827,7 +827,7 @@ class WorkloadBuilder:
         self.configs[alias] = name
         return self
     
-    def add_file(self, mount_point: str = None, data: str = None, binary_data: str = None) -> "WorkloadBuilder":
+    def add_file(self, mount_point: str, data: str | None = None, binary_data: str | None = None) -> "WorkloadBuilder":
         """
         Link a workload file to the workload.
 

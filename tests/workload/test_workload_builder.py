@@ -154,6 +154,18 @@ def test_add_file(
     assert builder.add_file("file_mount_point", binary_data="binary_file_content") == builder
     assert builder.files == [{"mountPoint": "file_mount_point", "data": "file_content", "binaryData": None}, 
                              {"mountPoint": "file_mount_point", "binaryData": "binary_file_content", "data": None}]
+    
+    with pytest.raises(
+            WorkloadBuilderException,
+            match="Only one of data or binary_data should be provided."
+            ):
+        builder.add_file(mount_point="mount_point").build()
+
+    with pytest.raises(
+            WorkloadBuilderException,
+            match="No data or binary data provided."
+            ):
+        builder.add_file(mount_point="mount_point", data="data", binary_data="some_binary_data").build()
 
 
 def test_build(
