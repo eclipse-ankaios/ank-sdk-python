@@ -426,14 +426,14 @@ class Workload:
         for alias, name in configs.items():
             self.add_config(alias, name)
 
-    def add_file(self, mount_point: str, data: str | None = None, binary_data: str | None = None) -> None:
+    def add_file(self, mount_point: str, data: str = None, binary_data: str = None) -> None:
         """
         Link a workload file to the workload.
 
         Args:
             mount_point (str): The mount point of the file.
-            data (str | None): The data of the file.
-            binary_data (str | None): The binary data of the file.
+            data (str): The data of the file.
+            binary_data (str): The binary data of the file.
 
         Raises:
             WorkloadBuilderException: If both data and binary_data are provided.
@@ -827,7 +827,7 @@ class WorkloadBuilder:
         self.configs[alias] = name
         return self
     
-    def add_file(self, mount_point: str, data: str | None = None, binary_data: str | None = None) -> "WorkloadBuilder":
+    def add_file(self, mount_point: str, data: str = None, binary_data: str = None) -> "WorkloadBuilder":
         """
         Link a workload file to the workload.
 
