@@ -142,7 +142,6 @@ class Ankaios:
         logger (logging.Logger): The logger for the Ankaios class.
     """
     DEFAULT_TIMEOUT = 5.0
-    CONNECTION_ESTABLISHED = False
     "(float): The default timeout, if not manually provided."
 
     def __init__(self,
@@ -171,13 +170,16 @@ class Ankaios:
             )
         self._control_interface.connect()
 
+        # Workaround for suppressing the error log when checking the connection
+        self._connection_established = False
+
         # Test connection
         try:
             self.get_state(field_masks=["desiredState.apiVersion"])
-            self.CONNECTION_ESTABLISHED = True
-        except AnkaiosResponseError as e:
-            self.CONNECTION_ESTABLISHED = True
-        except AnkaiosProtocolException:
+            self._connection_established = True
+        except AnkaiosResponseError:
+            self._connection_established = True
+        except AnkaiosProtocolException as e:
             self.logger.warning("Connection test failed with: %s", e)
         except ConnectionClosedException as e:
             self.logger.error("%s", e)
@@ -747,8 +749,10 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            if self.CONNECTION_ESTABLISHED:
-                self.logger.error("Error while trying to get state: %s", content)
+            if self._connection_established:
+                self.logger.error(
+                    "Error while trying to get state: %s", content
+                )
             raise AnkaiosResponseError(content)
         if content_type == ResponseType.COMPLETE_STATE:
             return content
