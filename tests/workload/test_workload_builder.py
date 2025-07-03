@@ -157,8 +157,8 @@ def test_add_file(
     ) == builder
     assert builder.files == [
         {
-            "mountPoint": "file_mount_point", 
-            "data": "file_content", 
+            "mountPoint": "file_mount_point",
+            "data": "file_content",
             "binaryData": None
         },
         {

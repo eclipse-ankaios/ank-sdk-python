@@ -476,19 +476,20 @@ class Workload:
                               linked to the workload.
         """
         return [
-        {
-            "mountPoint": file.mountPoint,
-            **({"data": file.data} if file.data else {}),
-            **({"binaryData": file.binaryData} if file.binaryData else {})
-        }
-        for file in self._workload.files.files]
+            {
+                "mountPoint": file.mountPoint,
+                **({"data": file.data} if file.data else {}),
+                **({"binaryData": file.binaryData} if file.binaryData else {}),
+            }
+            for file in self._workload.files.files
+        ]
 
     def update_files(self, files: list[dict[str, str]]) -> None:
         """
         Update the files linked to the workload.
 
         Args:
-            files (list[_ank_base.File]): A list of File 
+            files (list[_ank_base.File]): A list of File
                                           objects to link to the workload.
         """
         del self._workload.files.files[:]
