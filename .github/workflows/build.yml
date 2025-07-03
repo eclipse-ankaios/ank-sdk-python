@@ -56,6 +56,7 @@ jobs:
           pip install .[dev]
 
       - name: Run unit tests
+        id: check
         run: python3 run_checks.py --utest
         continue-on-error: true
 
@@ -64,6 +65,10 @@ jobs:
         with:
           name: unit-test-report
           path: reports/utest
+
+      - name: Fail job if check failed
+        if: steps.check.outcome != 'success'
+        run: exit 1
 
   coverage:
     needs: setup
@@ -83,6 +88,7 @@ jobs:
           pip install .[dev]
 
       - name: Run coverage
+        id: check
         run: python3 run_checks.py --cov
         continue-on-error: true
 
@@ -91,6 +97,10 @@ jobs:
         with:
           name: coverage-report
           path: reports/coverage
+
+      - name: Fail job if check failed
+        if: steps.check.outcome != 'success'
+        run: exit 1
 
   lint:
     needs: setup
@@ -110,6 +120,7 @@ jobs:
           pip install .[dev]
 
       - name: Run lint
+        id: check
         run: python3 run_checks.py --lint
         continue-on-error: true
 
@@ -118,6 +129,10 @@ jobs:
         with:
           name: pylint-report
           path: reports/pylint
+
+      - name: Fail job if check failed
+        if: steps.check.outcome != 'success'
+        run: exit 1
 
   codestyle:
     needs: setup
@@ -137,6 +152,7 @@ jobs:
           pip install .[dev]
 
       - name: Run pep8 codestyle check
+        id: check
         run: python3 run_checks.py --pep8
         continue-on-error: true
 
@@ -145,6 +161,10 @@ jobs:
         with:
           name: codestyle-report
           path: reports/codestyle
+
+      - name: Fail job if check failed
+        if: steps.check.outcome != 'success'
+        run: exit 1
 
   check_docs:
     needs: setup
