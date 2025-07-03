@@ -54,12 +54,12 @@ CONFIGS_PROTO = _ank_base.ConfigMap(
 FILES_PROTO = _ank_base.Files(
     files=[
         _ank_base.File(
-            mountPoint="./mount_point",
+            mountPoint="./mount_point_1",
             data="data_1"
         ),
         _ank_base.File(
             mountPoint="./mount_point_2",
-            binaryData="binary_data_1"
+            binaryData="binary_data_2"
         )
     ]
 )
@@ -236,12 +236,12 @@ def test_to_dict():
                     },
                     'files': [
                         {
-                            'mountPoint': './mount_point',
+                            'mountPoint': './mount_point_1',
                             'data': 'data_1',
                         },
                         {
                             'mountPoint': './mount_point_2',
-                            'binaryData': 'binary_data_1',
+                            'binaryData': 'binary_data_2',
                         }
                     ],
                     'configs': {

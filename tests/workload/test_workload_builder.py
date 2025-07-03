@@ -140,6 +140,7 @@ def test_add_config(
     assert builder.add_config("alias_Test", "config1") == builder
     assert builder.configs == {"alias_Test": "config1"}
 
+
 def test_add_file(
         builder: WorkloadBuilder
         ):  # pylint: disable=redefined-outer-name
@@ -151,10 +152,21 @@ def test_add_file(
     assert len(builder.files) == 0
 
     assert builder.add_file("file_mount_point", data="file_content") == builder
-    assert builder.add_file("file_mount_point", binary_data="binary_file_content") == builder
-    assert builder.files == [{"mountPoint": "file_mount_point", "data": "file_content", "binaryData": None}, 
-                             {"mountPoint": "file_mount_point", "binaryData": "binary_file_content", "data": None}]
-    
+    assert builder.add_file(
+        "file_mount_point", binary_data="binary_file_content"
+    ) == builder
+    assert builder.files == [
+        {
+            "mountPoint": "file_mount_point", 
+            "data": "file_content", 
+            "binaryData": None
+        },
+        {
+            "mountPoint": "file_mount_point",
+            "binaryData": "binary_file_content",
+            "data": None
+        }
+    ]
     with pytest.raises(
             WorkloadBuilderException,
             match="Only one of data or binary_data should be provided."
@@ -165,7 +177,9 @@ def test_add_file(
             WorkloadBuilderException,
             match="No data or binary data provided."
             ):
-        builder.add_file(mount_point="mount_point", data="data", binary_data="some_binary_data").build()
+        builder.add_file(mount_point="mount_point",
+                         data="data",
+                         binary_data="some_binary_data").build()
 
 
 def test_build(

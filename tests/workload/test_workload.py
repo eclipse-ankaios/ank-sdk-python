@@ -25,7 +25,8 @@ Helper Functions:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadFieldException, WorkloadBuilderException
+from ankaios_sdk import (Workload, WorkloadBuilder,
+                         WorkloadFieldException, WorkloadBuilderException)
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
@@ -271,6 +272,7 @@ def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
 
     assert len(workload.get_configs()) == 3
 
+
 def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test adding and updating files of the Workload instance.
@@ -294,10 +296,13 @@ def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_files()) == 3
 
     with pytest.raises(WorkloadBuilderException):
-        workload.add_file("./invalid_mount_point", data="some_data", binary_data="some_binary_data")
+        workload.add_file("./invalid_mount_point",
+                          data="some_data",
+                          binary_data="some_binary_data")
 
     with pytest.raises(WorkloadBuilderException):
         workload.add_file("./invalid_mount_point", binary_data=None, data=None)
+
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
