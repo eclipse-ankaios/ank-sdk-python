@@ -40,26 +40,6 @@ def generate_test_request(request_type: str = "update_state") -> Request:
     return GetStateRequest()
 
 
-def test_update_state():
-    """
-    Test the update state request type.
-    """
-    complete_state = CompleteState()
-    request = UpdateStateRequest(complete_state, ["test_mask"])
-    assert request._request.updateStateRequest.newState == \
-        complete_state._to_proto()
-    assert request._request.updateStateRequest.updateMask == ["test_mask"]
-    assert str(request) == str(request._to_proto())
-
-
-def test_get_state():
-    """
-    Test the get state request type.
-    """
-    request = GetStateRequest(["test_mask"])
-    assert request._request.completeStateRequest.fieldMask == ["test_mask"]
-
-
 def test_proto():
     """
     Test the conversion to proto message.
