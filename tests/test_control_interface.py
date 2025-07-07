@@ -28,8 +28,8 @@ from ankaios_sdk._protos import _control_api
 from tests.request.test_request import generate_test_request
 from tests.response.test_response import MESSAGE_BUFFER_UPDATE_SUCCESS, \
     MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH, MESSAGE_BUFFER_CONNECTION_CLOSED, \
-    MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH, MESSAGE_BUFFER_LOGS_RESPONSE, \
-    MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH
+    MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH, MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE, \
+    MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE_LENGTH
 
 
 def test_state():
@@ -200,8 +200,8 @@ def test_read_thread_logs():
     Test the _read_from_control_interface method of the Ankaios class.
     Test the logs callback.
     """
-    message_logs = MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH + \
-        MESSAGE_BUFFER_LOGS_RESPONSE
+    message_logs = MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE_LENGTH + \
+        MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE
     response_callback = MagicMock()
     logs_callback = MagicMock()
     with patch("builtins.open", mock_open()) as mock_file, \

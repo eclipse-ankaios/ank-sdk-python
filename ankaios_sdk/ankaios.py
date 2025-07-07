@@ -127,7 +127,7 @@ from ._components import Workload, CompleteState, Request, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState, ControlInterface, \
-                         LogQueue, LogEntry
+                         LogQueue, LogResponse
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -219,7 +219,7 @@ class Ankaios:
                           request_id)
         self._responses.put(response)
 
-    def _add_logs(self, request_id: str, logs: list[LogEntry]) -> None:
+    def _add_logs(self, request_id: str, logs: list[LogResponse]) -> None:
         """
         Method will be called automatically from the Control Interface
         when a log is received.

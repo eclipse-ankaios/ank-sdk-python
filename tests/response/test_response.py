@@ -19,8 +19,8 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
 from ankaios_sdk import Response, ResponseType, CompleteState, \
-    ResponseException, LogEntry
-from tests.response.test_log_entry import generate_test_log_entry
+    ResponseException, LogResponse, LogsType
+from tests.response.test_log_response import generate_test_log_entry
 from ankaios_sdk._protos import _ank_base, _control_api
 
 
@@ -61,20 +61,36 @@ MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(
     MESSAGE_UPDATE_SUCCESS.ByteSize()
 )
 
-MESSAGE_LOGS_RESPONSE = _control_api.FromAnkaios(
+MESSAGE_LOGS_ENTRIES_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
-        logsResponse=_ank_base.LogsResponse(
+        logEntriesResponse=_ank_base.LogEntriesResponse(
             logEntries=[
                 generate_test_log_entry()
             ]
         )
     )
 )
-MESSAGE_BUFFER_LOGS_RESPONSE = MESSAGE_LOGS_RESPONSE.SerializeToString()
-MESSAGE_BUFFER_LOGS_RESPONSE_LENGTH = _VarintBytes(
-    MESSAGE_LOGS_RESPONSE.ByteSize()
+MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE = \
+    MESSAGE_LOGS_ENTRIES_RESPONSE.SerializeToString()
+MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE_LENGTH = _VarintBytes(
+    MESSAGE_LOGS_ENTRIES_RESPONSE.ByteSize()
 )
+
+MESSAGE_LOGS_STOP_RESPONSE = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="4455",
+        logsStopResponse=_ank_base.LogsStopResponse(
+            workloadName=_ank_base.WorkloadInstanceName(
+                workloadName="nginx",
+                agentName="agent_A",
+                id="1234"
+            )
+        )
+    )
+)
+MESSAGE_BUFFER_LOGS_STOP_RESPONSE = \
+    MESSAGE_LOGS_STOP_RESPONSE.SerializeToString()
 
 MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
@@ -120,12 +136,18 @@ def test_initialisation():
     assert str(added_workloads[0]) == "new_nginx.12345.agent_A"
     assert str(deleted_workloads[0]) == "old_nginx.54321.agent_A"
 
-    # Test logs response
-    response = Response(MESSAGE_BUFFER_LOGS_RESPONSE)
-    assert response.content_type == ResponseType.LOGS
+    # Test logs entry response
+    response = Response(MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE)
+    assert response.content_type == ResponseType.LOGS_ENTRY
     assert isinstance(response.content, list)
     assert len(response.content) == 1
-    assert isinstance(response.content[0], LogEntry)
+    assert isinstance(response.content[0], LogResponse)
+
+    # Test logs stop respose
+    response = Response(MESSAGE_BUFFER_LOGS_STOP_RESPONSE)
+    assert response.content_type == ResponseType.LOGS_STOP_RESPONSE
+    assert isinstance(response.content, LogResponse)
+    assert response.content.type == LogsType.LOGS_STOP_RESPONSE
 
     # Test connection closed
     response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)

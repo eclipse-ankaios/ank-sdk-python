@@ -17,8 +17,8 @@ This module contains unit tests for the LogQueue class in the ankaios_sdk.
 """
 
 from ankaios_sdk import LogQueue, WorkloadInstanceName, \
-    LogEntry, LogsRequest, LogsCancelRequest
-from tests.response.test_log_entry import generate_test_log_entry
+    LogResponse, LogsRequest, LogsCancelRequest
+from tests.response.test_log_response import generate_test_log_entry
 from ankaios_sdk._protos import _ank_base
 
 
@@ -53,7 +53,7 @@ def test_log_queue():
     )
     log_queue = LogQueue([workload_name])
 
-    log_entry = LogEntry(
+    log_entry = LogResponse.from_entries(
         generate_test_log_entry()
     )
     log_queue.put(log_entry)

@@ -20,7 +20,7 @@ from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock
 import pytest
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, LogEntry, Response, \
+from ankaios_sdk import Ankaios, AnkaiosLogLevel, LogResponse, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
     WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
     AnkaiosProtocolException, AnkaiosResponseError, ConnectionClosedException
@@ -133,11 +133,11 @@ def test_add_logs():
     """
     Test the _add_logs method of the Ankaios class.
     This method is called from the ControlInterface when a response
-    of type Logs is received.
+    of type Logs Entries is received.
     """
     log_entries = [
-        LogEntry(generate_test_log_entry(name="nginx_A")),
-        LogEntry(generate_test_log_entry(name="nginx_B"))
+        LogResponse.from_entries(generate_test_log_entry(name="nginx_A")),
+        LogResponse.from_entries(generate_test_log_entry(name="nginx_B"))
     ]
     put_mock = MagicMock()
 
