@@ -13,8 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Response and UpdateStateSuccess classes,
-used for receiving messages from the control interface.
+This script defines the Response class and its associated types for handling
+responses from the control interface. It includes methods for parsing the
+received messages and converting them into appropriate Python objects.
 
 Classes
 --------
@@ -23,6 +24,8 @@ Classes
     Represents a response from the control interface.
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
+- LogsResponse:
+    Represents a log response received from the Ankaios system.
 
 Enums
 -----
@@ -30,6 +33,9 @@ Enums
 - ResponseType:
     Enumeration for the different types of response. It includes
     ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
+- LogsType:
+    Enumeration for the different types of logs responses. It includes
+    LOGS_ENTRY and LOGS_STOP_RESPONSE.
 
 Usage
 ------
@@ -54,11 +60,12 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess"]
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess", "LogsType",
+           "LogResponse"]
 
-from typing import Union
+from typing import Any
 from enum import Enum
-from .._protos import _control_api
+from .._protos import _ank_base, _control_api
 from ..exceptions import ResponseException
 from ..utils import get_logger
 from .complete_state import CompleteState
@@ -118,6 +125,10 @@ class Response:
         else:
             raise ResponseException(  # pragma: no cover
                 "Invalid response type.")
+        logger.debug(
+            "Got response of type '%s' with request id '%s'",
+            self.content_type, self.get_request_id()
+        )
 
     def _from_proto(self) -> None:
         """
@@ -154,6 +165,18 @@ class Response:
                         agent_name, workload_name, workload_id
                     )
                 )
+        elif self._response.HasField("logEntriesResponse"):
+            self.content_type = ResponseType.LOGS_ENTRY
+            self.content = []
+            for log_entry in self._response.logEntriesResponse.logEntries:
+                self.content.append(
+                    LogResponse.from_entries(log_entry)
+                )
+        elif self._response.HasField("logsStopResponse"):
+            self.content_type = ResponseType.LOGS_STOP_RESPONSE
+            self.content = LogResponse.from_stop_response(
+                self._response.logsStopResponse
+            )
         else:
             raise ResponseException("Invalid response type.")
 
@@ -168,14 +191,14 @@ class Response:
             return None
         return self._response.requestId
 
-    def get_content(self) -> \
-            tuple[
-                'ResponseType',
-                Union[str, 'CompleteState', 'UpdateStateSuccess']
-                ]:
+    def get_content(self) -> tuple['ResponseType', Any]:
         """
-        Gets the content of the response. It can be either a string (if error),
-        a CompleteState instance, or a UpdateStateSuccess instance.
+        Gets the content of the response. It can be either:
+          - a string (error / connection closed)
+          - a CompleteState object
+          - an UpdateStateSuccess object
+          - a list of log entires
+          - a log stop response
 
         Returns:
             tuple[ResponseType, any]: the content type and the content.
@@ -191,7 +214,11 @@ class ResponseType(Enum):
     "(int): Got the complete state."
     UPDATE_STATE_SUCCESS = 3
     "(int): Got a successful update state response."
-    CONNECTION_CLOSED = 4
+    LOGS_ENTRY = 4
+    "(int): Got logs entry."
+    LOGS_STOP_RESPONSE = 5
+    "(int): Got logs stop response."
+    CONNECTION_CLOSED = 6
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -243,3 +270,96 @@ class UpdateStateSuccess:
             str(instance_name) for instance_name in self.deleted_workloads]
         return f"Added workloads: {added_workloads}, " \
                f"Deleted workloads: {deleted_workloads}"
+
+
+class LogsType(Enum):
+    """ Enumeration for the different types of logs responses. """
+    LOGS_ENTRY = 1
+    "(int): A workload logged a message."
+    LOGS_STOP_RESPONSE = 2
+    "(int): A workload stopped sending logs."
+
+    def __str__(self) -> str:
+        """
+        Converts the LogsType to a string.
+
+        Returns:
+            str: The string representation of the LogsType.
+        """
+        return self.name.lower()
+
+
+class LogResponse:
+    """
+    Represents a log responce received from the Ankaios system.
+    """
+    def __init__(self, log_type: LogsType, name: _ank_base.WorkloadInstanceName, message: str = "") -> None:
+        """
+        Initializes the LogResponse with the given attributes.
+
+        Args:
+            workload_instance_name (WorkloadInstanceName): The instance name
+                of the workload.
+            message (str): The log message.
+            log_type (LogsType): The type of the log response.
+        """
+        self.workload_instance_name = WorkloadInstanceName(
+            name.agentName, name.workloadName, name.id
+        )
+        self.type = log_type
+        self.message = message
+
+    @staticmethod
+    def from_entries(log: _ank_base.LogEntry) -> 'LogResponse':
+        """
+        Creates a LogResponse from a LogEntry.
+
+        Args:
+            log (_ank_base.LogEntry): The log entry to convert.
+
+        Returns:
+            LogResponse: The converted LogResponse object.
+        """
+        return LogResponse(LogsType.LOGS_ENTRY,
+                          log.workloadName,
+                          log.message)
+
+    @staticmethod
+    def from_stop_response(log: _ank_base.LogsStopResponse) -> 'LogResponse':
+        """
+        Creates a LogResponse from a LogsStopResponse.
+
+        Args:
+            log (_ank_base.LogsStopResponse): The logs stop response to convert.
+
+        Returns:
+            LogResponse: The converted LogResponse object.
+        """
+        return LogResponse(LogsType.LOGS_STOP_RESPONSE, 
+                          log.workloadName)
+
+    def __str__(self) -> str:
+        """
+        Converts the LogResponse to a string.
+
+        Returns:
+            str: The string representation of the log response.
+        """
+        if self.type == LogsType.LOGS_ENTRY:
+            return f"Log from {self.workload_instance_name}: {self.message}"
+        elif self.type == LogsType.LOGS_STOP_RESPONSE:
+            return f"Stopped receiving logs from {self.workload_instance_name}."
+
+    def to_dict(self) -> dict:
+        """
+        Converts the LogResponse to a dictionary. It includes the type
+        of the response.
+
+        Returns:
+            dict: The dictionary representation of the log response.
+        """
+        return {
+            "workload_instance_name": self.workload_instance_name.to_dict(),
+            "type": self.type,
+            "message": self.message
+        }

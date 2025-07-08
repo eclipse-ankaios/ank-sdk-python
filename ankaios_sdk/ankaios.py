@@ -115,7 +115,8 @@ Usage
 __all__ = ["Ankaios"]
 
 import time
-from typing import Union
+from typing import Union, Callable
+from datetime import datetime
 from queue import Queue, Empty
 
 from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
@@ -125,7 +126,8 @@ from ._components import Workload, CompleteState, Request, \
                          ResponseType, UpdateStateSuccess, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
-                         WorkloadExecutionState, ControlInterface
+                         WorkloadExecutionState, ControlInterface, \
+                         LogQueue, LogResponse
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -158,15 +160,17 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed
                 at startup.
         """
-        # Thread safe queue for responses
+        # Thread safe queue for responses and logs
         self._responses: Queue = Queue()
+        self._logs_callbacks: dict[str, Callable] = {}
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
 
         # Connect to the control interface
         self._control_interface = ControlInterface(
-            add_response_callback=self._add_response
+            add_response_callback=self._add_response,
+            add_log_callback=self._add_logs,
             )
         self._control_interface.connect()
 
@@ -220,6 +224,18 @@ class Ankaios:
         self.logger.debug("Received a response with the id %s",
                           request_id)
         self._responses.put(response)
+
+    def _add_logs(self, request_id: str, logs: list[LogResponse]) -> None:
+        """
+        Method will be called automatically from the Control Interface
+        when a log is received.
+        """
+        if request_id in self._logs_callbacks:
+            for log in logs:
+                self._logs_callbacks[request_id](log)
+        else:
+            self.logger.warning(
+                "Received logs for unknown request id %s", request_id)
 
     def _get_response_by_id(self, request_id: str,
                             timeout: float = DEFAULT_TIMEOUT) -> Response:
@@ -802,7 +818,7 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(None, timeout).get_workload_states()
+        return self.get_state(["workloadStates"], timeout).get_workload_states()
 
     def get_execution_state_for_instance_name(
             self,
@@ -915,6 +931,7 @@ class Ankaios:
             state (WorkloadStateEnum): The state to wait for.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
+
         Raises:
             TimeoutError: If the request timed out or if the workload
                 did not reach the state in time.
@@ -935,3 +952,49 @@ class Ankaios:
         raise TimeoutError(
             "Timeout while waiting for workload to reach state."
             )
+
+    def request_logs(self, workload_names: list[WorkloadInstanceName],
+                     follow: bool = False, tail: int = -1,
+                     since: Union[str, datetime] = "",
+                     until: Union[str, datetime] = "") -> LogQueue:
+        """
+        Request logs for the specified workloads.
+
+        Args:
+            workload_names (list[WorkloadInstanceName]): The workload
+                instance names for which to get logs.
+            follow (bool): If true, the logs will be continuously streamed.
+            tail (int): The number of lines to display from the end of the logs.
+            since (str / datetime): The start time for the logs. If string, it must
+                be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string, it must
+                be in the RFC3339 format.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
+        """
+        log_queue = LogQueue(
+            workload_names=workload_names,
+            follow=follow, tail=tail,
+            since=since, until=until
+        )
+        log_request = log_queue.get_request()
+        self._control_interface.write_request(log_request)
+        self._logs_callbacks[log_request.get_id()] = log_queue.put
+        return log_queue
+
+    def stop_receiving_logs(self, log_queue: LogQueue) -> None:
+        """
+        Stop receiving logs from the specified LogQueue.
+
+        Args:
+            log_queue (LogQueue): The log queue to stop receiving logs from.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            ConnectionClosedException: If the connection is closed.
+        """
+        request = log_queue.get_cancel_request()
+        self._control_interface.write_request(request)
+        self._logs_callbacks.pop(request.get_id(), None)
