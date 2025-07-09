@@ -45,6 +45,18 @@ class LogQueue(Queue):
             follow=follow, tail=tail,
             since=since, until=until
         )
+        self.accepted_workload_names: list[WorkloadInstanceName] = []
+
+    def get_accepted_workload_names(self) -> list[WorkloadInstanceName]:
+        """
+        Returns the list of workload instance names for which logs have been
+        accepted.
+
+        Returns:
+            list[WorkloadInstanceName]: The list of accepted workload
+                instance names.
+        """
+        return self.accepted_workload_names
 
     def get_request(self) -> LogsRequest:
         """

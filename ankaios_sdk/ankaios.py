@@ -950,7 +950,8 @@ class Ankaios:
     def request_logs(self, workload_names: list[WorkloadInstanceName],
                      follow: bool = False, tail: int = -1,
                      since: Union[str, datetime] = "",
-                     until: Union[str, datetime] = "") -> LogQueue:
+                     until: Union[str, datetime] = "",
+                     timeout: float = DEFAULT_TIMEOUT) -> LogQueue:
         """
         Request logs for the specified workloads.
 
@@ -963,20 +964,41 @@ class Ankaios:
                 be in the RFC3339 format.
             until (str / datetime): The end time for the logs. If string, it must
                 be in the RFC3339 format.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
 
         Raises:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
+
+        # Create the logs queue and get the request
         log_queue = LogQueue(
             workload_names=workload_names,
             follow=follow, tail=tail,
             since=since, until=until
         )
-        log_request = log_queue.get_request()
-        self._control_interface.write_request(log_request)
-        self._logs_callbacks[log_request.get_id()] = log_queue.put
-        return log_queue
+        request = log_queue.get_request()
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error("Error while trying to set the configs: %s",
+                              content)
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.LOGS_REQUEST_ACCEPTED:
+            self.logger.info("Logs request accepted, waiting for logs.")
+            self.logger.debug("Accepted workload names: %s", content)
+            self._logs_callbacks[request.get_id()] = log_queue.put
+            log_queue.accepted_workload_names = content
+            return log_queue
+        raise AnkaiosProtocolException("Received unexpected content type.")
 
     def stop_receiving_logs(self, log_queue: LogQueue) -> None:
         """

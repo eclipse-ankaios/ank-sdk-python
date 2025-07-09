@@ -172,6 +172,16 @@ class Response:
                 self.content.append(
                     LogResponse.from_entries(log_entry)
                 )
+        elif self._response.HasField("logsRequestAccepted"):
+            self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
+            self.content = [
+                WorkloadInstanceName(
+                    workload.agentName,
+                    workload.workloadName,
+                    workload.id
+                )
+                for workload in self._response.logsRequestAccepted.workloadNames
+            ]
         elif self._response.HasField("logsStopResponse"):
             self.content_type = ResponseType.LOGS_STOP_RESPONSE
             self.content = LogResponse.from_stop_response(
@@ -216,9 +226,11 @@ class ResponseType(Enum):
     "(int): Got a successful update state response."
     LOGS_ENTRY = 4
     "(int): Got logs entry."
-    LOGS_STOP_RESPONSE = 5
+    LOGS_REQUEST_ACCEPTED = 5
+    "(int): Logs request accepted, waiting for logs."
+    LOGS_STOP_RESPONSE = 6
     "(int): Got logs stop response."
-    CONNECTION_CLOSED = 6
+    CONNECTION_CLOSED = 7
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
