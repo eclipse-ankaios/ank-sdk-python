@@ -426,6 +426,79 @@ class Workload:
         for alias, name in configs.items():
             self.add_config(alias, name)
 
+    def add_file(self,
+                 mount_point: str,
+                 data: str = None,
+                 binary_data: str = None) -> None:
+        """
+        Link a workload file to the workload.
+
+        Args:
+            mount_point (str): The mount point of the file.
+            data (str): The data of the file.
+            binary_data (str): The binary data of the file.
+
+        Raises:
+            WorkloadBuilderException: If both data and binary_data are provided
+                                      or if neither of them has been provided.
+        """
+        if data and binary_data:
+            self.logger.error(
+                "Both data and binary_data are provided. "
+                "Please provide only one of them."
+            )
+            raise WorkloadBuilderException(
+                "Only one of data or binary_data should be provided.")
+
+        if data is not None:
+            self._workload.files.files.append(_ank_base.File(
+                mountPoint=mount_point,
+                data=data,))
+        elif binary_data is not None:
+            self._workload.files.files.append(_ank_base.File(
+                mountPoint=mount_point,
+                binaryData=binary_data
+            ))
+        else:
+            self.logger.error(
+                "Neither data nor binary_data is provided. "
+                "Please provide one of them."
+            )
+            raise WorkloadBuilderException("No data or binary data provided.")
+        self._add_mask(f"{self._main_mask}.files")
+
+    def get_files(self) -> list[dict[str, str]]:
+        """
+        Return the files linked to the workload.
+
+        Returns:
+        list[dict[str, str]]: A list of file dictionaries
+                              linked to the workload.
+        """
+        return [
+            {
+                "mountPoint": file.mountPoint,
+                **({"data": file.data} if file.data else {}),
+                **({"binaryData": file.binaryData} if file.binaryData else {}),
+            }
+            for file in self._workload.files.files
+        ]
+
+    def update_files(self, files: list[dict[str, str]]) -> None:
+        """
+        Update the files linked to the workload.
+
+        Args:
+            files (list[_ank_base.File]): A list of File
+                                          objects to link to the workload.
+        """
+        del self._workload.files.files[:]
+        for file_dict in files:
+            mount_point = file_dict.get("mountPoint", "")
+            data = file_dict.get("data")
+            binary_data = file_dict.get("binaryData")
+            self.add_file(mount_point, data, binary_data)
+
     def _add_mask(self, mask: str) -> None:
         """
         Add a mask to the list of masks.
@@ -436,6 +509,7 @@ class Workload:
         if self._main_mask not in self.masks and mask not in self.masks:
             self.masks.append(mask)
 
+    # pylint: disable=too-many-branches
     def to_dict(self) -> dict:
         """
         Convert the Workload object to a dictionary.
@@ -486,6 +560,16 @@ class Workload:
         workload_dict["configs"] = {}
         for alias, name in self._workload.configs.configs.items():
             workload_dict["configs"][alias] = name
+        workload_dict["files"] = []
+        for file in self._workload.files.files:
+            file_dict = {
+                "mountPoint": file.mountPoint,
+            }
+            if file.data:
+                file_dict["data"] = file.data
+            if file.binaryData:
+                file_dict["binaryData"] = file.binaryData
+            workload_dict["files"].append(file_dict)
         return workload_dict
 
     # pylint: disable=too-many-branches
@@ -536,6 +620,13 @@ class Workload:
         if "configs" in dict_workload:
             for alias, name in dict_workload["configs"].items():
                 workload = workload.add_config(alias, name)
+        if "files" in dict_workload:
+            for file in dict_workload["files"]:
+                workload = workload.add_file(
+                    mount_point=file.get("mountPoint"),
+                    data=file.get("data"),
+                    binary_data=file.get("binaryData")
+                )
 
         return workload.build()
 
@@ -588,6 +679,7 @@ class WorkloadBuilder:
         self.allow_rules = []
         self.deny_rules = []
         self.configs = {}
+        self.files = []
 
     def workload_name(self, workload_name: str) -> "WorkloadBuilder":
         """
@@ -743,6 +835,25 @@ class WorkloadBuilder:
         self.configs[alias] = name
         return self
 
+    def add_file(self,
+                 mount_point: str,
+                 data: str = None,
+                 binary_data: str = None) -> "WorkloadBuilder":
+        """
+        Link a workload file to the workload.
+
+        Args:
+            mount_point (str): The mount point of the file.
+            data (str): The data of the file.
+            binary_data (str): The binary data of the file.
+        """
+        self.files.append({
+            "mountPoint": mount_point,
+            "data": data,
+            "binaryData": binary_data
+        })
+        return self
+
     def build(self) -> Workload:
         """
         Build the Workload object.
@@ -787,5 +898,7 @@ class WorkloadBuilder:
             workload.update_deny_rules(self.deny_rules)
         if len(self.configs) > 0:
             workload.update_configs(self.configs)
+        if len(self.files) > 0:
+            workload.update_files(self.files)
 
         return workload
