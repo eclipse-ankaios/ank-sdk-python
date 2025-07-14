@@ -74,6 +74,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 from .._protos import _ank_base
 from ..exceptions import WorkloadFieldException, WorkloadBuilderException
 from ..utils import get_logger, WORKLOADS_PREFIX
+from .._components.file import File, Data, BinaryData, FileContent
 
 
 # pylint: disable=too-many-public-methods
@@ -426,78 +427,35 @@ class Workload:
         for alias, name in configs.items():
             self.add_config(alias, name)
 
-    def add_file(self,
-                 mount_point: str,
-                 data: str = None,
-                 binary_data: str = None) -> None:
+    def add_file(self, file: File) -> None:
         """
         Link a workload file to the workload.
 
         Args:
-            mount_point (str): The mount point of the file.
-            data (str): The data of the file.
-            binary_data (str): The binary data of the file.
-
-        Raises:
-            WorkloadBuilderException: If both data and binary_data are provided
-                                      or if neither of them has been provided.
+           file (File): The File object to mount to the workload.
         """
-        if data and binary_data:
-            self.logger.error(
-                "Both data and binary_data are provided. "
-                "Please provide only one of them."
-            )
-            raise WorkloadBuilderException(
-                "Only one of data or binary_data should be provided.")
-
-        if data is not None:
-            self._workload.files.files.append(_ank_base.File(
-                mountPoint=mount_point,
-                data=data,))
-        elif binary_data is not None:
-            self._workload.files.files.append(_ank_base.File(
-                mountPoint=mount_point,
-                binaryData=binary_data
-            ))
-        else:
-            self.logger.error(
-                "Neither data nor binary_data is provided. "
-                "Please provide one of them."
-            )
-            raise WorkloadBuilderException("No data or binary data provided.")
+        self._workload.files.files.append(file._to_proto())
         self._add_mask(f"{self._main_mask}.files")
 
-    def get_files(self) -> list[dict[str, str]]:
+    def get_files(self) -> list[File]:
         """
         Return the files linked to the workload.
 
         Returns:
-        list[dict[str, str]]: A list of file dictionaries
-                              linked to the workload.
+        list[File]: A list of File objects mounted to the workload.
         """
-        return [
-            {
-                "mountPoint": file.mountPoint,
-                **({"data": file.data} if file.data else {}),
-                **({"binaryData": file.binaryData} if file.binaryData else {}),
-            }
-            for file in self._workload.files.files
-        ]
+        return [File._from_proto(file) for file in self._workload.files.files]
 
-    def update_files(self, files: list[dict[str, str]]) -> None:
+    def update_files(self, files: list[File]) -> None:
         """
         Update the files linked to the workload.
 
         Args:
-            files (list[_ank_base.File]): A list of File
-                                          objects to link to the workload.
+            files (list[File]): A list of File objects to mount to the workload.
         """
         del self._workload.files.files[:]
-        for file_dict in files:
-            mount_point = file_dict.get("mountPoint", "")
-            data = file_dict.get("data")
-            binary_data = file_dict.get("binaryData")
-            self.add_file(mount_point, data, binary_data)
+        for file in files:
+            self.add_file(file)
 
     def _add_mask(self, mask: str) -> None:
         """
@@ -562,14 +520,7 @@ class Workload:
             workload_dict["configs"][alias] = name
         workload_dict["files"] = []
         for file in self._workload.files.files:
-            file_dict = {
-                "mountPoint": file.mountPoint,
-            }
-            if file.data:
-                file_dict["data"] = file.data
-            if file.binaryData:
-                file_dict["binaryData"] = file.binaryData
-            workload_dict["files"].append(file_dict)
+            workload_dict["files"].append(File._from_proto(file)._to_dict())
         return workload_dict
 
     # pylint: disable=too-many-branches
@@ -622,11 +573,7 @@ class Workload:
                 workload = workload.add_config(alias, name)
         if "files" in dict_workload:
             for file in dict_workload["files"]:
-                workload = workload.add_file(
-                    mount_point=file.get("mountPoint"),
-                    data=file.get("data"),
-                    binary_data=file.get("binaryData")
-                )
+                workload = workload.add_file(File._from_dict(file))
 
         return workload.build()
 
@@ -835,23 +782,14 @@ class WorkloadBuilder:
         self.configs[alias] = name
         return self
 
-    def add_file(self,
-                 mount_point: str,
-                 data: str = None,
-                 binary_data: str = None) -> "WorkloadBuilder":
+    def add_file(self, file: File) -> "WorkloadBuilder":
         """
         Link a workload file to the workload.
 
         Args:
-            mount_point (str): The mount point of the file.
-            data (str): The data of the file.
-            binary_data (str): The binary data of the file.
+            file (File): The File object to mount to the workload.
         """
-        self.files.append({
-            "mountPoint": mount_point,
-            "data": data,
-            "binaryData": binary_data
-        })
+        self.files.append(file)
         return self
 
     def build(self) -> Workload:

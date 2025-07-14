@@ -22,7 +22,7 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadBuilderException
+from ankaios_sdk import Workload, WorkloadBuilder, WorkloadBuilderException, File
 from ankaios_sdk._protos import _ank_base
 
 
@@ -151,36 +151,14 @@ def test_add_file(
     """
     assert len(builder.files) == 0
 
-    assert builder.add_file("file_mount_point", data="file_content") == builder
-    assert builder.add_file(
-        "file_mount_point", binary_data="binary_file_content"
+    assert builder.add_file(File.from_data("file_mount_point", data="file_content")) == builder
+    assert builder.add_file(File.from_binary_data(
+        "file_mount_point", binary_data="ialsdfvJKGU65e")
     ) == builder
-    assert builder.files == [
-        {
-            "mountPoint": "file_mount_point",
-            "data": "file_content",
-            "binaryData": None
-        },
-        {
-            "mountPoint": "file_mount_point",
-            "binaryData": "binary_file_content",
-            "data": None
-        }
-    ]
-    with pytest.raises(
-            WorkloadBuilderException,
-            match="Only one of data or binary_data should be provided."
-            ):
-        builder.add_file(mount_point="mount_point").build()
-
-    with pytest.raises(
-            WorkloadBuilderException,
-            match="No data or binary data provided."
-            ):
-        builder.add_file(mount_point="mount_point",
-                         data="data",
-                         binary_data="some_binary_data").build()
-
+    assert builder.files[0].mount_point == "file_mount_point"
+    assert builder.files[0].data_content() == "file_content"
+    assert builder.files[1].mount_point == "file_mount_point"
+    assert builder.files[1].binary_data_content() == "ialsdfvJKGU65e"
 
 def test_build(
         builder: WorkloadBuilder

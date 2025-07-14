@@ -26,7 +26,7 @@ Helper Functions:
 from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import (Workload, WorkloadBuilder,
-                         WorkloadFieldException, WorkloadBuilderException)
+                         WorkloadFieldException, WorkloadBuilderException, File)
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
@@ -118,7 +118,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_deny_rule("Read",
                        ["workloadStates.agent_Test.another_workload"]) \
         .add_config("alias_test", "config1") \
-        .add_file("./dummy_mount_point", data="dummy_data") \
+        .add_file(File.from_data("./dummy_mount_point", data="dummy_data")) \
         .build()
 
 
@@ -283,25 +283,15 @@ def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
 
     print(workload)
 
-    workload.add_file("./new_mount_point", data="new_data")
+    workload.add_file(File.from_data("./new_mount_point", data="new_data"))
     files = workload.get_files()
     assert len(files) == 2
 
-    files.append({
-        "mountPoint": "./another_new_mount_point",
-        "data": "another_new_data",
-        "binaryData": None
-    })
+    files.append(
+        File.from_binary_data("./another_new_mount_point",
+                              binary_data="Asday9843uf092ASASASXZXZ90u988huj"))
     workload.update_files(files)
     assert len(workload.get_files()) == 3
-
-    with pytest.raises(WorkloadBuilderException):
-        workload.add_file("./invalid_mount_point",
-                          data="some_data",
-                          binary_data="some_binary_data")
-
-    with pytest.raises(WorkloadBuilderException):
-        workload.add_file("./invalid_mount_point", binary_data=None, data=None)
 
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
@@ -370,8 +360,7 @@ def test_from_to_dict():
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
         f"{WORKLOADS_PREFIX}.workload_test.configs"),
-    ("add_file", {"mount_point": "./dummy_mount_point",
-                  "data": "dummy_data"},
+    ("add_file", File.from_data("./dummy_mount_point", "dummy_data"),
         f"{WORKLOADS_PREFIX}.workload_test.files")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
