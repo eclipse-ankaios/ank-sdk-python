@@ -252,7 +252,7 @@ class ControlInterface:
         os.set_blocking(self._input_file.fileno(), False)
 
         try:
-            self._logger.info("Started reading from the input pipe.")
+            self._logger.debug("Started reading from the input pipe.")
             while not self._disconnect_event.is_set():
                 # The loop continues when data is available or when the
                 # timeout of 1 second is reached.
