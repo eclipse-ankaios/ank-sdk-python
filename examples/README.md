@@ -70,6 +70,10 @@ This example has the Python SDK installed and allows to execute an interactive s
 
 `follow_state` executes indefinitely with a request to get the state being sent every 5 seconds.
 
+### `test_file`
+
+`test_file` exemplifies how files mounted to a workload can be manipulated.
+
 ## Enter a container
 
 To `exec` into the example container, a convenience script is provided:

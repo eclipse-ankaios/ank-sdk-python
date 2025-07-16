@@ -40,5 +40,6 @@ from .request import *
 from .response import *
 from .manifest import *
 from .control_interface import *
+from .file import *
 
 __all__ = [name for name in globals() if not name.startswith('_')]
