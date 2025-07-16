@@ -990,5 +990,24 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed.
         """
         request = log_queue.get_cancel_request()
-        self._control_interface.write_request(request)
-        self._logs_callbacks.pop(request.get_id(), None)
+        # self._control_interface.write_request(request)
+        # self._logs_callbacks.pop(request.get_id(), None)
+
+        try:
+            self._send_request(request)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        (content_type, content) = request.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error("Error while trying to cancel receiving of logs: %s",
+                              content)
+            raise AnkaiosResponseError(f"Received error: {content}")
+
+        if content_type == ResponseType.LOGS_CANCEL_RESPONSE:
+            self.logger.info("Succesfully canceled receiving of logs.")
+            self._logs_callbacks.pop(request.get_id(), None)
+
+            return
+        raise AnkaiosProtocolException("Received unexpected content type.")

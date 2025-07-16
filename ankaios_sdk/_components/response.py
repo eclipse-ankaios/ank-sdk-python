@@ -177,6 +177,11 @@ class Response:
             self.content = LogResponse.from_stop_response(
                 self._response.logsStopResponse
             )
+        elif self._response.HasField("logsCancelAccepted"):
+            self.content_type = ResponseType.LOGS_CANCEL_RESPONSE
+            self.content = LogResponse.from_cancel_response(
+                self._response.logsCancelAccepted
+            )
         else:
             raise ResponseException("Invalid response type.")
 
@@ -218,7 +223,9 @@ class ResponseType(Enum):
     "(int): Got logs entry."
     LOGS_STOP_RESPONSE = 5
     "(int): Got logs stop response."
-    CONNECTION_CLOSED = 6
+    LOGS_CANCEL_RESPONSE = 6
+    "(int): Got logs cancel response."
+    CONNECTION_CLOSED = 7
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -335,8 +342,22 @@ class LogResponse:
         Returns:
             LogResponse: The converted LogResponse object.
         """
-        return LogResponse(LogsType.LOGS_STOP_RESPONSE, 
+        return LogResponse(LogsType.LOGS_STOP_RESPONSE,
                           log.workloadName)
+
+    @staticmethod
+    def from_cancel_response(log: _ank_base.LogsCancelAccepted) -> 'LogResponse':
+        """
+        Creates a LogResponse from a LogsCancelAccepted.
+
+        Args:
+            log (_ank_base.LogsCancelAccepted): The logs cancel accepted to convert.
+
+        Returns:
+            LogResponse: The converted LogResponse object.
+        """
+        return LogResponse(LogsType.LOGS_CANCEL_RESPONSE,
+                           log.workloadName)
 
     def __str__(self) -> str:
         """
