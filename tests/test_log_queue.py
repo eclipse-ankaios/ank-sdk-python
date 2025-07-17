@@ -34,11 +34,11 @@ def test_log_queue_requests():
     log_queue = LogQueue([workload_name])
     assert log_queue is not None
 
-    request = log_queue.get_request()
+    request = log_queue._get_request()
     request_id = request.get_id()
     assert isinstance(request, LogsRequest)
 
-    cancel_request = log_queue.get_cancel_request()
+    cancel_request = log_queue._get_cancel_request()
     assert isinstance(cancel_request, LogsCancelRequest)
     assert cancel_request.get_id() == request_id
 

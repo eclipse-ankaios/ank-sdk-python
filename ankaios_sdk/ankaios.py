@@ -127,7 +127,7 @@ from ._components import Workload, CompleteState, Request, \
                          WorkloadStateCollection, Manifest, \
                          WorkloadInstanceName, WorkloadStateEnum, \
                          WorkloadExecutionState, ControlInterface, \
-                         LogQueue, LogResponse
+                         LogCampaignResponse, LogQueue, LogResponse
 from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
                    CONFIGS_PREFIX
 
@@ -951,7 +951,7 @@ class Ankaios:
                      follow: bool = False, tail: int = -1,
                      since: Union[str, datetime] = "",
                      until: Union[str, datetime] = "",
-                     timeout: float = DEFAULT_TIMEOUT) -> LogQueue:
+                     timeout: float = DEFAULT_TIMEOUT) -> LogCampaignResponse:
         """
         Request logs for the specified workloads.
 
@@ -967,6 +967,10 @@ class Ankaios:
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
+        Returns:
+            LogCampaignResponse: The response containing the log queue and
+                accepted workload names.
+
         Raises:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
@@ -978,7 +982,7 @@ class Ankaios:
             follow=follow, tail=tail,
             since=since, until=until
         )
-        request = log_queue.get_request()
+        request = log_queue._get_request()
 
         try:
             response = self._send_request(request, timeout)
@@ -994,23 +998,24 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.LOGS_REQUEST_ACCEPTED:
             self.logger.info("Logs request accepted, waiting for logs.")
-            self.logger.debug("Accepted workload names: %s", content)
             self._logs_callbacks[request.get_id()] = log_queue.put
-            log_queue.accepted_workload_names = content
-            return log_queue
+            return LogCampaignResponse(
+                queue=log_queue,
+                accepted_workload_names=content
+            )
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def stop_receiving_logs(self, log_queue: LogQueue) -> None:
+    def stop_receiving_logs(self, log_campaign: LogCampaignResponse) -> None:
         """
         Stop receiving logs from the specified LogQueue.
 
         Args:
-            log_queue (LogQueue): The log queue to stop receiving logs from.
+            log_campaign (LogCampaignResponse): The log qcampaign response.
 
         Raises:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
-        request = log_queue.get_cancel_request()
+        request = log_campaign.queue._get_cancel_request()
         self._control_interface.write_request(request)
         self._logs_callbacks.pop(request.get_id(), None)

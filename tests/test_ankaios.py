@@ -799,14 +799,14 @@ def test_logs():
 
     with patch("ankaios_sdk.ControlInterface.write_request") as mock_write:
         log_queue = ankaios.request_logs([workload_instance_name])
-        request = log_queue.get_request()
+        request = log_queue._get_request()
         mock_write.assert_called_once_with(request)
 
         assert len(ankaios._logs_callbacks) == 1
         assert ankaios._logs_callbacks[request.get_id()] == log_queue.put
 
     with patch("ankaios_sdk.ControlInterface.write_request") as mock_write:
-        cancel_request = log_queue.get_cancel_request()
+        cancel_request = log_queue._get_cancel_request()
         ankaios.stop_receiving_logs(log_queue)
         mock_write.assert_called_once()
         request = mock_write.call_args[0][0]

@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-__all__ = ["LogQueue"]
+__all__ = ["LogCampaignResponse", "LogQueue"]
 
 from queue import Queue
 from typing import Union
@@ -21,7 +21,26 @@ from .workload_state import WorkloadInstanceName
 from .request import LogsRequest, LogsCancelRequest
 
 
+class LogCampaignResponse:
+    def __init__(self, queue: "LogQueue", 
+                 accepted_workload_names: list[WorkloadInstanceName]) -> None:
+        """
+        Initializes the LogCampaignResponse with the given queue and accepted
+        workload names.
+
+        Args:
+            queue (LogQueue): The queue containing the log messages.
+            accepted_workload_names (list[WorkloadInstanceName]): The list of
+                workload instance names for which logs have been accepted.
+        """
+        self.queue = queue
+        self.accepted_workload_names = accepted_workload_names
+
+
 class LogQueue(Queue):
+    """
+    Represents a queue of received messages through the log campaign.
+    """
     def __init__(self, workload_names: list[WorkloadInstanceName],
                  follow: bool = False, tail: int = -1,
                  since: Union[str, datetime] = "",
@@ -45,20 +64,8 @@ class LogQueue(Queue):
             follow=follow, tail=tail,
             since=since, until=until
         )
-        self.accepted_workload_names: list[WorkloadInstanceName] = []
 
-    def get_accepted_workload_names(self) -> list[WorkloadInstanceName]:
-        """
-        Returns the list of workload instance names for which logs have been
-        accepted.
-
-        Returns:
-            list[WorkloadInstanceName]: The list of accepted workload
-                instance names.
-        """
-        return self.accepted_workload_names
-
-    def get_request(self) -> LogsRequest:
+    def _get_request(self) -> LogsRequest:
         """
         Returns the LogsRequest object.
 
@@ -67,7 +74,7 @@ class LogQueue(Queue):
         """
         return self._request
 
-    def get_cancel_request(self) -> LogsCancelRequest:
+    def _get_cancel_request(self) -> LogsCancelRequest:
         """
         Returns the LogsCancelRequest object.
 

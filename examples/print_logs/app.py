@@ -36,14 +36,21 @@ with Ankaios() as ankaios:
         ]
 
         # Request the logs of the workloads
-        queue = ankaios.request_logs(
+        log_campaign = ankaios.request_logs(
             workload_names=workload_names,
             follow=True,
         )
 
+        # Check what workloads were accepted for logging
+        print("Accepted workload names for logging: {}"
+              .format([
+                  instance_name.workload_name
+                  for instance_name in log_campaign.accepted_workload_names
+                  ]))
+
         while True:
             # Get the logs from the queue
-            log = queue.get()
+            log = log_campaign.queue.get()
 
             # Print the logs
             print(str(log))
@@ -53,4 +60,4 @@ with Ankaios() as ankaios:
         print("Ankaios Exception occurred: ", e)
 
     # Stop receiving logs
-    ankaios.stop_receiving_logs(queue)
+    ankaios.stop_receiving_logs(log_campaign)
