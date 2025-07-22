@@ -812,7 +812,8 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(["workloadStates"], timeout).get_workload_states()
+        return self.get_state(["workloadStates"], timeout)\
+            .get_workload_states()
 
     def get_execution_state_for_instance_name(
             self,
@@ -947,6 +948,7 @@ class Ankaios:
             "Timeout while waiting for workload to reach state."
             )
 
+    # pylint: disable=too-many-arguments
     def request_logs(self, workload_names: list[WorkloadInstanceName],
                      follow: bool = False, tail: int = -1,
                      since: Union[str, datetime] = "",
@@ -959,11 +961,12 @@ class Ankaios:
             workload_names (list[WorkloadInstanceName]): The workload
                 instance names for which to get logs.
             follow (bool): If true, the logs will be continuously streamed.
-            tail (int): The number of lines to display from the end of the logs.
-            since (str / datetime): The start time for the logs. If string, it must
-                be in the RFC3339 format.
-            until (str / datetime): The end time for the logs. If string, it must
-                be in the RFC3339 format.
+            tail (int): The number of lines to display from
+                the end of the logs.
+            since (str / datetime): The start time for the logs. If string,
+                it must be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string,
+                it must be in the RFC3339 format.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 
@@ -1005,17 +1008,37 @@ class Ankaios:
             )
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def stop_receiving_logs(self, log_campaign: LogCampaignResponse) -> None:
+    def stop_receiving_logs(self, log_campaign: LogCampaignResponse,
+                            timeout: float = DEFAULT_TIMEOUT) -> None:
         """
-        Stop receiving logs from the specified LogQueue.
+        Stop receiving logs from the specified LogCampaignResponse.
 
         Args:
             log_campaign (LogCampaignResponse): The log qcampaign response.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
 
         Raises:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
+        # Get the cancel request
         request = log_campaign.queue._get_cancel_request()
-        self._control_interface.write_request(request)
-        self._logs_callbacks.pop(request.get_id(), None)
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error("Error while trying to set the configs: %s",
+                              content)
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.LOGS_CANCEL_ACCEPTED:
+            self.logger.info("Logs cancel request accepted.")
+            self._logs_callbacks.pop(request.get_id(), None)
+            return None
+        raise AnkaiosProtocolException("Received unexpected content type.")

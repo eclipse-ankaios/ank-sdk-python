@@ -180,13 +180,17 @@ class Response:
                     workload.workloadName,
                     workload.id
                 )
-                for workload in self._response.logsRequestAccepted.workloadNames
+                for workload in self._response
+                .logsRequestAccepted.workloadNames
             ]
         elif self._response.HasField("logsStopResponse"):
             self.content_type = ResponseType.LOGS_STOP_RESPONSE
             self.content = LogResponse.from_stop_response(
                 self._response.logsStopResponse
             )
+        elif self._response.HasField("logsCancelAccepted"):
+            self.content_type = ResponseType.LOGS_CANCEL_ACCEPTED
+            self.content = None
         else:
             raise ResponseException("Invalid response type.")
 
@@ -230,7 +234,9 @@ class ResponseType(Enum):
     "(int): Logs request accepted, waiting for logs."
     LOGS_STOP_RESPONSE = 6
     "(int): Got logs stop response."
-    CONNECTION_CLOSED = 7
+    LOGS_CANCEL_ACCEPTED = 7
+    "(int): Logs cancel request accepted."
+    CONNECTION_CLOSED = 8
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -305,7 +311,9 @@ class LogResponse:
     """
     Represents a log responce received from the Ankaios system.
     """
-    def __init__(self, log_type: LogsType, name: _ank_base.WorkloadInstanceName, message: str = "") -> None:
+    def __init__(self, log_type: LogsType,
+                 name: _ank_base.WorkloadInstanceName,
+                 message: str = "") -> None:
         """
         Initializes the LogResponse with the given attributes.
 
@@ -333,8 +341,8 @@ class LogResponse:
             LogResponse: The converted LogResponse object.
         """
         return LogResponse(LogsType.LOGS_ENTRY,
-                          log.workloadName,
-                          log.message)
+                           log.workloadName,
+                           log.message)
 
     @staticmethod
     def from_stop_response(log: _ank_base.LogsStopResponse) -> 'LogResponse':
@@ -342,13 +350,14 @@ class LogResponse:
         Creates a LogResponse from a LogsStopResponse.
 
         Args:
-            log (_ank_base.LogsStopResponse): The logs stop response to convert.
+            log (_ank_base.LogsStopResponse): The logs stop response
+                to convert.
 
         Returns:
             LogResponse: The converted LogResponse object.
         """
-        return LogResponse(LogsType.LOGS_STOP_RESPONSE, 
-                          log.workloadName)
+        return LogResponse(LogsType.LOGS_STOP_RESPONSE,
+                           log.workloadName)
 
     def __str__(self) -> str:
         """
@@ -357,10 +366,13 @@ class LogResponse:
         Returns:
             str: The string representation of the log response.
         """
+        ret = ""
         if self.type == LogsType.LOGS_ENTRY:
-            return f"Log from {self.workload_instance_name}: {self.message}"
+            ret = f"Log from {self.workload_instance_name}: {self.message}"
         elif self.type == LogsType.LOGS_STOP_RESPONSE:
-            return f"Stopped receiving logs from {self.workload_instance_name}."
+            ret = "Stopped receiving logs from " \
+                f"{self.workload_instance_name}."
+        return ret
 
     def to_dict(self) -> dict:
         """

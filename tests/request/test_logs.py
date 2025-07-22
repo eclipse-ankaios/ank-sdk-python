@@ -17,10 +17,9 @@ This module contains unit tests for the LogsRequest and LogsCancelRequest
 classes in the ankaios_sdk.
 """
 
-import pytest
 from datetime import datetime
+import pytest
 from ankaios_sdk import LogsRequest, LogsCancelRequest, WorkloadInstanceName
-from ankaios_sdk._protos import _ank_base
 
 
 def test_logs_request():
@@ -48,7 +47,8 @@ def test_logs_request():
     )
     assert request is not None
     assert request._request.HasField("logsRequest")
-    assert request._request.logsRequest.workloadNames[0].workloadName == "nginx"
+    assert request._request.logsRequest.\
+        workloadNames[0].workloadName == "nginx"
     assert request._request.logsRequest.workloadNames[0].agentName == "agent_A"
     assert request._request.logsRequest.workloadNames[0].id == "1234"
     assert request._request.logsRequest.follow is True
@@ -72,7 +72,7 @@ def test_cancel_request():
     Test the logs cancel request type.
     """
     request = LogsCancelRequest(
-        id="1234"
+        request_id="1234"
     )
     assert request is not None
     assert request._request.HasField("logsCancelRequest")

@@ -302,8 +302,8 @@ class ControlInterface:
 
                 # Filter out the logs responses
                 if response.content_type in [
-                    ResponseType.LOGS_ENTRY, ResponseType.LOGS_STOP_RESPONSE
-                    ]:
+                        ResponseType.LOGS_ENTRY,
+                        ResponseType.LOGS_STOP_RESPONSE]:
                     self._add_log_callback(
                         response.get_request_id(), response.content
                     )

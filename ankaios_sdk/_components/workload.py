@@ -79,7 +79,7 @@ from ..utils import get_logger, WORKLOADS_PREFIX
 
 logger = get_logger()
 if TYPE_CHECKING:
-    from .workload_builder import WorkloadBuilder # pragma: no cover
+    from .workload_builder import WorkloadBuilder  # pragma: no cover
 
 
 # pylint: disable=too-many-public-methods
@@ -122,6 +122,7 @@ class Workload:
         Returns:
             WorkloadBuilder: A builder object to create a Workload.
         """
+        # pylint: disable=import-outside-toplevel
         from .workload_builder import WorkloadBuilder
         return WorkloadBuilder()
 

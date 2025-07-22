@@ -19,6 +19,7 @@ the ankaios_sdk.
 
 from ankaios_sdk import GetStateRequest
 
+
 def test_get_state():
     """
     Test the get state request type.

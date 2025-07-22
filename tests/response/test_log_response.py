@@ -43,7 +43,8 @@ def generate_test_log_entry(name="nginx") -> _ank_base.LogEntry:
     )
 
 
-def generate_test_logs_stop_reponse(name="nginx") -> _ank_base.LogsStopResponse:
+def generate_test_logs_stop_reponse(
+        name="nginx") -> _ank_base.LogsStopResponse:
     """
     Helper function to generate a LogsStopResponse proto.
 
@@ -78,6 +79,7 @@ def test_log_entries():
         "message": "Test log message"
     }
 
+
 def test_log_stop_response():
     """
     Test the Log stop response.
@@ -86,7 +88,8 @@ def test_log_stop_response():
         generate_test_logs_stop_reponse()
     )
     assert log_stop_response is not None
-    assert str(log_stop_response) == "Stopped receiving logs from nginx.1234.agent_A."
+    assert str(log_stop_response) == \
+        "Stopped receiving logs from nginx.1234.agent_A."
     assert log_stop_response.to_dict() == {
         "workload_instance_name": {
             "agent_name": "agent_A",

@@ -19,7 +19,6 @@ This module contains unit tests for the LogQueue class in the ankaios_sdk.
 from ankaios_sdk import LogQueue, WorkloadInstanceName, \
     LogResponse, LogsRequest, LogsCancelRequest
 from tests.response.test_log_response import generate_test_log_entry
-from ankaios_sdk._protos import _ank_base
 
 
 def test_log_queue_requests():
@@ -41,6 +40,7 @@ def test_log_queue_requests():
     cancel_request = log_queue._get_cancel_request()
     assert isinstance(cancel_request, LogsCancelRequest)
     assert cancel_request.get_id() == request_id
+
 
 def test_log_queue():
     """

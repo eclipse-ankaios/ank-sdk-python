@@ -12,6 +12,34 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+This module defines the LogCampaignResponse and LogQueue classes for handling
+log campaigns in the Ankaios system.
+
+Classes
+-------
+
+- LogCampaignResponse:
+    Represents the response for a log campaign, containing the queue of
+    received messages and the accepted workload names.
+- LogQueue:
+    Represents a queue of received messages through the log campaign.
+
+Usage
+-----
+
+- Check the valid workload names:
+    .. code-block:: python
+
+        log_camapign: LogCampaignResponse
+        valid_workload_names: list = log_camapign.accepted_workload_names
+
+- Get logs out of the queue:
+    .. code-block:: python
+
+        log = log_campaign.queue.get()
+"""
+
 __all__ = ["LogCampaignResponse", "LogQueue"]
 
 from queue import Queue
@@ -21,8 +49,13 @@ from .workload_state import WorkloadInstanceName
 from .request import LogsRequest, LogsCancelRequest
 
 
+# pylint: disable=too-few-public-methods
 class LogCampaignResponse:
-    def __init__(self, queue: "LogQueue", 
+    """
+    Represents the response for a log campaign, containing the queue of
+    received messages and the accepted workload names.
+    """
+    def __init__(self, queue: "LogQueue",
                  accepted_workload_names: list[WorkloadInstanceName]) -> None:
         """
         Initializes the LogCampaignResponse with the given queue and accepted
@@ -40,7 +73,9 @@ class LogCampaignResponse:
 class LogQueue(Queue):
     """
     Represents a queue of received messages through the log campaign.
+    Inherits from the standard Queue class.
     """
+    # pylint: disable=too-many-arguments
     def __init__(self, workload_names: list[WorkloadInstanceName],
                  follow: bool = False, tail: int = -1,
                  since: Union[str, datetime] = "",
@@ -52,11 +87,12 @@ class LogQueue(Queue):
             workload_names (list[WorkloadInstanceName]): The workload
                 instance names for which to get logs.
             follow (bool): If true, the logs will be continuously streamed.
-            tail (int): The number of lines to display from the end of the logs.
-            since (str / datetime): The start time for the logs. If string, it must
-                be in the RFC3339 format.
-            until (str / datetime): The end time for the logs. If string, it must
-                be in the RFC3339 format.
+            tail (int): The number of lines to display from
+                the end of the logs.
+            since (str / datetime): The start time for the logs. If string,
+                it must be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string,
+                it must be in the RFC3339 format.
         """
         super().__init__()
         self._request = LogsRequest(
@@ -81,4 +117,4 @@ class LogQueue(Queue):
         Returns:
             LogsCancelRequest: The LogsCancelRequest object.
         """
-        return LogsCancelRequest(id=self._request.get_id())
+        return LogsCancelRequest(request_id=self._request.get_id())

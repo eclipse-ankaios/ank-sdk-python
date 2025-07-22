@@ -193,9 +193,12 @@ class LogsRequest(Request):
     """
     Represents a request for getting logs from the Ankaios system.
     """
+    # pylint: disable=too-many-arguments
     def __init__(
-            self, workload_names: list[WorkloadInstanceName], follow: bool = False,
-            tail: int = -1, since: Union[str, datetime] = "",
+            self, workload_names: list[WorkloadInstanceName],
+            follow: bool = False,
+            tail: int = -1,
+            since: Union[str, datetime] = "",
             until: Union[str, datetime] = "",
             ) -> None:
         """
@@ -205,11 +208,12 @@ class LogsRequest(Request):
             workload_names (list[WorkloadInstanceName]): The workload instance
                 names for which to get logs.
             follow (bool): If true, the logs will be continuously streamed.
-            tail (int): The number of lines to display from the end of the logs.
-            since (str / datetime): The start time for the logs. If string, it must
-                be in the RFC3339 format.
-            until (str / datetime): The end time for the logs. If string, it must
-                be in the RFC3339 format.
+            tail (int): The number of lines to display from
+                the end of the logs.
+            since (str / datetime): The start time for the logs. If string,
+                it must be in the RFC3339 format.
+            until (str / datetime): The end time for the logs. If string,
+                it must be in the RFC3339 format.
 
         Raises:
             ValueError: If no workload names are provided.
@@ -244,15 +248,16 @@ class LogsCancelRequest(Request):
     Represents a request for stopping the real-time log stream
     from the Ankaios system.
     """
-    def __init__(self, id: str) -> None:
+    def __init__(self, request_id: str) -> None:
         """
         Initializes an LogsCancelRequest instance.
 
         Args:
             id (str): The request ID.
         """
-        super().__init__(_id=id)
+        super().__init__(_id=request_id)
         self._request.logsCancelRequest.CopyFrom(_ank_base.LogsCancelRequest())
 
-        self.logger.debug("Created request of type LogsCancelRequest with id %s",
-                          self._request.requestId)
+        self.logger.debug(
+            "Created request of type LogsCancelRequest with id %s",
+            self._request.requestId)

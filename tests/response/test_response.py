@@ -18,10 +18,10 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
+from ankaios_sdk._protos import _ank_base, _control_api
 from ankaios_sdk import Response, ResponseType, CompleteState, \
     ResponseException, LogResponse, LogsType
 from tests.response.test_log_response import generate_test_log_entry
-from ankaios_sdk._protos import _ank_base, _control_api
 
 
 MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
@@ -61,6 +61,21 @@ MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH = _VarintBytes(
     MESSAGE_UPDATE_SUCCESS.ByteSize()
 )
 
+MESSAGE_BUFFER_LOGS_REQUEST_ACCEPTED = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="4455",
+        logsRequestAccepted=_ank_base.LogsRequestAccepted(
+            workloadNames=[
+                _ank_base.WorkloadInstanceName(
+                    workloadName="nginx",
+                    agentName="agent_A",
+                    id="1234"
+                )
+            ]
+        )
+    )
+).SerializeToString()
+
 MESSAGE_LOGS_ENTRIES_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
@@ -91,6 +106,14 @@ MESSAGE_LOGS_STOP_RESPONSE = _control_api.FromAnkaios(
 )
 MESSAGE_BUFFER_LOGS_STOP_RESPONSE = \
     MESSAGE_LOGS_STOP_RESPONSE.SerializeToString()
+
+
+MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="4455",
+        logsCancelAccepted=_ank_base.LogsCancelAccepted()
+    )
+).SerializeToString()
 
 MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
@@ -148,6 +171,7 @@ def test_initialisation():
     assert response.content_type == ResponseType.LOGS_STOP_RESPONSE
     assert isinstance(response.content, LogResponse)
     assert response.content.type == LogsType.LOGS_STOP_RESPONSE
+    assert str(LogsType.LOGS_STOP_RESPONSE) == "logs_stop_response"
 
     # Test connection closed
     response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
