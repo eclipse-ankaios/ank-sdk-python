@@ -88,8 +88,6 @@ Python 3.12.7 (main, Oct 19 2024, 01:09:09) [GCC 12.2.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from ankaios_sdk import Workload, Ankaios, WorkloadStateEnum, AnkaiosException
 >>> ankaios = Ankaios()
-[2025-01-15 06:36:30] State changed to INITIALIZED
-[2025-01-15 06:36:30] Started reading from the input pipe.
 >>> print(f"state: {ankaios.get_state(field_masks=["workloadStates"])}")
 state: desiredState {
   configs {
