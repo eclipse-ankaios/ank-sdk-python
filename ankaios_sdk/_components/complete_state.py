@@ -69,7 +69,10 @@ from .._protos import _ank_base
 from .workload import Workload
 from .workload_state import WorkloadStateCollection
 from .manifest import Manifest
-from ..utils import SUPPORTED_API_VERSION, _to_config_item
+from ..utils import SUPPORTED_API_VERSION, _to_config_item, get_logger
+
+
+logger = get_logger()
 
 
 class CompleteState:
@@ -95,19 +98,35 @@ class CompleteState:
         """
         self._complete_state = _ank_base.CompleteState()
         self._set_api_version(SUPPORTED_API_VERSION)
+        if _proto:
+            self._complete_state = _proto
+            logger.debug(
+                "CompleteState initialized from proto message"
+            )
+            return
         if manifest:
             self._complete_state.desiredState.CopyFrom(
                 manifest._to_desired_state()
             )
+            logger.debug(
+                "CompleteState initialized from manifest"
+            )
+            return
         if configs:
             self.set_configs(configs)
+            logger.debug(
+                "CompleteState initialized from configs"
+            )
+            return
         if workloads:
             self._complete_state.desiredState.workloads.workloads.clear()
             for workload in workloads:
                 self._complete_state.desiredState.workloads.workloads[
                     workload.name].CopyFrom(workload._to_proto())
-        if _proto:
-            self._complete_state = _proto
+            logger.debug(
+                "CompleteState initialized from workloads"
+            )
+            return
 
     def __str__(self) -> str:
         """
@@ -147,12 +166,13 @@ class CompleteState:
             Workload: The workload with the specified name,
                 or None if not found.
         """
-        for wl_name, proto_workload in self._complete_state. \
-                desiredState.workloads.workloads.items():
-            if wl_name == workload_name:
-                workload = Workload(wl_name)
-                workload._from_proto(proto_workload)
-                return workload
+        if workload_name in self._complete_state. \
+                desiredState.workloads.workloads.keys():
+            proto_workload = self._complete_state. \
+                desiredState.workloads.workloads[workload_name]
+            workload = Workload(workload_name)
+            workload._from_proto(proto_workload)
+            return workload
         return None
 
     def get_workloads(self) -> list[Workload]:

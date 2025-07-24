@@ -30,7 +30,7 @@ run_ankaios() {
 
   sleep 2
   echo "Applying app manifest"
-  ${ANK_BIN_DIR}/ank -k apply $1/app_manifest.yaml
+  ${ANK_BIN_DIR}/ank -k apply manifest.yaml
 
   # Wait for any process to exit
   wait -n
@@ -43,6 +43,13 @@ if [ -z $1 ]; then
   display_usage
   exit 1
 fi
+
+# Check if app exists and copy it to the example directory
+if [ ! -f "apps/$1.py" ]; then
+  echo "Python app '$1.py' not found!"
+  exit 2
+fi
+cp -f apps/$1.py app/app.py
 
 if [ -z ${ANK_BIN_DIR} ]; then
   ANK_BIN_DIR=${DEFAULT_ANKAIOS_BIN_PATH}
@@ -58,10 +65,10 @@ fi
 
 if [[ "$2" == "dev" ]]; then
   echo Build Ankaios Python SDK dev example ...
-  podman build "${@:3}" --target=dev -t $1:0.1 -f examples/$1/Dockerfile ../
+  podman build "${@:3}" --target=dev -t app:0.1 -f app/Dockerfile ../
 else
   echo Build Ankaios Python SDK example ...
-  podman build "${@:2}" --target=prod -t $1:0.1 -f $1/Dockerfile $1
+  podman build "${@:2}" --target=prod -t app:0.1 -f app/Dockerfile ./app
 fi
 echo done.
 
@@ -69,7 +76,7 @@ if pgrep -x "ank-server" >/dev/null
 then
   echo -e "\nAbort startup. Ankaios server is already running."
   echo "Shutdown the Ankaios server instance manually or"
-  echo -e "if 'run_example.sh' was executed previously,\nexecute 'shutdown_example.sh' afterwards to stop the example."
+  echo -e "if 'run_example.sh' was executed previously,\nexecute 'stop_example.sh' afterwards to stop the example."
   exit 3
 fi
 

@@ -115,11 +115,11 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "protobuf==5.27.2",  # Protocol Buffers
+        "protobuf==5.29.5",  # Protocol Buffers
         "PyYAML",  # Used to parse manifest files
     ],
     setup_requires=[
-        "protobuf==5.27.2",  # Protocol Buffers
+        "protobuf==5.29.5",  # Protocol Buffers
         "grpcio-tools==1.67.1",  # Needed for an OS independent protoc
         "requests",  # Used to download the proto files
     ],
@@ -137,6 +137,7 @@ setup(
             'sphinx-rtd-theme',  # Read the Docs theme
             'sphinx-autodoc-typehints',  # Type hints support
             'sphinx-mdinclude',  # Markdown include support
+            'sphinx-versioned-docs',  # Versioned docs support
             'google-api-python-client',  # Required for the Google API docstring extension
         ],
     },

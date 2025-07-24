@@ -174,10 +174,16 @@ class Ankaios:
             )
         self._control_interface.connect()
 
+        # Workaround for suppressing the error log when checking the connection
+        self._connection_established = False
+
         # Test connection
         try:
             self.get_state(field_masks=["desiredState.apiVersion"])
-        except (AnkaiosResponseError, AnkaiosProtocolException) as e:
+            self._connection_established = True
+        except AnkaiosResponseError:
+            self._connection_established = True
+        except AnkaiosProtocolException as e:
             self.logger.warning("Connection test failed with: %s", e)
         except ConnectionClosedException as e:
             self.logger.error("%s", e)
@@ -458,8 +464,6 @@ class Ankaios:
         """
         Get the workload with the provided name from the
         requested complete state.
-        If the workload name contains a wildcard, all workloads matching
-        the pattern will be returned.
 
         Args:
             workload_name (str): The name of the workload.
@@ -761,9 +765,11 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to get the state: %s",
-                              content)
-            raise AnkaiosResponseError(f"Received error: {content}")
+            if self._connection_established:
+                self.logger.error(
+                    "Error while trying to get state: %s", content
+                )
+            raise AnkaiosResponseError(content)
         if content_type == ResponseType.COMPLETE_STATE:
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")

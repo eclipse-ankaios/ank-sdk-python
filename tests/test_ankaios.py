@@ -102,6 +102,12 @@ def test_connection():
         mock_get_state.assert_called_once()
 
     with patch("ankaios_sdk.ControlInterface.connect") as _, \
+         patch("ankaios_sdk.Ankaios.get_state") as mock_get_state:
+        mock_get_state.side_effect = AnkaiosProtocolException("")
+        _ = Ankaios()
+        mock_get_state.assert_called_once()
+
+    with patch("ankaios_sdk.ControlInterface.connect") as _, \
          patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, \
          pytest.raises(ConnectionClosedException):
         mock_get_state.side_effect = ConnectionClosedException()

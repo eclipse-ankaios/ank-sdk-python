@@ -16,6 +16,10 @@ help:
 html:
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O) -W --keep-going
 
+# Generate versioned documentation using sphinx-versioned-docs.readthedocs.io
+html-versioned:
+	@./generate_versioned_docs.sh
+
 # Open a server with the documentation
 open:
 	python3 -m http.server -d build/html 8001

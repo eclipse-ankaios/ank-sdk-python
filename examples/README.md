@@ -46,7 +46,7 @@ To stop the example just call
 
 ## Examples
 
-This folder currently contains two examples:
+This folder currently contains three examples:
 
 ### `hello_ankaios` 
 
@@ -54,10 +54,10 @@ This example executes a workload that runs the example script from the main [REA
 
 Feel free to update the code in the example and test it with the `run_example.sh` script.
 
-To view the log of the `hello_ankaios` workload just use the convenience script:
+To view the logs of an example like the `hello_ankaios` workload just use the convenience script:
 
 ```shell
- ./ank-logs.sh hello_ankaios
+ ./ank-logs.sh
 ```
 
 ### `sleepy` 
@@ -68,14 +68,14 @@ This example has the Python SDK installed and allows to execute an interactive s
 
 ### `follow_state` 
 
-`follow_state` executes indefinetly with a request to get the state being sent every 5 seconds.
+`follow_state` executes indefinitely with a request to get the state being sent every 5 seconds.
 
 ## Enter a container
 
-To `exec` into the container, a convenience script is provided:
+To `exec` into the example container, a convenience script is provided:
 
 ```shell
-./ank-exec-bash.sh sleepy
+./ank-exec-bash.sh
 ```
 
 where the argument of the script is the Ankaios workload name.
