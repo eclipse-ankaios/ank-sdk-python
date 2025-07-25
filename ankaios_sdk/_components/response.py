@@ -309,7 +309,7 @@ class LogsType(Enum):
 
 class LogResponse:
     """
-    Represents a log responce received from the Ankaios system.
+    Represents a log response received from the Ankaios system.
     """
     def __init__(self, log_type: LogsType,
                  name: _ank_base.WorkloadInstanceName,

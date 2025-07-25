@@ -1020,7 +1020,7 @@ class Ankaios:
         Stop receiving logs from the specified LogCampaignResponse.
 
         Args:
-            log_campaign (LogCampaignResponse): The log qcampaign response.
+            log_campaign (LogCampaignResponse): The log campaign response.
             timeout (float): The maximum time to wait for the response,
                 in seconds.
 

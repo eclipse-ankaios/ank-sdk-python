@@ -31,8 +31,8 @@ Usage
 - Check the valid workload names:
     .. code-block:: python
 
-        log_camapign: LogCampaignResponse
-        valid_workload_names: list = log_camapign.accepted_workload_names
+        log_campaign: LogCampaignResponse
+        valid_workload_names: list = log_campaign.accepted_workload_names
 
 - Get logs out of the queue:
     .. code-block:: python
