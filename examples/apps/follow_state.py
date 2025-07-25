@@ -21,14 +21,15 @@ import sys, signal
 # The Ankaios class supports context manager syntax:
 with Ankaios() as ankaios:
 
+    looping = True
     def signal_handler(sig, frame):
-        ankaios.disconnect()
-        sys.exit(0)
+        global looping
+        looping = False
 
     # Add a SIGTERM handler to allow a clean shutdown
     signal.signal(signal.SIGTERM, signal_handler)
 
-    while True:
+    while looping:
         try:
             # Request the state of the system, filtered with the workloadStates
             complete_state = ankaios.get_state(timeout=5, field_masks=["workloadStates"])

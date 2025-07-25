@@ -25,7 +25,8 @@ Helper Functions:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadFieldException
+from ankaios_sdk import Workload, WorkloadBuilder, \
+    WorkloadFieldException, AccessRightRule
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
@@ -57,6 +58,13 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                             operation=_ank_base.RW_WRITE,
                             filterMasks=[
                                 "desiredState.workloads.dynamic_nginx"
+                            ]
+                        )
+                    ),
+                    _ank_base.AccessRightsRule(
+                        logRule=_ank_base.LogRule(
+                            workloadNames=[
+                                "nginx"
                             ]
                         )
                     )
@@ -100,10 +108,10 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
         .add_tag("key1", "value1") \
         .add_tag("key2", "value2") \
-        .add_allow_rule("Write",
-                        [f"{WORKLOADS_PREFIX}.another_workload"]) \
-        .add_deny_rule("Read",
-                       ["workloadStates.agent_Test.another_workload"]) \
+        .add_allow_state_rule("Write",
+                              [f"{WORKLOADS_PREFIX}.another_workload"]) \
+        .add_deny_state_rule("Read",
+                             ["workloadStates.agent_Test.another_workload"]) \
         .add_config("alias_test", "config1") \
         .build()
 
@@ -221,17 +229,26 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     allow_rules = workload.get_allow_rules()
     deny_rules = workload.get_deny_rules()
+    print([str(elem) for elem in allow_rules])
     assert len(allow_rules) == 1
     assert len(deny_rules) == 1
 
     with pytest.raises(WorkloadFieldException):
-        workload.update_allow_rules([("Invalid", ["mask"])])
+        workload.update_allow_rules([AccessRightRule.state_rule(
+            "Invalid", ["mask"]
+        )])
 
     with pytest.raises(WorkloadFieldException):
-        workload.update_deny_rules([("Invalid", ["mask"])])
+        workload.update_deny_rules([AccessRightRule.state_rule(
+            "Invalid", ["mask"]
+        )])
 
-    allow_rules.append(("Write", [f"{WORKLOADS_PREFIX}.another_workload"]))
-    deny_rules.append(("Read", ["workloadStates.agent_Test.another_workload"]))
+    allow_rules.append(AccessRightRule.state_rule(
+        "Write", [f"{WORKLOADS_PREFIX}.another_workload"]
+    ))
+    deny_rules.append(AccessRightRule.state_rule(
+        "Read", ["workloadStates.agent_Test.another_workload"]
+    ))
 
     workload.update_allow_rules(allow_rules)
     workload.update_deny_rules(deny_rules)
@@ -316,10 +333,12 @@ def test_from_to_dict():
         f"{WORKLOADS_PREFIX}.workload_test.tags.key1"),
     ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
         f"{WORKLOADS_PREFIX}.workload_test.tags"),
-    ("update_allow_rules", {"rules": [("Write", ["mask"])]},
+    ("update_allow_rules", {"rules": [AccessRightRule.state_rule(
+        "Write", ["mask"])]},
         f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.allowRules"),
-    ("update_deny_rules", {"rules": [("Write", ["mask"])]},
+    ("update_deny_rules", {"rules": [AccessRightRule.state_rule(
+        "Read", ["mask"])]},
         f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
