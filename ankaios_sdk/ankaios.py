@@ -30,7 +30,7 @@ Usage
 
         ankaios = Ankaios()
         ...
-        ankaios.disconnect()
+        del ankaios
 
 - Connect and disconnect using a context manager:
     .. code-block:: python
