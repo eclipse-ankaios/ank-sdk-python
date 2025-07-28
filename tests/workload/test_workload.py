@@ -350,7 +350,7 @@ def test_from_to_dict():
         f"{WORKLOADS_PREFIX}.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
         f"{WORKLOADS_PREFIX}.workload_test.tags.key1"),
-    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
+    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value2")]},
         f"{WORKLOADS_PREFIX}.workload_test.tags"),
     ("update_allow_rules", {"rules": [("Write", ["mask"])]},
         f"{WORKLOADS_PREFIX}.workload_test."
@@ -360,7 +360,7 @@ def test_from_to_dict():
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
         f"{WORKLOADS_PREFIX}.workload_test.configs"),
-    ("add_file", File.from_data("./dummy_mount_point", "dummy_data"),
+    ("add_file", {"file": File.from_data("./dummy_mount_point", data="dummy_data")},
         f"{WORKLOADS_PREFIX}.workload_test.files")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):

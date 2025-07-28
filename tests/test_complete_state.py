@@ -236,12 +236,16 @@ def test_to_dict():
                     },
                     'files': [
                         {
-                            'mountPoint': './mount_point_1',
-                            'data': 'data_1',
+                            'mount_point': './mount_point',
+                            'content': {
+                                'data': 'data_1'
+                            }
                         },
                         {
-                            'mountPoint': './mount_point_2',
-                            'binaryData': 'binary_data_2',
+                            'mount_point': './mount_point_2',
+                            'content': {
+                                'binaryData': 'binary_data_1'
+                            }
                         }
                     ],
                     'configs': {

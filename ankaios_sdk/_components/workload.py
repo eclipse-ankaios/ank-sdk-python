@@ -520,7 +520,7 @@ class Workload:
             workload_dict["configs"][alias] = name
         workload_dict["files"] = []
         for file in self._workload.files.files:
-            workload_dict["files"].append(File._from_proto(file)._to_dict())
+            workload_dict["files"].append(File._from_proto(file).to_dict())
         return workload_dict
 
     # pylint: disable=too-many-branches

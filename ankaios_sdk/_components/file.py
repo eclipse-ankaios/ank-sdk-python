@@ -81,7 +81,7 @@ FileContent = Union[Data, BinaryData]
 
 class File:
     """
-    This class represents a file able to be mounted in the Ankaios environment.
+    This class represents a file able to be mounted to an Ankaios workload.
     It can hold either text-based or binary content.
 
     Attributes:
