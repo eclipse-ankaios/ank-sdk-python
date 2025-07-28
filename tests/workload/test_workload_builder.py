@@ -162,7 +162,8 @@ def test_add_file(
     assert builder.files[0].mount_point == "file_mount_point"
     assert builder.files[0].data_content() == Data(value="file_content")
     assert builder.files[1].mount_point == "file_mount_point"
-    assert builder.files[1].binary_data_content() == BinaryData(value="ialsdfvJKGU65e")
+    assert builder.files[1].binary_data_content() \
+        == BinaryData(value="ialsdfvJKGU65e")
 
 
 def test_build(

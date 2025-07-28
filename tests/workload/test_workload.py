@@ -360,7 +360,8 @@ def test_from_to_dict():
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
         f"{WORKLOADS_PREFIX}.workload_test.configs"),
-    ("add_file", {"file": File.from_data("./dummy_mount_point", data="dummy_data")},
+    ("add_file",
+     {"file": File.from_data("./dummy_mount_point", data="dummy_data")},
         f"{WORKLOADS_PREFIX}.workload_test.files")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
