@@ -12,7 +12,7 @@
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 [![Ankaios](https://img.shields.io/badge/main_project-repo-blue)](https://github.com/eclipse-ankaios/ankaios)
-[![Slack](https://img.shields.io/badge/slack-join-blue?logo=slack)](https://join.slack.com/t/ankaios/shared_invite/zt-2inyhbehh-iVp3YZD09VIgybv8D1gDpQ)
+[![Slack](https://img.shields.io/badge/slack-join-blue?logo=slack)](https://join.slack.com/t/ankaios/shared_invite/zt-38857n3r5-1nXR7gSAMDtTdYjz_LBmzg)
 
 [Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provides workload and
 container orchestration for automotive High Performance Computing Platforms (HPCs).
