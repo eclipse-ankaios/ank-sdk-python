@@ -74,7 +74,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 from .._protos import _ank_base
 from ..exceptions import WorkloadFieldException, WorkloadBuilderException
 from ..utils import get_logger, WORKLOADS_PREFIX
-from .._components.file import File, Data, BinaryData, FileContent
+from .._components.file import File
 
 
 # pylint: disable=too-many-public-methods
@@ -451,7 +451,7 @@ class Workload:
         Update the files linked to the workload.
 
         Args:
-            files (list[File]): A list of File objects to mount to the workload.
+            files (list[File]): List of File objects mounted to the workload.
         """
         del self._workload.files.files[:]
         for file in files:

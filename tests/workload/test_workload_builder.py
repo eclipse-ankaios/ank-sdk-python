@@ -22,7 +22,8 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadBuilderException, File
+from ankaios_sdk import (Workload, WorkloadBuilder,
+                         WorkloadBuilderException, File)
 from ankaios_sdk._protos import _ank_base
 
 
@@ -151,7 +152,9 @@ def test_add_file(
     """
     assert len(builder.files) == 0
 
-    assert builder.add_file(File.from_data("file_mount_point", data="file_content")) == builder
+    assert builder.add_file(File.from_data(
+        "file_mount_point", data="file_content")
+    ) == builder
     assert builder.add_file(File.from_binary_data(
         "file_mount_point", binary_data="ialsdfvJKGU65e")
     ) == builder
@@ -159,6 +162,7 @@ def test_add_file(
     assert builder.files[0].data_content() == "file_content"
     assert builder.files[1].mount_point == "file_mount_point"
     assert builder.files[1].binary_data_content() == "ialsdfvJKGU65e"
+
 
 def test_build(
         builder: WorkloadBuilder

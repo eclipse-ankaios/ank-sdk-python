@@ -56,7 +56,7 @@ FILE_PROTO_WITH_BINARY = _ank_base.File(
 def generate_test_data_file():
     """
     Helper function to generate a File instance with text data.
-    
+
     Returns:
         File: A File instance containing text data.
     """
@@ -66,7 +66,7 @@ def generate_test_data_file():
 def generate_test_binary_file():
     """
     Helper function to generate a File instance with binary data.
-    
+
     Returns:
         File: A File instance containing binary data.
     """

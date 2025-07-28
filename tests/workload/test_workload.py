@@ -26,7 +26,7 @@ Helper Functions:
 from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import (Workload, WorkloadBuilder,
-                         WorkloadFieldException, WorkloadBuilderException, File)
+                         WorkloadFieldException, File)
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
