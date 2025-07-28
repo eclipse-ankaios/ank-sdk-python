@@ -293,6 +293,8 @@ def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
     workload.update_files(files)
     assert len(workload.get_files()) == 3
 
+    workload.update_files([File.from_data("./replaced_mount_point", data="replaced_data")])
+    assert len(workload.get_files()) == 1
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
