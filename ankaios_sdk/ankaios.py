@@ -954,8 +954,8 @@ class Ankaios:
             "Timeout while waiting for workload to reach state."
             )
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments
-    def request_logs(self, workload_names: list[WorkloadInstanceName],
+    # pylint: disable=too-many-arguments
+    def request_logs(self, workload_names: list[WorkloadInstanceName], *,
                      follow: bool = False, tail: int = -1,
                      since: Union[str, datetime] = "",
                      until: Union[str, datetime] = "",

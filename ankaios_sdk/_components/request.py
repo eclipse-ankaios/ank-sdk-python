@@ -193,9 +193,9 @@ class LogsRequest(Request):
     """
     Represents a request for getting logs from the Ankaios system.
     """
-    # pylint: disable=too-many-arguments, too-many-positional-arguments
+    # pylint: disable=too-many-arguments
     def __init__(
-            self, workload_names: list[WorkloadInstanceName],
+            self, workload_names: list[WorkloadInstanceName], *,
             follow: bool = False,
             tail: int = -1,
             since: Union[str, datetime] = "",
