@@ -70,6 +70,10 @@ This example has the Python SDK installed and allows to execute an interactive s
 
 `follow_state` executes indefinitely with a request to get the state being sent every 5 seconds.
 
+### `get_logs`
+
+The `get_logs` example workload starts another workload that prints 5 log lines and then it requests them and prints them.
+
 ## Enter a container
 
 To `exec` into the example container, a convenience script is provided:
