@@ -197,8 +197,10 @@ class File:
         elif self.is_binary_data():
             dict_conv["content"] = {"binaryData": self._content.value}
         else:  # pragma: no cover
-            raise ValueError("Unsupported file content type. "
-                "Expected Data or BinaryData.")
+            raise ValueError(
+                "Unsupported file content type. "
+                "Expected Data or BinaryData."
+            )
         return dict_conv
 
     @staticmethod
@@ -233,8 +235,10 @@ class File:
                 binary_data=file_dict["content"]["binaryData"]
             )
         # Unreachable code, as the content must be either data or binaryData.
-        raise ValueError("Invalid file dictionary format. "
-            "Expected 'data' or 'binaryData' key.")  # pragma: no cover
+        raise ValueError(
+            "Invalid file dictionary format. "
+            "Expected 'data' or 'binaryData' key."
+        )  # pragma: no cover
 
     def _to_proto(self) -> _ank_base.File:
         """
@@ -258,8 +262,10 @@ class File:
             )
         # Unreachable code, as the content type
         # is checked in the methods above.
-        raise ValueError("Unsupported file content type. "
-            "Expected Data or BinaryData.")  # pragma: no cover
+        raise ValueError(
+            "Unsupported file content type. "
+            "Expected Data or BinaryData."
+        )  # pragma: no cover
 
     @staticmethod
     def _from_proto(proto_file: _ank_base.File) -> "File":
@@ -287,5 +293,7 @@ class File:
             )
         # Unreachable code, as the protobuf
         # should always have one of these fields.
-        raise ValueError("Invalid protobuf file format. "
-            "Expected 'data' or 'binaryData' field.")  # pragma: no cover
+        raise ValueError(
+            "Invalid protobuf file format. "
+            "Expected 'data' or 'binaryData' field."
+        )  # pragma: no cover
