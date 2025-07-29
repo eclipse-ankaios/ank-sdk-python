@@ -142,8 +142,8 @@ def test_from_data_classmethod():
     assert file_obj.content.value == "sample text"
 
     data_file = File.from_data("/etc/empty.txt", "")
-    assert data_file.data_content().value == ""
-    assert data_file.is_data() is True
+    assert isinstance(data_file.content, Data)
+    assert data_file.content.value == ""
 
 
 def test_from_binary_data_classmethod():
@@ -157,59 +157,8 @@ def test_from_binary_data_classmethod():
     assert file_obj.content.value == "binary content"
 
     binary_file = File.from_binary_data("/etc/empty.bin", "")
-    assert binary_file.binary_data_content().value == ""
-    assert binary_file.is_binary_data() is True
-
-
-def test_data_content():
-    """
-    Test data_content method with different file types.
-    """
-    # Test with data file
-    data_file = generate_test_data_file()
-    data_content = data_file.data_content()
-
-    assert data_content is not None
-    assert isinstance(data_content, Data)
-    assert data_content.value == TEST_DATA_CONTENT
-
-    # Test with binary file
-    binary_file = generate_test_binary_file()
-    data_content = binary_file.data_content()
-
-    assert data_content is None
-
-
-def test_binary_data_content():
-    """
-    Test binary_data_content method with different file types.
-    """
-    # Test with binary file
-    binary_file = generate_test_binary_file()
-    binary_content = binary_file.binary_data_content()
-
-    assert binary_content is not None
-    assert isinstance(binary_content, BinaryData)
-    assert binary_content.value == TEST_BINARY_CONTENT
-
-    # Test with data file
-    data_file = generate_test_data_file()
-    binary_content = data_file.binary_data_content()
-
-    assert binary_content is None
-
-
-def test_is_data():
-    """
-    Test is_data method with different file types.
-    """
-    data_file = generate_test_data_file()
-    assert data_file.is_data() is True
-    assert data_file.is_binary_data() is False
-
-    binary_file = generate_test_binary_file()
-    assert binary_file.is_data() is False
-    assert binary_file.is_binary_data() is True
+    assert isinstance(binary_file.content, BinaryData)
+    assert binary_file.content.value == ""
 
 
 def test_to_dict():
@@ -235,15 +184,15 @@ def test_from_dict():
     file_obj = File._from_dict(FILE_DICT_WITH_DATA)
 
     assert file_obj.mount_point == TEST_MOUNT_POINT
-    assert file_obj.is_data() is True
-    assert file_obj.data_content().value == TEST_DATA_CONTENT
+    assert isinstance(file_obj.content, Data)
+    assert file_obj.content.value == TEST_DATA_CONTENT
 
     # Test with binary data content
     file_obj = File._from_dict(FILE_DICT_WITH_BINARY)
 
     assert file_obj.mount_point == TEST_BINARY_MOUNT_POINT
-    assert file_obj.is_binary_data() is True
-    assert file_obj.binary_data_content().value == TEST_BINARY_CONTENT
+    assert isinstance(file_obj.content, BinaryData)
+    assert file_obj.content.value == TEST_BINARY_CONTENT
 
 
 def test_from_dict_invalid_format():
@@ -294,15 +243,15 @@ def test_from_proto():
     file_obj = File._from_proto(FILE_PROTO_WITH_DATA)
 
     assert file_obj.mount_point == TEST_MOUNT_POINT
-    assert file_obj.is_data() is True
-    assert file_obj.data_content().value == TEST_DATA_CONTENT
+    assert isinstance(file_obj.content, Data)
+    assert file_obj.content.value == TEST_DATA_CONTENT
 
     # Test with binary data content
     file_obj = File._from_proto(FILE_PROTO_WITH_BINARY)
 
     assert file_obj.mount_point == TEST_BINARY_MOUNT_POINT
-    assert file_obj.is_binary_data() is True
-    assert file_obj.binary_data_content().value == TEST_BINARY_CONTENT
+    assert isinstance(file_obj.content, BinaryData)
+    assert file_obj.content.value == TEST_BINARY_CONTENT
 
 
 def test_from_proto_invalid_format():

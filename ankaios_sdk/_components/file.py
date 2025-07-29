@@ -139,8 +139,6 @@ class File:
         """
         return str(self._to_proto())
 
-
-
     def to_dict(self) -> dict:
         """
         Convert the File instance to a dictionary representation.
@@ -210,15 +208,15 @@ class File:
         Raises:
             ValueError: If the file content type is unsupported.
         """
-        if self.is_data():
+        if isinstance(self.content, Data):
             return _ank_base.File(
                 mountPoint=self.mount_point,
-                data=self.data_content().value
+                data=self.content.value
             )
-        if self.is_binary_data():
+        if isinstance(self.content, BinaryData):
             return _ank_base.File(
                 mountPoint=self.mount_point,
-                binaryData=self.binary_data_content().value
+                binaryData=self.content.value
             )
         # Unreachable code, as the content type
         # is checked in the methods above.
