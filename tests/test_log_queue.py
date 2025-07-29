@@ -16,8 +16,13 @@
 This module contains unit tests for the LogQueue class in the ankaios_sdk.
 """
 
-from ankaios_sdk import LogQueue, WorkloadInstanceName, \
-    LogResponse, LogsRequest, LogsCancelRequest
+from ankaios_sdk import (
+    LogQueue,
+    WorkloadInstanceName,
+    LogResponse,
+    LogsRequest,
+    LogsCancelRequest,
+)
 from tests.response.test_log_response import generate_test_log_entry
 
 
@@ -26,11 +31,10 @@ def test_log_queue_requests():
     Test the log queue requests generation.
     """
     workload_name = WorkloadInstanceName(
-        workload_name="nginx",
-        agent_name="agent_A",
-        workload_id="1234"
+        workload_name="nginx", agent_name="agent_A", workload_id="1234"
     )
-    log_queue = LogQueue([workload_name])
+
+    log_queue = LogQueue(LogsRequest(workload_names=[workload_name]))
     assert log_queue is not None
 
     request = log_queue._get_request()
@@ -47,15 +51,11 @@ def test_log_queue():
     Test the queue functionality.
     """
     workload_name = WorkloadInstanceName(
-        workload_name="nginx",
-        agent_name="agent_A",
-        workload_id="1234"
+        workload_name="nginx", agent_name="agent_A", workload_id="1234"
     )
     log_queue = LogQueue([workload_name])
 
-    log_entry = LogResponse.from_entries(
-        generate_test_log_entry()
-    )
+    log_entry = LogResponse.from_entries(generate_test_log_entry())
     log_queue.put(log_entry)
     assert log_queue.empty() is False
     entry = log_queue.get()

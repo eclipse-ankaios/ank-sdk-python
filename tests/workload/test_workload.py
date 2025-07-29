@@ -25,8 +25,12 @@ Helper Functions:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, \
-    WorkloadFieldException, AccessRightRule
+from ankaios_sdk import (
+    Workload,
+    WorkloadBuilder,
+    WorkloadFieldException,
+    AccessRightRule,
+)
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
@@ -39,17 +43,10 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
             runtimeConfig=r"image: control_interface_prod:0.1\n",
             restartPolicy=_ank_base.ALWAYS,
             tags=_ank_base.Tags(
-                tags=[
-                    _ank_base.Tag(
-                        key="owner",
-                        value="Ankaios team"
-                    )
-                ]
+                tags=[_ank_base.Tag(key="owner", value="Ankaios team")]
             ),
             dependencies=_ank_base.Dependencies(
-                dependencies={
-                    "nginx": _ank_base.ADD_COND_RUNNING
-                }
+                dependencies={"nginx": _ank_base.ADD_COND_RUNNING}
             ),
             controlInterfaceAccess=_ank_base.ControlInterfaceAccess(
                 allowRules=[
@@ -58,16 +55,12 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                             operation=_ank_base.RW_WRITE,
                             filterMasks=[
                                 "desiredState.workloads.dynamic_nginx"
-                            ]
+                            ],
                         )
                     ),
                     _ank_base.AccessRightsRule(
-                        logRule=_ank_base.LogRule(
-                            workloadNames=[
-                                "nginx"
-                            ]
-                        )
-                    )
+                        logRule=_ank_base.LogRule(workloadNames=["nginx"])
+                    ),
                 ],
                 denyRules=[
                     _ank_base.AccessRightsRule(
@@ -75,10 +68,10 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                             operation=_ank_base.RW_READ,
                             filterMasks=[
                                 "desiredState.workloads.dynamic_nginx"
-                            ]
+                            ],
                         )
                     )
-                ]
+                ],
             ),
             configs=_ank_base.ConfigMappings(
                 configs={
@@ -86,7 +79,7 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                     "array": "config_2",
                     "dict": "config_3",
                 }
-            )
+            ),
         )
     }
 )
@@ -99,21 +92,25 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
     Returns:
         Workload: A Workload instance.
     """
-    return Workload.builder() \
-        .workload_name(workload_name) \
-        .agent_name("agent_Test") \
-        .runtime("runtime_test") \
-        .restart_policy("NEVER") \
-        .runtime_config("config_test") \
-        .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
-        .add_tag("key1", "value1") \
-        .add_tag("key2", "value2") \
-        .add_allow_state_rule("Write",
-                              [f"{WORKLOADS_PREFIX}.another_workload"]) \
-        .add_deny_state_rule("Read",
-                             ["workloadStates.agent_Test.another_workload"]) \
-        .add_config("alias_test", "config1") \
+    return (
+        Workload.builder()
+        .workload_name(workload_name)
+        .agent_name("agent_Test")
+        .runtime("runtime_test")
+        .restart_policy("NEVER")
+        .runtime_config("config_test")
+        .add_dependency("workload_test_other", "ADD_COND_RUNNING")
+        .add_tag("key1", "value1")
+        .add_tag("key2", "value2")
+        .add_allow_state_rule(
+            "Write", [f"{WORKLOADS_PREFIX}.another_workload"]
+        )
+        .add_deny_state_rule(
+            "Read", ["workloadStates.agent_Test.another_workload"]
+        )
+        .add_config("alias_test", "config1")
         .build()
+    )
 
 
 @pytest.fixture
@@ -140,8 +137,8 @@ def test_builder(workload):  # pylint: disable=redefined-outer-name
 
 
 def test_update_fields(
-        workload: Workload
-        ):  # pylint: disable=redefined-outer-name
+    workload: Workload,
+):  # pylint: disable=redefined-outer-name
     """
     Test updating various fields of the Workload instance.
 
@@ -162,9 +159,9 @@ def test_update_fields(
     workload.update_runtime_config("new_config_test")
     assert workload._workload.runtimeConfig == "new_config_test"
 
-    with patch("builtins.open", mock_open(
-            read_data="new_config_test_from_file"
-            )):
+    with patch(
+        "builtins.open", mock_open(read_data="new_config_test_from_file")
+    ):
         workload.update_runtime_config_from_file("new_config_test_from_file")
         assert workload._workload.runtimeConfig == "new_config_test_from_file"
 
@@ -175,8 +172,8 @@ def test_update_fields(
 
 
 def test_dependencies(
-        workload: Workload
-        ):  # pylint: disable=redefined-outer-name
+    workload: Workload,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding and updating dependencies of the Workload instance.
 
@@ -190,7 +187,7 @@ def test_dependencies(
     with pytest.raises(WorkloadFieldException):
         workload.update_dependencies(
             {"other_workload_test": "ADD_COND_DANCING"}
-            )
+        )
 
     workload.update_dependencies(deps)
     assert len(workload.get_dependencies()) == 2
@@ -234,21 +231,25 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(deny_rules) == 1
 
     with pytest.raises(WorkloadFieldException):
-        workload.update_allow_rules([AccessRightRule.state_rule(
-            "Invalid", ["mask"]
-        )])
+        workload.update_allow_rules(
+            [AccessRightRule.state_rule("Invalid", ["mask"])]
+        )
 
     with pytest.raises(WorkloadFieldException):
-        workload.update_deny_rules([AccessRightRule.state_rule(
-            "Invalid", ["mask"]
-        )])
+        workload.update_deny_rules(
+            [AccessRightRule.state_rule("Invalid", ["mask"])]
+        )
 
-    allow_rules.append(AccessRightRule.state_rule(
-        "Write", [f"{WORKLOADS_PREFIX}.another_workload"]
-    ))
-    deny_rules.append(AccessRightRule.state_rule(
-        "Read", ["workloadStates.agent_Test.another_workload"]
-    ))
+    allow_rules.append(
+        AccessRightRule.state_rule(
+            "Write", [f"{WORKLOADS_PREFIX}.another_workload"]
+        )
+    )
+    deny_rules.append(
+        AccessRightRule.state_rule(
+            "Read", ["workloadStates.agent_Test.another_workload"]
+        )
+    )
 
     workload.update_allow_rules(allow_rules)
     workload.update_deny_rules(deny_rules)
@@ -289,12 +290,15 @@ def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     assert proto.runtime == "runtime_test"
     assert proto.restartPolicy == _ank_base.NEVER
     assert proto.runtimeConfig == "config_test"
-    assert proto.dependencies.dependencies == {"workload_test_other":
-                                               _ank_base.ADD_COND_RUNNING}
-    assert proto.tags == _ank_base.Tags(tags=[
-        _ank_base.Tag(key="key1", value="value1"),
-        _ank_base.Tag(key="key2", value="value2")
-    ])
+    assert proto.dependencies.dependencies == {
+        "workload_test_other": _ank_base.ADD_COND_RUNNING
+    }
+    assert proto.tags == _ank_base.Tags(
+        tags=[
+            _ank_base.Tag(key="key1", value="value1"),
+            _ank_base.Tag(key="key2", value="value2"),
+        ]
+    )
 
 
 def test_proto():
@@ -311,39 +315,73 @@ def test_from_to_dict():
     workload_new = generate_test_workload()
 
     workload_other = Workload._from_dict(
-        workload_new.name, workload_new.to_dict())
+        workload_new.name, workload_new.to_dict()
+    )
     assert str(workload_new) == str(workload_other)
 
 
-@pytest.mark.parametrize("function_name, data, mask", [
-    ("update_workload_name", {"name": "workload_test"},
-        f"{WORKLOADS_PREFIX}.workload_test"),
-    ("update_agent_name", {"agent_name": "agent_Test"},
-        f"{WORKLOADS_PREFIX}.workload_test.agent"),
-    ("update_runtime", {"runtime": "runtime_test"},
-        f"{WORKLOADS_PREFIX}.workload_test.runtime"),
-    ("update_restart_policy", {"policy": "NEVER"},
-        f"{WORKLOADS_PREFIX}.workload_test.restartPolicy"),
-    ("update_runtime_config", {"config": "config_test"},
-        f"{WORKLOADS_PREFIX}.workload_test.runtimeConfig"),
-    ("update_dependencies", {"dependencies":
-                             {"workload_test_other": "ADD_COND_RUNNING"}},
-        f"{WORKLOADS_PREFIX}.workload_test.dependencies"),
-    ("add_tag", {"key": "key1", "value": "value1"},
-        f"{WORKLOADS_PREFIX}.workload_test.tags.key1"),
-    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
-        f"{WORKLOADS_PREFIX}.workload_test.tags"),
-    ("update_allow_rules", {"rules": [AccessRightRule.state_rule(
-        "Write", ["mask"])]},
-        f"{WORKLOADS_PREFIX}.workload_test."
-        + "controlInterfaceAccess.allowRules"),
-    ("update_deny_rules", {"rules": [AccessRightRule.state_rule(
-        "Read", ["mask"])]},
-        f"{WORKLOADS_PREFIX}.workload_test."
-        + "controlInterfaceAccess.denyRules"),
-    ("add_config", {"alias": "alias_test", "name": "config_test"},
-        f"{WORKLOADS_PREFIX}.workload_test.configs")
-])
+@pytest.mark.parametrize(
+    "function_name, data, mask",
+    [
+        (
+            "update_workload_name",
+            {"name": "workload_test"},
+            f"{WORKLOADS_PREFIX}.workload_test",
+        ),
+        (
+            "update_agent_name",
+            {"agent_name": "agent_Test"},
+            f"{WORKLOADS_PREFIX}.workload_test.agent",
+        ),
+        (
+            "update_runtime",
+            {"runtime": "runtime_test"},
+            f"{WORKLOADS_PREFIX}.workload_test.runtime",
+        ),
+        (
+            "update_restart_policy",
+            {"policy": "NEVER"},
+            f"{WORKLOADS_PREFIX}.workload_test.restartPolicy",
+        ),
+        (
+            "update_runtime_config",
+            {"config": "config_test"},
+            f"{WORKLOADS_PREFIX}.workload_test.runtimeConfig",
+        ),
+        (
+            "update_dependencies",
+            {"dependencies": {"workload_test_other": "ADD_COND_RUNNING"}},
+            f"{WORKLOADS_PREFIX}.workload_test.dependencies",
+        ),
+        (
+            "add_tag",
+            {"key": "key1", "value": "value1"},
+            f"{WORKLOADS_PREFIX}.workload_test.tags.key1",
+        ),
+        (
+            "update_tags",
+            {"tags": [("key1", "value1"), ("key2", "value")]},
+            f"{WORKLOADS_PREFIX}.workload_test.tags",
+        ),
+        (
+            "update_allow_rules",
+            {"rules": [AccessRightRule.state_rule("Write", ["mask"])]},
+            f"{WORKLOADS_PREFIX}.workload_test."
+            + "controlInterfaceAccess.allowRules",
+        ),
+        (
+            "update_deny_rules",
+            {"rules": [AccessRightRule.state_rule("Read", ["mask"])]},
+            f"{WORKLOADS_PREFIX}.workload_test."
+            + "controlInterfaceAccess.denyRules",
+        ),
+        (
+            "add_config",
+            {"alias": "alias_test", "name": "config_test"},
+            f"{WORKLOADS_PREFIX}.workload_test.configs",
+        ),
+    ],
+)
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """
     Test the generation of masks when updating fields of the Workload instance.

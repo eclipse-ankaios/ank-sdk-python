@@ -79,12 +79,14 @@ class CompleteState:
     """
     A class to represent the complete state.
     """
-    def __init__(self,
-                 manifest: Manifest = None,
-                 configs: dict = None,
-                 workloads: list[Workload] = None,
-                 _proto: _ank_base.CompleteState = None
-                 ) -> None:
+
+    def __init__(
+        self,
+        manifest: Manifest = None,
+        configs: dict = None,
+        workloads: list[Workload] = None,
+        _proto: _ank_base.CompleteState = None,
+    ) -> None:
         """
         Initializes a CompleteState instance with the provided data.
 
@@ -100,32 +102,25 @@ class CompleteState:
         self._set_api_version(SUPPORTED_API_VERSION)
         if _proto:
             self._complete_state = _proto
-            logger.debug(
-                "CompleteState initialized from proto message"
-            )
+            logger.debug("CompleteState initialized from proto message")
             return
         if manifest:
             self._complete_state.desiredState.CopyFrom(
                 manifest._to_desired_state()
             )
-            logger.debug(
-                "CompleteState initialized from manifest"
-            )
+            logger.debug("CompleteState initialized from manifest")
             return
         if configs:
             self.set_configs(configs)
-            logger.debug(
-                "CompleteState initialized from configs"
-            )
+            logger.debug("CompleteState initialized from configs")
             return
         if workloads:
             self._complete_state.desiredState.workloads.workloads.clear()
             for workload in workloads:
                 self._complete_state.desiredState.workloads.workloads[
-                    workload.name].CopyFrom(workload._to_proto())
-            logger.debug(
-                "CompleteState initialized from workloads"
-            )
+                    workload.name
+                ].CopyFrom(workload._to_proto())
+            logger.debug("CompleteState initialized from workloads")
             return
 
     def __str__(self) -> str:
@@ -166,10 +161,15 @@ class CompleteState:
             Workload: The workload with the specified name,
                 or None if not found.
         """
-        if workload_name in self._complete_state. \
-                desiredState.workloads.workloads.keys():
-            proto_workload = self._complete_state. \
-                desiredState.workloads.workloads[workload_name]
+        if (
+            workload_name
+            in self._complete_state.desiredState.workloads.workloads.keys()
+        ):
+            proto_workload = (
+                self._complete_state.desiredState.workloads.workloads[
+                    workload_name
+                ]
+            )
             workload = Workload(workload_name)
             workload._from_proto(proto_workload)
             return workload
@@ -183,8 +183,10 @@ class CompleteState:
             list[Workload]: A list of workloads in the complete state.
         """
         workloads = []
-        for wl_name, proto_workload in self._complete_state. \
-                desiredState.workloads.workloads.items():
+        for (
+            wl_name,
+            proto_workload,
+        ) in self._complete_state.desiredState.workloads.workloads.items():
             workload = Workload(wl_name)
             workload._from_proto(proto_workload)
             workloads.append(workload)
@@ -238,20 +240,28 @@ class CompleteState:
         Returns:
             dict: The configurations from the complete state
         """
-        def _from_config_item(item: _ank_base.ConfigItem
-                              ) -> Union[str, list, dict]:
+
+        def _from_config_item(
+            item: _ank_base.ConfigItem,
+        ) -> Union[str, list, dict]:
             if item.HasField("String"):
                 return item.String
             if item.HasField("array"):
-                return [_from_config_item(value)
-                        for value in item.array.values]
+                return [
+                    _from_config_item(value) for value in item.array.values
+                ]
             if item.HasField("object"):
-                return {key: _from_config_item(value)
-                        for key, value in item.object.fields.items()}
+                return {
+                    key: _from_config_item(value)
+                    for key, value in item.object.fields.items()
+                }
             return None  # pragma: no cover
+
         configs = {}
-        for key, value in self._complete_state.desiredState. \
-                configs.configs.items():
+        for (
+            key,
+            value,
+        ) in self._complete_state.desiredState.configs.configs.items():
             configs[key] = _from_config_item(value)
         return configs
 
@@ -266,14 +276,15 @@ class CompleteState:
             "desired_state": {
                 "api_version": self.get_api_version(),
                 "workloads": {},
-                "configs": self.get_configs()
+                "configs": self.get_configs(),
             },
             "workload_states": {},
-            "agents": {}
+            "agents": {},
         }
         for workload in self.get_workloads():
-            data["desired_state"]["workloads"][workload.name] = \
-                workload.to_dict()
+            data["desired_state"]["workloads"][
+                workload.name
+            ] = workload.to_dict()
         wl_states = self.get_workload_states().get_as_dict()
         for agent_name, exec_states in wl_states.items():
             data["workload_states"][agent_name] = {}
@@ -281,7 +292,8 @@ class CompleteState:
                 data["workload_states"][agent_name][workload_name] = {}
                 for workload_id, exec_state in exec_states_id.items():
                     data["workload_states"][agent_name][workload_name][
-                        workload_id] = exec_state.to_dict()
+                        workload_id
+                    ] = exec_state.to_dict()
         data["agents"] = self.get_agents()
         return data
 

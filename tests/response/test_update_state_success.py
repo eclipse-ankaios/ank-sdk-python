@@ -32,29 +32,31 @@ def test_functionality():
 
     update_state_success.added_workloads.append(
         WorkloadInstanceName("agent_A", "new_nginx", "12345")
-        )
+    )
     update_state_success.deleted_workloads.append(
         WorkloadInstanceName("agent_A", "old_nginx", "54321")
     )
 
     assert len(update_state_success.added_workloads) == 1
     assert len(update_state_success.deleted_workloads) == 1
-    assert str(update_state_success) == \
-        "Added workloads: ['new_nginx.12345.agent_A'], " \
+    assert (
+        str(update_state_success)
+        == "Added workloads: ['new_nginx.12345.agent_A'], "
         "Deleted workloads: ['old_nginx.54321.agent_A']"
+    )
     assert update_state_success.to_dict() == {
         "added_workloads": [
             {
                 "agent_name": "agent_A",
                 "workload_name": "new_nginx",
-                "workload_id": "12345"
+                "workload_id": "12345",
             }
         ],
         "deleted_workloads": [
             {
                 "agent_name": "agent_A",
                 "workload_name": "old_nginx",
-                "workload_id": "54321"
+                "workload_id": "54321",
             }
-        ]
+        ],
     }

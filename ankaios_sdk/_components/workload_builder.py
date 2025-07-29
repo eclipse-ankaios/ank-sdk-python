@@ -63,6 +63,7 @@ class WorkloadBuilder:
         dependencies (dict): The dependencies.
         tags (list): The tags.
     """
+
     def __init__(self) -> None:
         """
         Initialize a WorkloadBuilder object.
@@ -131,8 +132,8 @@ class WorkloadBuilder:
         return self
 
     def runtime_config_from_file(
-            self, runtime_config_path: str
-            ) -> "WorkloadBuilder":
+        self, runtime_config_path: str
+    ) -> "WorkloadBuilder":
         """
         Set the runtime configuration using a file.
 
@@ -160,8 +161,8 @@ class WorkloadBuilder:
         return self
 
     def add_dependency(
-            self, workload_name: str, condition: str
-            ) -> "WorkloadBuilder":
+        self, workload_name: str, condition: str
+    ) -> "WorkloadBuilder":
         """
         Add a dependency.
 
@@ -190,8 +191,8 @@ class WorkloadBuilder:
         return self
 
     def add_allow_state_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> "WorkloadBuilder":
+        self, operation: str, filter_masks: list[str]
+    ) -> "WorkloadBuilder":
         """
         Add an allow state rule to the workload.
 
@@ -205,14 +206,14 @@ class WorkloadBuilder:
         Raises:
             WorkloadFieldException: If the operation is invalid.
         """
-        self.allow_rules.append(AccessRightRule.state_rule(
-            operation, filter_masks
-        ))
+        self.allow_rules.append(
+            AccessRightRule.state_rule(operation, filter_masks)
+        )
         return self
 
     def add_deny_state_rule(
-            self, operation: str, filter_masks: list[str]
-            ) -> "WorkloadBuilder":
+        self, operation: str, filter_masks: list[str]
+    ) -> "WorkloadBuilder":
         """
         Add a deny state rule to the workload.
 
@@ -226,14 +227,14 @@ class WorkloadBuilder:
         Raises:
             WorkloadFieldException: If the operation is invalid.
         """
-        self.deny_rules.append(AccessRightRule.state_rule(
-            operation, filter_masks
-        ))
+        self.deny_rules.append(
+            AccessRightRule.state_rule(operation, filter_masks)
+        )
         return self
 
     def add_allow_log_rule(
-            self, workload_names: list[str]
-            ) -> "WorkloadBuilder":
+        self, workload_names: list[str]
+    ) -> "WorkloadBuilder":
         """
         Add an allow log rule to the workload.
 
@@ -244,14 +245,12 @@ class WorkloadBuilder:
         Returns:
             WorkloadBuilder: The builder object.
         """
-        self.allow_rules.append(AccessRightRule.log_rule(
-            workload_names
-        ))
+        self.allow_rules.append(AccessRightRule.log_rule(workload_names))
         return self
 
     def add_deny_log_rule(
-            self, workload_names: list[str]
-            ) -> "WorkloadBuilder":
+        self, workload_names: list[str]
+    ) -> "WorkloadBuilder":
         """
         Add an deny log rule to the workload.
 
@@ -262,9 +261,7 @@ class WorkloadBuilder:
         Returns:
             WorkloadBuilder: The builder object.
         """
-        self.deny_rules.append(AccessRightRule.log_rule(
-            workload_names
-        ))
+        self.deny_rules.append(AccessRightRule.log_rule(workload_names))
         return self
 
     def add_config(self, alias: str, name: str) -> "WorkloadBuilder":
@@ -292,19 +289,23 @@ class WorkloadBuilder:
         """
         if self.wl_name is None:
             raise WorkloadBuilderException(
-                "Workload can not be built without a name.")
+                "Workload can not be built without a name."
+            )
 
         workload = Workload(self.wl_name)
 
         if self.wl_agent_name is None:
             raise WorkloadBuilderException(
-                "Workload can not be built without an agent name.")
+                "Workload can not be built without an agent name."
+            )
         if self.wl_runtime is None:
             raise WorkloadBuilderException(
-                "Workload can not be built without a runtime.")
+                "Workload can not be built without a runtime."
+            )
         if self.wl_runtime_config is None:
             raise WorkloadBuilderException(
-                "Workload can not be built without a runtime configuration.")
+                "Workload can not be built without a runtime configuration."
+            )
 
         workload.update_agent_name(self.wl_agent_name)
         workload.update_runtime(self.wl_runtime)

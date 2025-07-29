@@ -29,38 +29,86 @@ def test_get():
     based on the state and field.
     """
     data = [
-        (WorkloadStateEnum.AGENT_DISCONNECTED, _ank_base.AGENT_DISCONNECTED,
-         WorkloadSubStateEnum.AGENT_DISCONNECTED),
-        (WorkloadStateEnum.PENDING, _ank_base.PENDING_INITIAL,
-         WorkloadSubStateEnum.PENDING_INITIAL),
-        (WorkloadStateEnum.PENDING, _ank_base.PENDING_WAITING_TO_START,
-         WorkloadSubStateEnum.PENDING_WAITING_TO_START),
-        (WorkloadStateEnum.PENDING, _ank_base.PENDING_STARTING,
-         WorkloadSubStateEnum.PENDING_STARTING),
-        (WorkloadStateEnum.PENDING, _ank_base.PENDING_STARTING_FAILED,
-         WorkloadSubStateEnum.PENDING_STARTING_FAILED),
-        (WorkloadStateEnum.RUNNING, _ank_base.RUNNING_OK,
-         WorkloadSubStateEnum.RUNNING_OK),
-        (WorkloadStateEnum.STOPPING, _ank_base.STOPPING,
-         WorkloadSubStateEnum.STOPPING),
-        (WorkloadStateEnum.STOPPING, _ank_base.STOPPING_WAITING_TO_STOP,
-         WorkloadSubStateEnum.STOPPING_WAITING_TO_STOP),
-        (WorkloadStateEnum.STOPPING, _ank_base.STOPPING_REQUESTED_AT_RUNTIME,
-         WorkloadSubStateEnum.STOPPING_REQUESTED_AT_RUNTIME),
-        (WorkloadStateEnum.STOPPING, _ank_base.STOPPING_DELETE_FAILED,
-         WorkloadSubStateEnum.STOPPING_DELETE_FAILED),
-        (WorkloadStateEnum.SUCCEEDED, _ank_base.SUCCEEDED_OK,
-         WorkloadSubStateEnum.SUCCEEDED_OK),
-        (WorkloadStateEnum.FAILED, _ank_base.FAILED_EXEC_FAILED,
-         WorkloadSubStateEnum.FAILED_EXEC_FAILED),
-        (WorkloadStateEnum.FAILED, _ank_base.FAILED_UNKNOWN,
-         WorkloadSubStateEnum.FAILED_UNKNOWN),
-        (WorkloadStateEnum.FAILED, _ank_base.FAILED_LOST,
-         WorkloadSubStateEnum.FAILED_LOST),
-        (WorkloadStateEnum.NOT_SCHEDULED, _ank_base.NOT_SCHEDULED,
-         WorkloadSubStateEnum.NOT_SCHEDULED),
-        (WorkloadStateEnum.REMOVED, _ank_base.REMOVED,
-         WorkloadSubStateEnum.REMOVED)
+        (
+            WorkloadStateEnum.AGENT_DISCONNECTED,
+            _ank_base.AGENT_DISCONNECTED,
+            WorkloadSubStateEnum.AGENT_DISCONNECTED,
+        ),
+        (
+            WorkloadStateEnum.PENDING,
+            _ank_base.PENDING_INITIAL,
+            WorkloadSubStateEnum.PENDING_INITIAL,
+        ),
+        (
+            WorkloadStateEnum.PENDING,
+            _ank_base.PENDING_WAITING_TO_START,
+            WorkloadSubStateEnum.PENDING_WAITING_TO_START,
+        ),
+        (
+            WorkloadStateEnum.PENDING,
+            _ank_base.PENDING_STARTING,
+            WorkloadSubStateEnum.PENDING_STARTING,
+        ),
+        (
+            WorkloadStateEnum.PENDING,
+            _ank_base.PENDING_STARTING_FAILED,
+            WorkloadSubStateEnum.PENDING_STARTING_FAILED,
+        ),
+        (
+            WorkloadStateEnum.RUNNING,
+            _ank_base.RUNNING_OK,
+            WorkloadSubStateEnum.RUNNING_OK,
+        ),
+        (
+            WorkloadStateEnum.STOPPING,
+            _ank_base.STOPPING,
+            WorkloadSubStateEnum.STOPPING,
+        ),
+        (
+            WorkloadStateEnum.STOPPING,
+            _ank_base.STOPPING_WAITING_TO_STOP,
+            WorkloadSubStateEnum.STOPPING_WAITING_TO_STOP,
+        ),
+        (
+            WorkloadStateEnum.STOPPING,
+            _ank_base.STOPPING_REQUESTED_AT_RUNTIME,
+            WorkloadSubStateEnum.STOPPING_REQUESTED_AT_RUNTIME,
+        ),
+        (
+            WorkloadStateEnum.STOPPING,
+            _ank_base.STOPPING_DELETE_FAILED,
+            WorkloadSubStateEnum.STOPPING_DELETE_FAILED,
+        ),
+        (
+            WorkloadStateEnum.SUCCEEDED,
+            _ank_base.SUCCEEDED_OK,
+            WorkloadSubStateEnum.SUCCEEDED_OK,
+        ),
+        (
+            WorkloadStateEnum.FAILED,
+            _ank_base.FAILED_EXEC_FAILED,
+            WorkloadSubStateEnum.FAILED_EXEC_FAILED,
+        ),
+        (
+            WorkloadStateEnum.FAILED,
+            _ank_base.FAILED_UNKNOWN,
+            WorkloadSubStateEnum.FAILED_UNKNOWN,
+        ),
+        (
+            WorkloadStateEnum.FAILED,
+            _ank_base.FAILED_LOST,
+            WorkloadSubStateEnum.FAILED_LOST,
+        ),
+        (
+            WorkloadStateEnum.NOT_SCHEDULED,
+            _ank_base.NOT_SCHEDULED,
+            WorkloadSubStateEnum.NOT_SCHEDULED,
+        ),
+        (
+            WorkloadStateEnum.REMOVED,
+            _ank_base.REMOVED,
+            WorkloadSubStateEnum.REMOVED,
+        ),
     ]
     for state, field, expected in data:
         assert WorkloadSubStateEnum._get(state, field) == expected
@@ -72,8 +120,10 @@ def test_get_error():
     ensuring it raises a ValueError for an invalid state and field combination.
     """
     with pytest.raises(ValueError):
-        WorkloadSubStateEnum._get(WorkloadStateEnum.AGENT_DISCONNECTED,
-                                  _ank_base.PENDING_WAITING_TO_START)
+        WorkloadSubStateEnum._get(
+            WorkloadStateEnum.AGENT_DISCONNECTED,
+            _ank_base.PENDING_WAITING_TO_START,
+        )
 
 
 def test_sub_state2ank_base():

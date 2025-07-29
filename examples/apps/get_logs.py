@@ -12,7 +12,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, AnkaiosException, Workload, LogResponse, LogsType
+from ankaios_sdk import (
+    Ankaios,
+    AnkaiosLogLevel,
+    AnkaiosException,
+    Workload,
+    LogResponse,
+    LogsType,
+)
 import sys, signal
 
 # Create a new Ankaios object.
@@ -36,7 +43,7 @@ with Ankaios(log_level=AnkaiosLogLevel.DEBUG) as ankaios:
         .runtime("podman")
         .restart_policy("NEVER")
         .runtime_config(
-            "image: ghcr.io/eclipse-ankaios/tests/alpine:latest\ncommandOptions: [ \"--entrypoint\", \"/bin/sh\" ]\ncommandArgs: [ \"-c\", \"echo -e \'1\\n2\\n3\\n4\\n5\';\" ]"
+            'image: ghcr.io/eclipse-ankaios/tests/alpine:latest\ncommandOptions: [ "--entrypoint", "/bin/sh" ]\ncommandArgs: [ "-c", "echo -e \'1\\n2\\n3\\n4\\n5\';" ]'
         )
         .build()
     )
@@ -55,8 +62,11 @@ with Ankaios(log_level=AnkaiosLogLevel.DEBUG) as ankaios:
 
         # Check if the workload was accepted for log retrieval
         if workload_instance_name not in log_campaign.accepted_workload_names:
-            print("Workload {} not accepted for log retrieval."
-                  .format(workload_instance_name))
+            print(
+                "Workload {} not accepted for log retrieval.".format(
+                    workload_instance_name
+                )
+            )
             sys.exit(1)
 
         while True:

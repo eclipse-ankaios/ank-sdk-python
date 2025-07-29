@@ -53,9 +53,7 @@ def test_log_rule():
     assert str(rule) == "LogRule: ['workload_1', 'workload_2']"
     assert rule.type == "LogRule"
     assert rule._to_proto() == _ank_base.AccessRightsRule(
-        logRule=_ank_base.LogRule(
-            workloadNames=["workload_1", "workload_2"]
-        )
+        logRule=_ank_base.LogRule(workloadNames=["workload_1", "workload_2"])
     )
     assert rule.to_dict() == {
         "type": "LogRule",
@@ -67,9 +65,7 @@ def test_unknown_rule():
     """
     Test an invalid rule.
     """
-    rule = AccessRightRule(
-        _ank_base.AccessRightsRule()
-    )
+    rule = AccessRightRule(_ank_base.AccessRightsRule())
     assert str(rule) == "Unknown rule"
     assert rule.to_dict() == {
         "type": "Unknown",

@@ -43,8 +43,6 @@ Usage
 __all__ = ["LogCampaignResponse", "LogQueue"]
 
 from queue import Queue
-from typing import Union
-from datetime import datetime
 from .workload_state import WorkloadInstanceName
 from .request import LogsRequest, LogsCancelRequest
 
@@ -55,8 +53,12 @@ class LogCampaignResponse:
     Represents the response for a log campaign, containing the queue of
     received messages and the accepted workload names.
     """
-    def __init__(self, queue: "LogQueue",
-                 accepted_workload_names: list[WorkloadInstanceName]) -> None:
+
+    def __init__(
+        self,
+        queue: "LogQueue",
+        accepted_workload_names: list[WorkloadInstanceName],
+    ) -> None:
         """
         Initializes the LogCampaignResponse with the given queue and accepted
         workload names.
@@ -75,11 +77,12 @@ class LogQueue(Queue):
     Represents a queue of received messages through the log campaign.
     Inherits from the standard Queue class.
     """
+
     # pylint: disable=too-many-arguments
-    def __init__(self, workload_names: list[WorkloadInstanceName], *,
-                 follow: bool = False, tail: int = -1,
-                 since: Union[str, datetime] = "",
-                 until: Union[str, datetime] = "") -> None:
+    def __init__(
+        self,
+        request: LogsRequest,
+    ) -> None:
         """
         Initializes the LogQueue with the given parameters.
 
@@ -95,11 +98,7 @@ class LogQueue(Queue):
                 it must be in the RFC3339 format.
         """
         super().__init__()
-        self._request = LogsRequest(
-            workload_names=workload_names,
-            follow=follow, tail=tail,
-            since=since, until=until
-        )
+        self._request = request
 
     def _get_request(self) -> LogsRequest:
         """

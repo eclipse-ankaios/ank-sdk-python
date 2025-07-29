@@ -58,7 +58,8 @@ _logger_lock = threading.Lock()
 
 
 class AnkaiosLogLevel(Enum):
-    """ Ankaios log levels. """
+    """Ankaios log levels."""
+
     ERROR = logging.ERROR
     "(int): Error log level."
     WARN = logging.WARN
@@ -79,10 +80,12 @@ def get_logger(name="Ankaios logger"):
     logger = logging.getLogger(name)
 
     with _logger_lock:
-        if not any(isinstance(handler, logging.StreamHandler)
-                   for handler in logger.handlers):
+        if not any(
+            isinstance(handler, logging.StreamHandler)
+            for handler in logger.handlers
+        ):
             formatter = logging.Formatter(
-                '%(asctime)s %(message)s', datefmt="[%F %T]"
+                "%(asctime)s %(message)s", datefmt="[%F %T]"
             )
             handler = logging.StreamHandler()
             handler.setFormatter(formatter)
@@ -91,8 +94,7 @@ def get_logger(name="Ankaios logger"):
     return logger
 
 
-def _to_config_item(item: Union[str, list, dict]
-                    ) -> _ank_base.ConfigItem:
+def _to_config_item(item: Union[str, list, dict]) -> _ank_base.ConfigItem:
     """
     Returns an ank_base.ConfigItem from a base type.
 
@@ -107,6 +109,5 @@ def _to_config_item(item: Union[str, list, dict]
             config_item.array.values.append(value)
     elif isinstance(item, dict):
         for key, value in item.items():
-            config_item.object.fields[key]. \
-                CopyFrom(_to_config_item(value))
+            config_item.object.fields[key].CopyFrom(_to_config_item(value))
     return config_item
