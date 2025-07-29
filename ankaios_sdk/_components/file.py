@@ -192,12 +192,11 @@ class File:
             ValueError: If the file content type is unsupported.
         """
         dict_conv = {"mount_point": self.mount_point}
-        match self._content:
-            case Data():
+        if self.is_data():
                 dict_conv["content"] = {"data": self._content.value}
-            case BinaryData():
+        elif self.is_binary_data():
                 dict_conv["content"] = {"binaryData": self._content.value}
-            case _:  # pragma: no cover
+        else:  # pragma: no cover
                 raise ValueError("Unsupported file content type. "
                                  "Expected Data or BinaryData.")
         return dict_conv
