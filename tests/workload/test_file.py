@@ -30,26 +30,20 @@ TEST_BINARY_CONTENT = "iVBORw0KGgoAAAABCAcSJAAAADUlEHgAHgJ/PchI7wAAArkJggg=="
 
 FILE_DICT_WITH_DATA = {
     "mount_point": TEST_MOUNT_POINT,
-    "content": {
-        "data": TEST_DATA_CONTENT
-    }
+    "content": {"data": TEST_DATA_CONTENT},
 }
 
 FILE_DICT_WITH_BINARY = {
     "mount_point": TEST_BINARY_MOUNT_POINT,
-    "content": {
-        "binaryData": TEST_BINARY_CONTENT
-    }
+    "content": {"binaryData": TEST_BINARY_CONTENT},
 }
 
 FILE_PROTO_WITH_DATA = _ank_base.File(
-    mountPoint=TEST_MOUNT_POINT,
-    data=TEST_DATA_CONTENT
+    mountPoint=TEST_MOUNT_POINT, data=TEST_DATA_CONTENT
 )
 
 FILE_PROTO_WITH_BINARY = _ank_base.File(
-    mountPoint=TEST_BINARY_MOUNT_POINT,
-    binaryData=TEST_BINARY_CONTENT
+    mountPoint=TEST_BINARY_MOUNT_POINT, binaryData=TEST_BINARY_CONTENT
 )
 
 
@@ -121,8 +115,8 @@ def test_file_init_with_data():
     file_obj = File("/etc/test.txt", data)
 
     assert file_obj.mount_point == "/etc/test.txt"
-    assert file_obj._content == data
-    assert isinstance(file_obj._content, Data)
+    assert file_obj.content == data
+    assert isinstance(file_obj.content, Data)
 
 
 def test_file_init_with_binary_data():
@@ -133,8 +127,8 @@ def test_file_init_with_binary_data():
     file_obj = File("/etc/test.bin", binary_data)
 
     assert file_obj.mount_point == "/etc/test.bin"
-    assert file_obj._content == binary_data
-    assert isinstance(file_obj._content, BinaryData)
+    assert file_obj.content == binary_data
+    assert isinstance(file_obj.content, BinaryData)
 
 
 def test_from_data_classmethod():
@@ -144,8 +138,8 @@ def test_from_data_classmethod():
     file_obj = File.from_data("/etc/config.txt", "sample text")
 
     assert file_obj.mount_point == "/etc/config.txt"
-    assert isinstance(file_obj._content, Data)
-    assert file_obj._content.value == "sample text"
+    assert isinstance(file_obj.content, Data)
+    assert file_obj.content.value == "sample text"
 
     data_file = File.from_data("/etc/empty.txt", "")
     assert data_file.data_content().value == ""
@@ -159,8 +153,8 @@ def test_from_binary_data_classmethod():
     file_obj = File.from_binary_data("/etc/binary.bin", "binary content")
 
     assert file_obj.mount_point == "/etc/binary.bin"
-    assert isinstance(file_obj._content, BinaryData)
-    assert file_obj._content.value == "binary content"
+    assert isinstance(file_obj.content, BinaryData)
+    assert file_obj.content.value == "binary content"
 
     binary_file = File.from_binary_data("/etc/empty.bin", "")
     assert binary_file.binary_data_content().value == ""
@@ -257,18 +251,13 @@ def test_from_dict_invalid_format():
     Test _from_dict static method with invalid format.
     """
     # Test with empty content
-    file_dict = {
-        "mount_point": "/etc/invalid.txt",
-        "content": {}
-    }
+    file_dict = {"mount_point": "/etc/invalid.txt", "content": {}}
 
     with pytest.raises(ValueError, match="Invalid file dictionary format"):
         File._from_dict(file_dict)
 
     # Test with missing content
-    file_dict = {
-        "mount_point": "/etc/invalid.txt"
-    }
+    file_dict = {"mount_point": "/etc/invalid.txt"}
 
     with pytest.raises(ValueError, match="Invalid file dictionary format"):
         File._from_dict(file_dict)

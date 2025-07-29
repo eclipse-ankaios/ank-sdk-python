@@ -99,7 +99,7 @@ class File:
                 which can be either text or binary.
         """
         self.mount_point = mount_point
-        self._content: FileContent = content
+        self.content: FileContent = content
 
     @classmethod
     def from_data(cls, mount_point: str, data: str) -> "File":
@@ -139,47 +139,7 @@ class File:
         """
         return str(self._to_proto())
 
-    def data_content(self) -> Data:
-        """
-        Get the text-based content of the file.
 
-        Returns:
-            Data: The text-based content if the file contains text data,
-                None otherwise.
-        """
-        if isinstance(self._content, Data):
-            return self._content
-        return None
-
-    def binary_data_content(self) -> BinaryData:
-        """
-        Get the binary content of the file.
-
-        Returns:
-            BinaryData: The binary content if the file contains binary data,
-                None otherwise.
-        """
-        if isinstance(self._content, BinaryData):
-            return self._content
-        return None
-
-    def is_data(self) -> bool:
-        """
-        Check if the file content is text-based.
-
-        Returns:
-            bool: True if the file content is text-based, False otherwise.
-        """
-        return isinstance(self._content, Data)
-
-    def is_binary_data(self) -> bool:
-        """
-        Check if the file content is binary.
-
-        Returns:
-            bool: True if the file content is binary, False otherwise.
-        """
-        return isinstance(self._content, BinaryData)
 
     def to_dict(self) -> dict:
         """
@@ -192,10 +152,10 @@ class File:
             ValueError: If the file content type is unsupported.
         """
         dict_conv = {"mount_point": self.mount_point}
-        if self.is_data():
-            dict_conv["content"] = {"data": self._content.value}
-        elif self.is_binary_data():
-            dict_conv["content"] = {"binaryData": self._content.value}
+        if isinstance(self.content, Data):
+            dict_conv["content"] = {"data": self.content.value}
+        elif isinstance(self.content, BinaryData):
+            dict_conv["content"] = {"binaryData": self.content.value}
         else:  # pragma: no cover
             raise ValueError(
                 "Unsupported file content type. "
