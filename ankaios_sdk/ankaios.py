@@ -977,8 +977,7 @@ class Ankaios:
                 in seconds.
 
         Returns:
-            LogCampaignResponse: The response containing the log queue and
-                accepted workload names.
+            LogCampaignResponse: The log campaign response object.
 
         Raises:
             ControlInterfaceException: If not connected.

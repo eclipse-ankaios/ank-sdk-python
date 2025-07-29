@@ -19,6 +19,7 @@
    manifest
    request
    response
+   log_campaign
    control_interface
    utils
    exceptions
