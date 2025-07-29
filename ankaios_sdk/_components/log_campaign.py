@@ -75,7 +75,7 @@ class LogQueue(Queue):
     Represents a queue of received messages through the log campaign.
     Inherits from the standard Queue class.
     """
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(self, workload_names: list[WorkloadInstanceName],
                  follow: bool = False, tail: int = -1,
                  since: Union[str, datetime] = "",
