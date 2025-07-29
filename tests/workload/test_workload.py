@@ -289,12 +289,14 @@ def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
 
     files.append(
         File.from_binary_data("./another_new_mount_point",
-                              binary_data="Asday9843uf092ASASASXZXZ90u988huj"))
+            binary_data="Asday9843uf092ASASASXZXZ90u988huj"))
     workload.update_files(files)
     assert len(workload.get_files()) == 3
 
-    workload.update_files([File.from_data("./replaced_mount_point", data="replaced_data")])
+    workload.update_files([File.from_data("./replaced_mount_point",
+        data="replaced_data")])
     assert len(workload.get_files()) == 1
+
 
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
