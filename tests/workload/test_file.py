@@ -18,7 +18,8 @@ in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk._components.file import File, Data, BinaryData
+from ankaios_sdk._components.file import File, \
+    DataFileContent, BinaryFileContent
 from ankaios_sdk._protos import _ank_base
 
 
@@ -71,7 +72,7 @@ def test_data_creation():
     """
     Test creating a Data instance.
     """
-    data = Data("test content")
+    data = DataFileContent("test content")
     assert data.value == "test content"
 
 
@@ -79,9 +80,9 @@ def test_data_equality():
     """
     Test Data equality comparison.
     """
-    data1 = Data("test content")
-    data2 = Data("test content")
-    data3 = Data("different content")
+    data1 = DataFileContent("test content")
+    data2 = DataFileContent("test content")
+    data3 = DataFileContent("different content")
 
     assert data1 == data2
     assert data1 != data3
@@ -91,7 +92,7 @@ def test_binary_data_creation():
     """
     Test creating a BinaryData instance.
     """
-    binary_data = BinaryData("binary content")
+    binary_data = BinaryFileContent("binary content")
     assert binary_data.value == "binary content"
 
 
@@ -99,9 +100,9 @@ def test_binary_data_equality():
     """
     Test BinaryData equality comparison.
     """
-    binary1 = BinaryData("binary content")
-    binary2 = BinaryData("binary content")
-    binary3 = BinaryData("different binary")
+    binary1 = BinaryFileContent("binary content")
+    binary2 = BinaryFileContent("binary content")
+    binary3 = BinaryFileContent("different binary")
 
     assert binary1 == binary2
     assert binary1 != binary3
@@ -111,24 +112,24 @@ def test_file_init_with_data():
     """
     Test File initialization with Data content.
     """
-    data = Data("test content")
+    data = DataFileContent("test content")
     file_obj = File("/etc/test.txt", data)
 
     assert file_obj.mount_point == "/etc/test.txt"
     assert file_obj.content == data
-    assert isinstance(file_obj.content, Data)
+    assert isinstance(file_obj.content, DataFileContent)
 
 
 def test_file_init_with_binary_data():
     """
     Test File initialization with BinaryData content.
     """
-    binary_data = BinaryData("binary content")
+    binary_data = BinaryFileContent("binary content")
     file_obj = File("/etc/test.bin", binary_data)
 
     assert file_obj.mount_point == "/etc/test.bin"
     assert file_obj.content == binary_data
-    assert isinstance(file_obj.content, BinaryData)
+    assert isinstance(file_obj.content, BinaryFileContent)
 
 
 def test_from_data_classmethod():
@@ -138,11 +139,11 @@ def test_from_data_classmethod():
     file_obj = File.from_data("/etc/config.txt", "sample text")
 
     assert file_obj.mount_point == "/etc/config.txt"
-    assert isinstance(file_obj.content, Data)
+    assert isinstance(file_obj.content, DataFileContent)
     assert file_obj.content.value == "sample text"
 
     data_file = File.from_data("/etc/empty.txt", "")
-    assert isinstance(data_file.content, Data)
+    assert isinstance(data_file.content, DataFileContent)
     assert data_file.content.value == ""
 
 
@@ -153,11 +154,11 @@ def test_from_binary_data_classmethod():
     file_obj = File.from_binary_data("/etc/binary.bin", "binary content")
 
     assert file_obj.mount_point == "/etc/binary.bin"
-    assert isinstance(file_obj.content, BinaryData)
+    assert isinstance(file_obj.content, BinaryFileContent)
     assert file_obj.content.value == "binary content"
 
     binary_file = File.from_binary_data("/etc/empty.bin", "")
-    assert isinstance(binary_file.content, BinaryData)
+    assert isinstance(binary_file.content, BinaryFileContent)
     assert binary_file.content.value == ""
 
 
@@ -184,14 +185,14 @@ def test_from_dict():
     file_obj = File._from_dict(FILE_DICT_WITH_DATA)
 
     assert file_obj.mount_point == TEST_MOUNT_POINT
-    assert isinstance(file_obj.content, Data)
+    assert isinstance(file_obj.content, DataFileContent)
     assert file_obj.content.value == TEST_DATA_CONTENT
 
     # Test with binary data content
     file_obj = File._from_dict(FILE_DICT_WITH_BINARY)
 
     assert file_obj.mount_point == TEST_BINARY_MOUNT_POINT
-    assert isinstance(file_obj.content, BinaryData)
+    assert isinstance(file_obj.content, BinaryFileContent)
     assert file_obj.content.value == TEST_BINARY_CONTENT
 
 
@@ -243,14 +244,14 @@ def test_from_proto():
     file_obj = File._from_proto(FILE_PROTO_WITH_DATA)
 
     assert file_obj.mount_point == TEST_MOUNT_POINT
-    assert isinstance(file_obj.content, Data)
+    assert isinstance(file_obj.content, DataFileContent)
     assert file_obj.content.value == TEST_DATA_CONTENT
 
     # Test with binary data content
     file_obj = File._from_proto(FILE_PROTO_WITH_BINARY)
 
     assert file_obj.mount_point == TEST_BINARY_MOUNT_POINT
-    assert isinstance(file_obj.content, BinaryData)
+    assert isinstance(file_obj.content, BinaryFileContent)
     assert file_obj.content.value == TEST_BINARY_CONTENT
 
 

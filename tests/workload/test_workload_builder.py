@@ -24,7 +24,7 @@ from unittest.mock import patch, mock_open
 import pytest
 from ankaios_sdk import (Workload, WorkloadBuilder,
                          WorkloadBuilderException, File)
-from ankaios_sdk._components.file import Data, BinaryData
+from ankaios_sdk._components.file import DataFileContent, BinaryFileContent
 from ankaios_sdk._protos import _ank_base
 
 
@@ -161,9 +161,11 @@ def test_add_file(
         "file_mount_point", binary_data="ialsdfvJKGU65e")
     ) == builder
     assert builder.files[0].mount_point == "file_mount_point"
-    assert builder.files[0].content == Data(value="file_content")
+    assert builder.files[0].content == \
+        DataFileContent(value="file_content")
     assert builder.files[1].mount_point == "file_mount_point"
-    assert builder.files[1].content == BinaryData(value="ialsdfvJKGU65e")
+    assert builder.files[1].content == \
+        BinaryFileContent(value="ialsdfvJKGU65e")
 
 
 def test_build(

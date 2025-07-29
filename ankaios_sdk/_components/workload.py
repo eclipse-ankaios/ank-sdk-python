@@ -778,6 +778,9 @@ class WorkloadBuilder:
         Args:
             alias (str): The alias of the configuration.
             name (str): The name of the configuration.
+
+        Returns:
+            WorkloadBuilder: The builder object.
         """
         self.configs[alias] = name
         return self
@@ -787,7 +790,10 @@ class WorkloadBuilder:
         Link a workload file to the workload.
 
         Args:
-            file (File): The File object to mount to the workload.
+            file (File): The file object to mount to the workload.
+
+        Returns:
+            WorkloadBuilder: The builder object.
         """
         self.files.append(file)
         return self

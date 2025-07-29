@@ -21,6 +21,10 @@ Classes
 
 - File:
     Represents a file that can be mounted to an Ankaios workload.
+- DataFileContent:
+    Represents text-based file content.
+- BinaryFileContent:
+    Represents binary file content.
 
 Usage
 -----
@@ -43,10 +47,19 @@ Usage
     .. code-block:: python
 
         file_dict = file.to_dict()
+
+- Get the content and check it's type:
+    .. code-block:: python
+
+        file = File()
+        if isinstance(file.content, DataFileContent):
+            print("Text file content:", file.content.value)
+        elif isinstance(file.content, BinaryFileContent):
+            print("Binary file content:", file.content.value)
 """
 
 
-__all__ = ["File"]
+__all__ = ["File", "DataFileContent", "BinaryFileContent"]
 
 
 from dataclasses import dataclass
@@ -55,7 +68,7 @@ from .._protos import _ank_base
 
 
 @dataclass
-class Data:
+class DataFileContent:
     """
     This class is used to represent text-based file content.
 
@@ -66,7 +79,7 @@ class Data:
 
 
 @dataclass
-class BinaryData:
+class BinaryFileContent:
     """
     This class is used to represent binary file content.
 
@@ -76,7 +89,11 @@ class BinaryData:
     value: str
 
 
-FileContent = Union[Data, BinaryData]
+FileContent = Union[DataFileContent, BinaryFileContent]
+"""
+The type alias for file content,
+which can be either DataFileContent or BinaryFileContent.
+"""
 
 
 class File:
@@ -113,7 +130,8 @@ class File:
         Returns:
             File: A File instance with text-based content.
         """
-        return cls(mount_point=mount_point, content=Data(value=data))
+        return cls(
+            mount_point=mount_point, content=DataFileContent(value=data))
 
     @classmethod
     def from_binary_data(cls, mount_point: str, binary_data: str) -> "File":
@@ -128,7 +146,7 @@ class File:
             File: A File instance with binary content.
         """
         return cls(mount_point=mount_point,
-                   content=BinaryData(value=binary_data))
+                   content=BinaryFileContent(value=binary_data))
 
     def __str__(self) -> str:
         """
@@ -150,9 +168,9 @@ class File:
             ValueError: If the file content type is unsupported.
         """
         dict_conv = {"mount_point": self.mount_point}
-        if isinstance(self.content, Data):
+        if isinstance(self.content, DataFileContent):
             dict_conv["content"] = {"data": self.content.value}
-        elif isinstance(self.content, BinaryData):
+        elif isinstance(self.content, BinaryFileContent):
             dict_conv["content"] = {"binaryData": self.content.value}
         else:  # pragma: no cover
             raise ValueError(
@@ -208,12 +226,12 @@ class File:
         Raises:
             ValueError: If the file content type is unsupported.
         """
-        if isinstance(self.content, Data):
+        if isinstance(self.content, DataFileContent):
             return _ank_base.File(
                 mountPoint=self.mount_point,
                 data=self.content.value
             )
-        if isinstance(self.content, BinaryData):
+        if isinstance(self.content, BinaryFileContent):
             return _ank_base.File(
                 mountPoint=self.mount_point,
                 binaryData=self.content.value
