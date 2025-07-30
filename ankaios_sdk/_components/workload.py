@@ -74,6 +74,7 @@ __all__ = ["Workload", "WorkloadBuilder"]
 from .._protos import _ank_base
 from ..exceptions import WorkloadFieldException, WorkloadBuilderException
 from ..utils import get_logger, WORKLOADS_PREFIX
+from .._components.file import File
 
 
 # pylint: disable=too-many-public-methods
@@ -426,6 +427,36 @@ class Workload:
         for alias, name in configs.items():
             self.add_config(alias, name)
 
+    def add_file(self, file: File) -> None:
+        """
+        Link a workload file to the workload.
+
+        Args:
+           file (File): The File object to mount to the workload.
+        """
+        self._workload.files.files.append(file._to_proto())
+        self._add_mask(f"{self._main_mask}.files")
+
+    def get_files(self) -> list[File]:
+        """
+        Return the files linked to the workload.
+
+        Returns:
+        list[File]: A list of File objects mounted to the workload.
+        """
+        return [File._from_proto(file) for file in self._workload.files.files]
+
+    def update_files(self, files: list[File]) -> None:
+        """
+        Update the files linked to the workload.
+
+        Args:
+            files (list[File]): List of File objects mounted to the workload.
+        """
+        del self._workload.files.files[:]
+        for file in files:
+            self.add_file(file)
+
     def _add_mask(self, mask: str) -> None:
         """
         Add a mask to the list of masks.
@@ -436,6 +467,7 @@ class Workload:
         if self._main_mask not in self.masks and mask not in self.masks:
             self.masks.append(mask)
 
+    # pylint: disable=too-many-branches
     def to_dict(self) -> dict:
         """
         Convert the Workload object to a dictionary.
@@ -486,6 +518,9 @@ class Workload:
         workload_dict["configs"] = {}
         for alias, name in self._workload.configs.configs.items():
             workload_dict["configs"][alias] = name
+        workload_dict["files"] = []
+        for file in self._workload.files.files:
+            workload_dict["files"].append(File._from_proto(file).to_dict())
         return workload_dict
 
     # pylint: disable=too-many-branches
@@ -536,6 +571,9 @@ class Workload:
         if "configs" in dict_workload:
             for alias, name in dict_workload["configs"].items():
                 workload = workload.add_config(alias, name)
+        if "files" in dict_workload:
+            for file in dict_workload["files"]:
+                workload = workload.add_file(File._from_dict(file))
 
         return workload.build()
 
@@ -588,6 +626,7 @@ class WorkloadBuilder:
         self.allow_rules = []
         self.deny_rules = []
         self.configs = {}
+        self.files = []
 
     def workload_name(self, workload_name: str) -> "WorkloadBuilder":
         """
@@ -739,8 +778,24 @@ class WorkloadBuilder:
         Args:
             alias (str): The alias of the configuration.
             name (str): The name of the configuration.
+
+        Returns:
+            WorkloadBuilder: The builder object.
         """
         self.configs[alias] = name
+        return self
+
+    def add_file(self, file: File) -> "WorkloadBuilder":
+        """
+        Link a workload file to the workload.
+
+        Args:
+            file (File): The file object to mount to the workload.
+
+        Returns:
+            WorkloadBuilder: The builder object.
+        """
+        self.files.append(file)
         return self
 
     def build(self) -> Workload:
@@ -787,5 +842,7 @@ class WorkloadBuilder:
             workload.update_deny_rules(self.deny_rules)
         if len(self.configs) > 0:
             workload.update_configs(self.configs)
+        if len(self.files) > 0:
+            workload.update_files(self.files)
 
         return workload

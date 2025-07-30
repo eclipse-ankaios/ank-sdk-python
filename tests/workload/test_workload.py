@@ -25,7 +25,8 @@ Helper Functions:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadFieldException
+from ankaios_sdk import (Workload, WorkloadBuilder,
+                         WorkloadFieldException, File)
 from ankaios_sdk._protos import _ank_base
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 
@@ -78,6 +79,18 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
                     "array": "config_2",
                     "dict": "config_3",
                 }
+            ),
+            files=_ank_base.Files(
+                files=[
+                    _ank_base.File(
+                        mountPoint="./mount_point",
+                        data="data_1"
+                    ),
+                    _ank_base.File(
+                        mountPoint="./mount_point_2",
+                        binaryData="binary_data_1"
+                    )
+                ]
             )
         )
     }
@@ -105,6 +118,7 @@ def generate_test_workload(workload_name: str = "workload_test") -> Workload:
         .add_deny_rule("Read",
                        ["workloadStates.agent_Test.another_workload"]) \
         .add_config("alias_test", "config1") \
+        .add_file(File.from_data("./dummy_mount_point", data="dummy_data")) \
         .build()
 
 
@@ -259,6 +273,34 @@ def test_configs(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_configs()) == 3
 
 
+def test_files(workload: Workload):  # pylint: disable=redefined-outer-name
+    """
+    Test adding and updating files of the Workload instance.
+    Args:
+        workload (Workload): The Workload fixture.
+    """
+    assert len(workload.get_files()) == 1
+
+    print(workload)
+
+    workload.add_file(File.from_data("./new_mount_point", data="new_data"))
+    files = workload.get_files()
+    assert len(files) == 2
+
+    files.append(
+        File.from_binary_data(
+            "./another_new_mount_point",
+            binary_data="Asday9843uf092ASASASXZXZ90u988huj")
+        )
+    workload.update_files(files)
+    assert len(workload.get_files()) == 3
+
+    workload.update_files(
+        [File.from_data("./replaced_mount_point", data="replaced_data")]
+    )
+    assert len(workload.get_files()) == 1
+
+
 def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     Test converting the Workload instance to protobuf message.
@@ -295,6 +337,7 @@ def test_from_to_dict():
 
     workload_other = Workload._from_dict(
         workload_new.name, workload_new.to_dict())
+
     assert str(workload_new) == str(workload_other)
 
 
@@ -314,7 +357,7 @@ def test_from_to_dict():
         f"{WORKLOADS_PREFIX}.workload_test.dependencies"),
     ("add_tag", {"key": "key1", "value": "value1"},
         f"{WORKLOADS_PREFIX}.workload_test.tags.key1"),
-    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value")]},
+    ("update_tags", {"tags": [("key1", "value1"), ("key2", "value2")]},
         f"{WORKLOADS_PREFIX}.workload_test.tags"),
     ("update_allow_rules", {"rules": [("Write", ["mask"])]},
         f"{WORKLOADS_PREFIX}.workload_test."
@@ -323,7 +366,10 @@ def test_from_to_dict():
         f"{WORKLOADS_PREFIX}.workload_test."
         + "controlInterfaceAccess.denyRules"),
     ("add_config", {"alias": "alias_test", "name": "config_test"},
-        f"{WORKLOADS_PREFIX}.workload_test.configs")
+        f"{WORKLOADS_PREFIX}.workload_test.configs"),
+    ("add_file",
+     {"file": File.from_data("./dummy_mount_point", data="dummy_data")},
+        f"{WORKLOADS_PREFIX}.workload_test.files")
 ])
 def test_mask_generation(function_name: str, data: dict, mask: str):
     """

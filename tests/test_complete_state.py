@@ -51,6 +51,20 @@ CONFIGS_PROTO = _ank_base.ConfigMap(
 )
 
 
+FILES_PROTO = _ank_base.Files(
+    files=[
+        _ank_base.File(
+            mountPoint="./mount_point_1",
+            data="data_1"
+        ),
+        _ank_base.File(
+            mountPoint="./mount_point_2",
+            binaryData="binary_data_2"
+        )
+    ]
+)
+
+
 AGENTS_PROTO = _ank_base.AgentMap(
     agents={
         "agent_A": _ank_base.AgentAttributes(
@@ -220,6 +234,20 @@ def test_to_dict():
                                 ]
                             }]
                     },
+                    'files': [
+                        {
+                            'mount_point': './mount_point',
+                            'content': {
+                                'data': 'data_1'
+                            }
+                        },
+                        {
+                            'mount_point': './mount_point_2',
+                            'content': {
+                                'binaryData': 'binary_data_1'
+                            }
+                        }
+                    ],
                     'configs': {
                         'array': 'config_2',
                         'dict': 'config_3',
