@@ -71,7 +71,6 @@ def test_log_entries():
     assert str(log_entry) == "Log from nginx.1234.agent_A: Test log message"
 
 
-
 def test_log_stop_response():
     """
     Test the Log stop response.
@@ -82,4 +81,3 @@ def test_log_stop_response():
     assert log_stop_response is not None
     assert str(log_stop_response) == \
         "Stopped receiving logs from nginx.1234.agent_A."
-

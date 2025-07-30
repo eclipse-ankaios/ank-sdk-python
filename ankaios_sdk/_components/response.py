@@ -60,8 +60,8 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess", "LogEntry", "LogsStopResponse",
-           "LogResponse"]
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess",
+           "LogEntry", "LogsStopResponse", "LogResponse"]
 
 from dataclasses import dataclass
 from typing import Any, Union
@@ -290,8 +290,17 @@ class UpdateStateSuccess:
         return f"Added workloads: {added_workloads}, " \
                f"Deleted workloads: {deleted_workloads}"
 
+
 @dataclass
 class LogEntry:
+    """
+    Represents a log entry from a workload instance.
+
+    Attributes:
+        workload_instance_name (WorkloadInstanceName): The name of the
+            workload instance from which the log entry was received.
+        message (str): The log message.
+    """
     workload_instance_name: WorkloadInstanceName
     message: str
 
@@ -319,10 +328,19 @@ class LogEntry:
         return LogEntry(WorkloadInstanceName(log.workloadName.agentName,
                                               log.workloadName.workloadName,
                                               log.workloadName.id),
-                        log.message)
+                         log.message)
+
 
 @dataclass
 class LogsStopResponse:
+    """
+    Represents a response for marking the end of the log stream from a
+        workload instance.
+
+    Attributes:
+        workload_instance_name (WorkloadInstanceName): The name of the
+            workload instance from which no more logs will be sent.
+    """
     workload_instance_name: WorkloadInstanceName
 
     def __str__(self) -> str:
@@ -338,7 +356,9 @@ class LogsStopResponse:
                 f"{self.workload_instance_name.agent_name}.")
 
     @staticmethod
-    def from_stop_response(log: _ank_base.LogsStopResponse) -> 'LogsStopResponse':
+    def from_stop_response(
+        log: _ank_base.LogsStopResponse
+    ) -> 'LogsStopResponse':
         """
         Creates a LogsStopResponse from a LogsStopResponse.
         Args:
@@ -347,9 +367,10 @@ class LogsStopResponse:
         Returns:
             LogsStopResponse: The converted LogsStopResponse object.
         """
-        return LogsStopResponse(WorkloadInstanceName(log.workloadName.agentName,
-                                              log.workloadName.workloadName,
-                                              log.workloadName.id))
+        return LogsStopResponse(
+            WorkloadInstanceName(log.workloadName.agentName,
+                                 log.workloadName.workloadName,
+                                 log.workloadName.id))
 
 
 LogResponse = Union[LogEntry, LogsStopResponse]
