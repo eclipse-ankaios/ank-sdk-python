@@ -1,5 +1,5 @@
 import time
-from ankaios_sdk import Ankaios, File, Workload, AnkaiosException
+from ankaios_sdk import Ankaios, File, Workload, AnkaiosException, DataFileContent, BinaryFileContent
 
 
 # Create a new Ankaios object.
@@ -94,10 +94,20 @@ with Ankaios() as ank:
             complete_state = ank.get_state(field_masks=["desiredState.workloads"])
             workloads = complete_state.get_workloads()
             for workload in workloads:
-                print(f"The following files are associated with workload {workload.name}:")
+                print(
+                    f"The following files are associated with workload {workload.name}:"
+                )
                 wl_files = workload.get_files()
                 for file in wl_files:
-                    print(f"  {file}")
+                    match file.content:
+                        case DataFileContent():
+                            print(
+                                f"  Text file: {file.mount_point} - Content: {file.content.value}"
+                            )
+                        case BinaryFileContent():
+                            print(
+                                f"  Binary file: {file.mount_point} - Content: {file.content.value}"
+                            )
         except AnkaiosException as e:
             print(f"Error retrieving workload files: {e}")
         # Clean up - delete workloads
