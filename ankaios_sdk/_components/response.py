@@ -60,10 +60,11 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess", "LogsType",
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess", "LogEntry", "LogsStopResponse",
            "LogResponse"]
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Union
 from enum import Enum
 from .._protos import _ank_base, _control_api
 from ..exceptions import ResponseException
@@ -170,7 +171,7 @@ class Response:
             self.content = []
             for log_entry in self._response.logEntriesResponse.logEntries:
                 self.content.append(
-                    LogResponse.from_entries(log_entry)
+                    LogEntry.from_entries(log_entry)
                 )
         elif self._response.HasField("logsRequestAccepted"):
             self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
@@ -185,9 +186,9 @@ class Response:
             ]
         elif self._response.HasField("logsStopResponse"):
             self.content_type = ResponseType.LOGS_STOP_RESPONSE
-            self.content = LogResponse.from_stop_response(
+            self.content = [LogsStopResponse.from_stop_response(
                 self._response.logsStopResponse
-            )
+            )]
         elif self._response.HasField("logsCancelAccepted"):
             self.content_type = ResponseType.LOGS_CANCEL_ACCEPTED
             self.content = None
@@ -289,101 +290,66 @@ class UpdateStateSuccess:
         return f"Added workloads: {added_workloads}, " \
                f"Deleted workloads: {deleted_workloads}"
 
-
-class LogsType(Enum):
-    """ Enumeration for the different types of logs responses. """
-    LOGS_ENTRY = 1
-    "(int): A workload logged a message."
-    LOGS_STOP_RESPONSE = 2
-    "(int): A workload stopped sending logs."
+@dataclass
+class LogEntry:
+    workload_instance_name: WorkloadInstanceName
+    message: str
 
     def __str__(self) -> str:
         """
-        Converts the LogsType to a string.
+        Converts the LogsEntry to a string.
 
         Returns:
-            str: The string representation of the LogsType.
+            str: The string representation of the LogsEntry.
         """
-        return self.name.lower()
-
-
-class LogResponse:
-    """
-    Represents a log response received from the Ankaios system.
-    """
-    def __init__(self, log_type: LogsType,
-                 name: _ank_base.WorkloadInstanceName,
-                 message: str = "") -> None:
-        """
-        Initializes the LogResponse with the given attributes.
-
-        Args:
-            workload_instance_name (WorkloadInstanceName): The instance name
-                of the workload.
-            message (str): The log message.
-            log_type (LogsType): The type of the log response.
-        """
-        self.workload_instance_name = WorkloadInstanceName(
-            name.agentName, name.workloadName, name.id
-        )
-        self.type = log_type
-        self.message = message
+        return (f"Log from {self.workload_instance_name.workload_name}."
+                f"{self.workload_instance_name.workload_id}."
+                f"{self.workload_instance_name.agent_name}: "
+                f"{self.message}")
 
     @staticmethod
-    def from_entries(log: _ank_base.LogEntry) -> 'LogResponse':
+    def from_entries(log: _ank_base.LogEntry) -> 'LogEntry':
         """
-        Creates a LogResponse from a LogEntry.
-
+        Creates a LogsEntry from a LogEntry.
         Args:
             log (_ank_base.LogEntry): The log entry to convert.
+        Returns:
+            LogsEntry: The converted LogsEntry object.
+        """
+        return LogEntry(WorkloadInstanceName(log.workloadName.agentName,
+                                              log.workloadName.workloadName,
+                                              log.workloadName.id),
+                        log.message)
+
+@dataclass
+class LogsStopResponse:
+    workload_instance_name: WorkloadInstanceName
+
+    def __str__(self) -> str:
+        """
+        Converts the LogsStopResponse to a string.
 
         Returns:
-            LogResponse: The converted LogResponse object.
+            str: The string representation of the LogsStopResponse.
         """
-        return LogResponse(LogsType.LOGS_ENTRY,
-                           log.workloadName,
-                           log.message)
+        return (f"Stopped receiving logs from "
+                f"{self.workload_instance_name.workload_name}."
+                f"{self.workload_instance_name.workload_id}."
+                f"{self.workload_instance_name.agent_name}.")
 
     @staticmethod
-    def from_stop_response(log: _ank_base.LogsStopResponse) -> 'LogResponse':
+    def from_stop_response(log: _ank_base.LogsStopResponse) -> 'LogsStopResponse':
         """
-        Creates a LogResponse from a LogsStopResponse.
-
+        Creates a LogsStopResponse from a LogsStopResponse.
         Args:
             log (_ank_base.LogsStopResponse): The logs stop response
                 to convert.
-
         Returns:
-            LogResponse: The converted LogResponse object.
+            LogsStopResponse: The converted LogsStopResponse object.
         """
-        return LogResponse(LogsType.LOGS_STOP_RESPONSE,
-                           log.workloadName)
+        return LogsStopResponse(WorkloadInstanceName(log.workloadName.agentName,
+                                              log.workloadName.workloadName,
+                                              log.workloadName.id))
 
-    def __str__(self) -> str:
-        """
-        Converts the LogResponse to a string.
 
-        Returns:
-            str: The string representation of the log response.
-        """
-        ret = ""
-        if self.type == LogsType.LOGS_ENTRY:
-            ret = f"Log from {self.workload_instance_name}: {self.message}"
-        elif self.type == LogsType.LOGS_STOP_RESPONSE:
-            ret = "Stopped receiving logs from " \
-                f"{self.workload_instance_name}."
-        return ret
-
-    def to_dict(self) -> dict:
-        """
-        Converts the LogResponse to a dictionary. It includes the type
-        of the response.
-
-        Returns:
-            dict: The dictionary representation of the log response.
-        """
-        return {
-            "workload_instance_name": self.workload_instance_name.to_dict(),
-            "type": self.type,
-            "message": self.message
-        }
+LogResponse = Union[LogEntry, LogsStopResponse]

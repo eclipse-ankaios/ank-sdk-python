@@ -20,7 +20,7 @@ from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock
 import pytest
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, LogResponse, Response, \
+from ankaios_sdk import Ankaios, AnkaiosLogLevel, LogEntry, Response, \
     UpdateStateSuccess, Manifest, CompleteState, WorkloadInstanceName, \
     WorkloadStateCollection, WorkloadStateEnum, ControlInterfaceState, \
     AnkaiosProtocolException, AnkaiosResponseError, \
@@ -145,8 +145,8 @@ def test_add_logs():
     of type Logs Entries is received.
     """
     log_entries = [
-        LogResponse.from_entries(generate_test_log_entry(name="nginx_A")),
-        LogResponse.from_entries(generate_test_log_entry(name="nginx_B"))
+        LogEntry.from_entries(generate_test_log_entry(name="nginx_A")),
+        LogEntry.from_entries(generate_test_log_entry(name="nginx_B"))
     ]
     put_mock = MagicMock()
 

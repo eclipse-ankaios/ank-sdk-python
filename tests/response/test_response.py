@@ -20,7 +20,7 @@ import pytest
 from google.protobuf.internal.encoder import _VarintBytes
 from ankaios_sdk._protos import _ank_base, _control_api
 from ankaios_sdk import Response, ResponseType, CompleteState, \
-    ResponseException, LogResponse, LogsType
+    ResponseException, LogEntry, LogsStopResponse
 from tests.response.test_log_response import generate_test_log_entry
 
 
@@ -164,14 +164,14 @@ def test_initialisation():
     assert response.content_type == ResponseType.LOGS_ENTRY
     assert isinstance(response.content, list)
     assert len(response.content) == 1
-    assert isinstance(response.content[0], LogResponse)
+    assert isinstance(response.content[0], LogEntry)
 
     # Test logs stop respose
     response = Response(MESSAGE_BUFFER_LOGS_STOP_RESPONSE)
     assert response.content_type == ResponseType.LOGS_STOP_RESPONSE
-    assert isinstance(response.content, LogResponse)
-    assert response.content.type == LogsType.LOGS_STOP_RESPONSE
-    assert str(LogsType.LOGS_STOP_RESPONSE) == "logs_stop_response"
+    assert isinstance(response.content, list)
+    assert len(response.content) == 1
+    assert isinstance(response.content[0], LogsStopResponse)
 
     # Test connection closed
     response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)

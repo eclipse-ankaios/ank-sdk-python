@@ -22,7 +22,7 @@ Helper Functions:
         LogsStopResponse proto message for testing.
 """
 
-from ankaios_sdk import LogResponse, LogsType
+from ankaios_sdk import LogEntry, LogsStopResponse
 from ankaios_sdk._protos import _ank_base
 
 
@@ -64,38 +64,22 @@ def test_log_entries():
     """
     Test the Log entries Response class.
     """
-    log_entry = LogResponse.from_entries(
+    log_entry = LogEntry.from_entries(
         generate_test_log_entry()
     )
     assert log_entry is not None
     assert str(log_entry) == "Log from nginx.1234.agent_A: Test log message"
-    assert log_entry.to_dict() == {
-        "workload_instance_name": {
-            "agent_name": "agent_A",
-            "workload_name": "nginx",
-            "workload_id": "1234"
-        },
-        "type": LogsType.LOGS_ENTRY,
-        "message": "Test log message"
-    }
+
 
 
 def test_log_stop_response():
     """
     Test the Log stop response.
     """
-    log_stop_response = LogResponse.from_stop_response(
+    log_stop_response = LogsStopResponse.from_stop_response(
         generate_test_logs_stop_reponse()
     )
     assert log_stop_response is not None
     assert str(log_stop_response) == \
         "Stopped receiving logs from nginx.1234.agent_A."
-    assert log_stop_response.to_dict() == {
-        "workload_instance_name": {
-            "agent_name": "agent_A",
-            "workload_name": "nginx",
-            "workload_id": "1234"
-        },
-        "type": LogsType.LOGS_STOP_RESPONSE,
-        "message": ""
-    }
+
