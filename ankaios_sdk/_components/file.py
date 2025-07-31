@@ -30,8 +30,8 @@ Union Types
 -------------
 
 - FileContent:
-    Union type for file content, which can be either :py:class:`DataFileContent` or
-    :py:class:`BinaryFileContent`.
+    Union type for file content, which can be either
+    :py:class:`DataFileContent` or :py:class:`BinaryFileContent`.
 
 Usage
 -----

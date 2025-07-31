@@ -303,7 +303,9 @@ class LogEntry:
     Represents a log entry from a workload instance.
     """
     workload_instance_name: WorkloadInstanceName
-    """The name of the workload instance from which the log entry was received."""
+    """
+    The name of the workload instance from which the log entry was received.
+    """
     message: str
     """The log message."""
 
@@ -334,7 +336,9 @@ class LogsStopResponse:
     workload instance.
     """
     workload_instance_name: WorkloadInstanceName
-    """The name of the workload instance from which no more logs will be sent."""
+    """
+    The name of the workload instance from which no more logs will be sent.
+    """
 
     def __str__(self) -> str:
         """
