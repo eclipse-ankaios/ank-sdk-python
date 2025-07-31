@@ -71,8 +71,13 @@ Usage
         request_id = request.get_id()
 """
 
-__all__ = ["Request", "GetStateRequest", "UpdateStateRequest",
-           "LogsRequest", "LogsCancelRequest"]
+__all__ = [
+    "Request",
+    "GetStateRequest",
+    "UpdateStateRequest",
+    "LogsRequest",
+    "LogsCancelRequest",
+]
 
 import uuid
 from typing import Union
@@ -87,6 +92,7 @@ class Request:
     """
     Represents a request to the Ankaios system.
     """
+
     def __init__(self, _id: str = None) -> None:
         """
         Initializes a Request instance.
@@ -147,6 +153,7 @@ class GetStateRequest(Request):
     This request includes an optional list of masks to specify which
     fields should be included in the response.
     """
+
     def __init__(self, masks: list = []) -> None:
         """
         Initializes a GetStateRequest instance.
@@ -157,8 +164,10 @@ class GetStateRequest(Request):
         super().__init__()
         self._request.completeStateRequest.fieldMask[:] = masks
 
-        self.logger.debug("Created request of type GetState with id %s",
-                          self._request.requestId)
+        self.logger.debug(
+            "Created request of type GetState with id %s",
+            self._request.requestId,
+        )
 
 
 # pylint: disable=too-few-public-methods, dangerous-default-value
@@ -168,9 +177,10 @@ class UpdateStateRequest(Request):
     This request includes the new state and an optional list of masks
     to specify which fields should be updated.
     """
+
     def __init__(
-            self, complete_state: CompleteState, masks: list = []
-            ) -> None:
+        self, complete_state: CompleteState, masks: list = []
+    ) -> None:
         """
         Initializes an UpdateStateRequest instance.
 
@@ -184,8 +194,10 @@ class UpdateStateRequest(Request):
             complete_state._to_proto()
         )
 
-        self.logger.debug("Created request of type UpdateState with id %s",
-                          self._request.requestId)
+        self.logger.debug(
+            "Created request of type UpdateState with id %s",
+            self._request.requestId,
+        )
 
 
 # pylint: disable=too-few-public-methods, dangerous-default-value
@@ -193,14 +205,17 @@ class LogsRequest(Request):
     """
     Represents a request for getting logs from the Ankaios system.
     """
+
     # pylint: disable=too-many-arguments
     def __init__(
-            self, workload_names: list[WorkloadInstanceName], *,
-            follow: bool = False,
-            tail: int = -1,
-            since: Union[str, datetime] = "",
-            until: Union[str, datetime] = "",
-            ) -> None:
+        self,
+        workload_names: list[WorkloadInstanceName],
+        *,
+        follow: bool = False,
+        tail: int = -1,
+        since: Union[str, datetime] = "",
+        until: Union[str, datetime] = "",
+    ) -> None:
         """
         Initializes an LogsRequest instance.
 
@@ -222,11 +237,13 @@ class LogsRequest(Request):
             raise ValueError("At least one workload name must be provided.")
 
         super().__init__()
-        self._request.logsRequest.CopyFrom(_ank_base.LogsRequest(
-            workloadNames=[name._to_proto() for name in workload_names],
-            follow=follow,
-            tail=tail
-        ))
+        self._request.logsRequest.CopyFrom(
+            _ank_base.LogsRequest(
+                workloadNames=[name._to_proto() for name in workload_names],
+                follow=follow,
+                tail=tail,
+            )
+        )
         if since:
             if isinstance(since, str):
                 self._request.logsRequest.since = since
@@ -238,8 +255,10 @@ class LogsRequest(Request):
             else:
                 self._request.logsRequest.until = until.isoformat()
 
-        self.logger.debug("Created request of type LogsRequest with id %s",
-                          self._request.requestId)
+        self.logger.debug(
+            "Created request of type LogsRequest with id %s",
+            self._request.requestId,
+        )
 
 
 # pylint: disable=too-few-public-methods, dangerous-default-value
@@ -248,6 +267,7 @@ class LogsCancelRequest(Request):
     Represents a request for stopping the real-time log stream
     from the Ankaios system.
     """
+
     def __init__(self, request_id: str) -> None:
         """
         Initializes an LogsCancelRequest instance.
@@ -260,4 +280,5 @@ class LogsCancelRequest(Request):
 
         self.logger.debug(
             "Created request of type LogsCancelRequest with id %s",
-            self._request.requestId)
+            self._request.requestId,
+        )

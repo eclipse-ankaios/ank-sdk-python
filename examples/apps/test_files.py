@@ -1,5 +1,12 @@
 import time
-from ankaios_sdk import Ankaios, File, Workload, AnkaiosException, DataFileContent, BinaryFileContent
+from ankaios_sdk import (
+    Ankaios,
+    File,
+    Workload,
+    AnkaiosException,
+    DataFileContent,
+    BinaryFileContent,
+)
 
 
 # Create a new Ankaios object.
@@ -13,16 +20,20 @@ with Ankaios() as ank:
         .runtime("podman")
         .restart_policy("NEVER")
         .runtime_config(
-            "image: docker.io/library/nginx:latest\ncommandOptions: [\"-p\", \"8081:80\"]"
+            'image: docker.io/library/nginx:latest\ncommandOptions: ["-p", "8081:80"]'
         )
-        .add_file(File.from_data(
-            "/usr/share/nginx/html/index.html",
-            "<html><body><h1>Hello from Ankaios with text file!</h1></body></html>"
-        ))
-        .add_file(File.from_data(
-            "/etc/nginx/conf.d/custom.conf",
-            "server {\n    listen 80;\n    server_name localhost;\n    location / {\n        root /usr/share/nginx/html;\n        index index.html;\n    }\n}"
-        ))
+        .add_file(
+            File.from_data(
+                "/usr/share/nginx/html/index.html",
+                "<html><body><h1>Hello from Ankaios with text file!</h1></body></html>",
+            )
+        )
+        .add_file(
+            File.from_data(
+                "/etc/nginx/conf.d/custom.conf",
+                "server {\n    listen 80;\n    server_name localhost;\n    location / {\n        root /usr/share/nginx/html;\n        index index.html;\n    }\n}",
+            )
+        )
         .build()
     )
     # Create a workload with binary file (base64 encoded)
@@ -33,12 +44,14 @@ with Ankaios() as ank:
         .runtime("podman")
         .restart_policy("NEVER")
         .runtime_config(
-            "image: docker.io/library/nginx:latest\ncommandOptions: [\"-p\", \"8082:80\"]"
+            'image: docker.io/library/nginx:latest\ncommandOptions: ["-p", "8082:80"]'
         )
-        .add_file(File.from_binary_data(
-            "/usr/share/nginx/html/favicon.ico",
-            "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAABILAAASCwAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A"
-        ))
+        .add_file(
+            File.from_binary_data(
+                "/usr/share/nginx/html/favicon.ico",
+                "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAABILAAASCwAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A",
+            )
+        )
         .build()
     )
     print("Testing workload files functionality...")
@@ -62,15 +75,17 @@ with Ankaios() as ank:
             .runtime("podman")
             .restart_policy("NEVER")
             .runtime_config(
-                "image: docker.io/library/nginx:latest\ncommandOptions: [\"-p\", \"8083:80\"]"
+                'image: docker.io/library/nginx:latest\ncommandOptions: ["-p", "8083:80"]'
             )
             .build()
         )
         # Add initial file
-        dynamic_workload.add_file(File.from_data(
-            "/usr/share/nginx/html/index.html",
-            "<html><body><h1>Initial content</h1></body></html>"
-        ))
+        dynamic_workload.add_file(
+            File.from_data(
+                "/usr/share/nginx/html/index.html",
+                "<html><body><h1>Initial content</h1></body></html>",
+            )
+        )
         ank.apply_workload(dynamic_workload)
         time.sleep(5)
         # Update the workload with additional files
@@ -78,12 +93,12 @@ with Ankaios() as ank:
         files = [
             File.from_data(
                 "/usr/share/nginx/html/about.html",
-                "<html><body><h1>About page</h1><p>This is a dynamically added file!</p></body></html>"
+                "<html><body><h1>About page</h1><p>This is a dynamically added file!</p></body></html>",
             ),
             File.from_data(
                 "/usr/share/nginx/html/config.json",
-                '{"version": "1.0", "environment": "test", "features": ["files", "dynamic_updates"]}'
-            )
+                '{"version": "1.0", "environment": "test", "features": ["files", "dynamic_updates"]}',
+            ),
         ]
         dynamic_workload.update_files(files)
         ank.apply_workload(dynamic_workload)
@@ -91,7 +106,9 @@ with Ankaios() as ank:
         # Test retrieving and displaying file information
         print("Retrieving file information from workloads...")
         try:
-            complete_state = ank.get_state(field_masks=["desiredState.workloads"])
+            complete_state = ank.get_state(
+                field_masks=["desiredState.workloads"]
+            )
             workloads = complete_state.get_workloads()
             for workload in workloads:
                 print(

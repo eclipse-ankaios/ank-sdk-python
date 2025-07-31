@@ -35,16 +35,15 @@ def generate_test_log_entry(name="nginx") -> _ank_base.LogEntry:
     """
     return _ank_base.LogEntry(
         workloadName=_ank_base.WorkloadInstanceName(
-            workloadName=name,
-            agentName="agent_A",
-            id="1234"
+            workloadName=name, agentName="agent_A", id="1234"
         ),
-        message="Test log message"
+        message="Test log message",
     )
 
 
 def generate_test_logs_stop_reponse(
-        name="nginx") -> _ank_base.LogsStopResponse:
+    name="nginx",
+) -> _ank_base.LogsStopResponse:
     """
     Helper function to generate a LogsStopResponse proto.
 
@@ -53,9 +52,7 @@ def generate_test_logs_stop_reponse(
     """
     return _ank_base.LogsStopResponse(
         workloadName=_ank_base.WorkloadInstanceName(
-            workloadName=name,
-            agentName="agent_A",
-            id="1234"
+            workloadName=name, agentName="agent_A", id="1234"
         )
     )
 
@@ -64,9 +61,7 @@ def test_log_entries():
     """
     Test the Log entries Response class.
     """
-    log_entry = LogEntry.from_entries(
-        generate_test_log_entry()
-    )
+    log_entry = LogEntry.from_entries(generate_test_log_entry())
     assert log_entry is not None
     assert str(log_entry) == "Log from nginx.1234.agent_A: Test log message"
 
@@ -79,5 +74,7 @@ def test_log_stop_response():
         generate_test_logs_stop_reponse()
     )
     assert log_stop_response is not None
-    assert str(log_stop_response) == \
-        "Stopped receiving logs from nginx.1234.agent_A."
+    assert (
+        str(log_stop_response)
+        == "Stopped receiving logs from nginx.1234.agent_A."
+    )

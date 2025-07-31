@@ -21,4 +21,4 @@ from .ankaios import *
 from ._components import *
 from .utils import AnkaiosLogLevel
 
-__all__ = [name for name in globals() if not name.startswith('_')]
+__all__ = [name for name in globals() if not name.startswith("_")]

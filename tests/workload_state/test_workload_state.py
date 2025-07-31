@@ -31,8 +31,8 @@ def generate_test_workload_state():
         workload_id="1234",
         state=_ank_base.ExecutionState(
             additionalInfo="Dummy information",
-            pending=_ank_base.PENDING_WAITING_TO_START
-        )
+            pending=_ank_base.PENDING_WAITING_TO_START,
+        ),
     )
 
 
@@ -44,12 +44,16 @@ def test_creation():
     assert workload_state is not None
     assert workload_state.execution_state is not None
     assert workload_state.execution_state.state == WorkloadStateEnum.PENDING
-    assert workload_state.execution_state.substate == \
-        WorkloadSubStateEnum.PENDING_WAITING_TO_START
-    assert workload_state.execution_state.additional_info == \
-        "Dummy information"
+    assert (
+        workload_state.execution_state.substate
+        == WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    )
+    assert (
+        workload_state.execution_state.additional_info == "Dummy information"
+    )
     assert workload_state.workload_instance_name is not None
     assert workload_state.workload_instance_name.agent_name == "agent_Test"
-    assert workload_state.workload_instance_name.workload_name == \
-        "workload_Test"
+    assert (
+        workload_state.workload_instance_name.workload_name == "workload_Test"
+    )
     assert workload_state.workload_instance_name.workload_id == "1234"

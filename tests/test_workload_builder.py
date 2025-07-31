@@ -22,8 +22,12 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import (Workload, WorkloadBuilder,
-                         WorkloadBuilderException, File)
+from ankaios_sdk import (
+    Workload,
+    WorkloadBuilder,
+    WorkloadBuilderException,
+    File,
+)
 from ankaios_sdk._components.file import DataFileContent, BinaryFileContent
 from ankaios_sdk._protos import _ank_base
 
@@ -40,8 +44,8 @@ def builder():
 
 
 def test_workload_fields(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test setting various fields of the WorkloadBuilder instance.
 
@@ -58,9 +62,10 @@ def test_workload_fields(
     assert builder.wl_runtime_config == "config_test"
 
     with patch("builtins.open", mock_open(read_data="config_test_from_file")):
-        assert builder.runtime_config_from_file(
-            "config_test_from_file"
-            ) == builder
+        assert (
+            builder.runtime_config_from_file("config_test_from_file")
+            == builder
+        )
         assert builder.wl_runtime_config == "config_test_from_file"
 
     assert builder.restart_policy("NEVER") == builder
@@ -68,8 +73,8 @@ def test_workload_fields(
 
 
 def test_add_dependency(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding dependencies to the WorkloadBuilder instance.
 
@@ -78,21 +83,24 @@ def test_add_dependency(
     """
     assert len(builder.dependencies) == 0
 
-    assert builder.add_dependency(
-        "workload_test", "ADD_COND_RUNNING"
-        ) == builder
+    assert (
+        builder.add_dependency("workload_test", "ADD_COND_RUNNING") == builder
+    )
     assert builder.dependencies == {"workload_test": "ADD_COND_RUNNING"}
 
-    assert builder.add_dependency(
-        "workload_test_other", "ADD_COND_RUNNING"
-        ) == builder
-    assert builder.dependencies == {"workload_test": "ADD_COND_RUNNING",
-                                    "workload_test_other": "ADD_COND_RUNNING"}
+    assert (
+        builder.add_dependency("workload_test_other", "ADD_COND_RUNNING")
+        == builder
+    )
+    assert builder.dependencies == {
+        "workload_test": "ADD_COND_RUNNING",
+        "workload_test_other": "ADD_COND_RUNNING",
+    }
 
 
 def test_add_tag(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding tags to the WorkloadBuilder instance.
 
@@ -109,8 +117,8 @@ def test_add_tag(
 
 
 def test_add_state_rule(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding state rules to the WorkloadBuilder instance.
 
@@ -121,30 +129,26 @@ def test_add_state_rule(
 
     assert builder.add_allow_state_rule("Write", ["mask"]) == builder
     assert len(builder.allow_rules) == 1
-    assert builder.allow_rules[0]._to_proto() == \
-        _ank_base.AccessRightsRule(
-            stateRule=_ank_base.StateRule(
-                operation=_ank_base.ReadWriteEnum.RW_WRITE,
-                filterMasks=["mask"]
-            )
+    assert builder.allow_rules[0]._to_proto() == _ank_base.AccessRightsRule(
+        stateRule=_ank_base.StateRule(
+            operation=_ank_base.ReadWriteEnum.RW_WRITE, filterMasks=["mask"]
         )
+    )
 
     assert len(builder.deny_rules) == 0
 
     assert builder.add_deny_state_rule("Read", ["mask"]) == builder
     assert len(builder.deny_rules) == 1
-    assert builder.deny_rules[0]._to_proto() == \
-        _ank_base.AccessRightsRule(
-            stateRule=_ank_base.StateRule(
-                operation=_ank_base.ReadWriteEnum.RW_READ,
-                filterMasks=["mask"]
-            )
+    assert builder.deny_rules[0]._to_proto() == _ank_base.AccessRightsRule(
+        stateRule=_ank_base.StateRule(
+            operation=_ank_base.ReadWriteEnum.RW_READ, filterMasks=["mask"]
         )
+    )
 
 
 def test_add_log_rule(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding log rules to the WorkloadBuilder instance.
 
@@ -153,30 +157,24 @@ def test_add_log_rule(
     """
     assert len(builder.allow_rules) == 0
 
-    assert builder.add_allow_log_rule(['nginx', 'nginx2']) == builder
+    assert builder.add_allow_log_rule(["nginx", "nginx2"]) == builder
     assert len(builder.allow_rules) == 1
-    assert builder.allow_rules[0]._to_proto() == \
-        _ank_base.AccessRightsRule(
-            logRule=_ank_base.LogRule(
-                workloadNames=["nginx", "nginx2"]
-            )
-        )
+    assert builder.allow_rules[0]._to_proto() == _ank_base.AccessRightsRule(
+        logRule=_ank_base.LogRule(workloadNames=["nginx", "nginx2"])
+    )
 
     assert len(builder.deny_rules) == 0
 
-    assert builder.add_deny_log_rule(['nginx', 'nginx2']) == builder
+    assert builder.add_deny_log_rule(["nginx", "nginx2"]) == builder
     assert len(builder.deny_rules) == 1
-    assert builder.deny_rules[0]._to_proto() == \
-        _ank_base.AccessRightsRule(
-            logRule=_ank_base.LogRule(
-                workloadNames=["nginx", "nginx2"]
-            )
-        )
+    assert builder.deny_rules[0]._to_proto() == _ank_base.AccessRightsRule(
+        logRule=_ank_base.LogRule(workloadNames=["nginx", "nginx2"])
+    )
 
 
 def test_add_config(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding configurations to the WorkloadBuilder instance.
 
@@ -190,8 +188,8 @@ def test_add_config(
 
 
 def test_add_file(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test adding files to the WorkloadBuilder instance.
 
@@ -200,23 +198,31 @@ def test_add_file(
     """
     assert len(builder.files) == 0
 
-    assert builder.add_file(File.from_data(
-        "file_mount_point", data="file_content")
-    ) == builder
-    assert builder.add_file(File.from_binary_data(
-        "file_mount_point", binary_data="ialsdfvJKGU65e")
-    ) == builder
+    assert (
+        builder.add_file(
+            File.from_data("file_mount_point", data="file_content")
+        )
+        == builder
+    )
+    assert (
+        builder.add_file(
+            File.from_binary_data(
+                "file_mount_point", binary_data="ialsdfvJKGU65e"
+            )
+        )
+        == builder
+    )
     assert builder.files[0].mount_point == "file_mount_point"
-    assert builder.files[0].content == \
-        DataFileContent(value="file_content")
+    assert builder.files[0].content == DataFileContent(value="file_content")
     assert builder.files[1].mount_point == "file_mount_point"
-    assert builder.files[1].content == \
-        BinaryFileContent(value="ialsdfvJKGU65e")
+    assert builder.files[1].content == BinaryFileContent(
+        value="ialsdfvJKGU65e"
+    )
 
 
 def test_build(
-        builder: WorkloadBuilder
-        ):  # pylint: disable=redefined-outer-name
+    builder: WorkloadBuilder,
+):  # pylint: disable=redefined-outer-name
     """
     Test building a Workload instance from the WorkloadBuilder instance.
 
@@ -224,38 +230,40 @@ def test_build(
         builder (WorkloadBuilder): The WorkloadBuilder fixture.
     """
     with pytest.raises(
-            WorkloadBuilderException,
-            match="Workload can not be built without a name."
-            ):
+        WorkloadBuilderException,
+        match="Workload can not be built without a name.",
+    ):
         builder.build()
     builder = builder.workload_name("workload_test")
 
     with pytest.raises(
-            WorkloadBuilderException,
-            match="Workload can not be built without an agent name."
-            ):
+        WorkloadBuilderException,
+        match="Workload can not be built without an agent name.",
+    ):
         builder.build()
     builder = builder.agent_name("agent_Test")
 
     with pytest.raises(
-            WorkloadBuilderException,
-            match="Workload can not be built without a runtime."
-            ):
+        WorkloadBuilderException,
+        match="Workload can not be built without a runtime.",
+    ):
         builder.build()
     builder = builder.runtime("runtime_test")
 
     with pytest.raises(
-            WorkloadBuilderException,
-            match="Workload can not be built without a runtime configuration."
-            ):
+        WorkloadBuilderException,
+        match="Workload can not be built without a runtime configuration.",
+    ):
         builder.build()
 
-    workload = builder.runtime_config("config_test") \
-        .restart_policy("NEVER") \
-        .add_dependency("workload_test_other", "ADD_COND_RUNNING") \
-        .add_tag("key_test", "abc") \
-        .add_allow_state_rule("Write", ["mask"]) \
+    workload = (
+        builder.runtime_config("config_test")
+        .restart_policy("NEVER")
+        .add_dependency("workload_test_other", "ADD_COND_RUNNING")
+        .add_tag("key_test", "abc")
+        .add_allow_state_rule("Write", ["mask"])
         .build()
+    )
 
     assert workload is not None
     assert isinstance(workload, Workload)
@@ -266,16 +274,18 @@ def test_build(
     assert workload._workload.runtimeConfig == "config_test"
     assert workload._workload.restartPolicy == _ank_base.RestartPolicy.NEVER
     assert workload._workload.dependencies == _ank_base.Dependencies(
-        dependencies={"workload_test_other":
-                      _ank_base.AddCondition.ADD_COND_RUNNING}
-        )
+        dependencies={
+            "workload_test_other": _ank_base.AddCondition.ADD_COND_RUNNING
+        }
+    )
     assert workload._workload.tags == _ank_base.Tags(
         tags=[_ank_base.Tag(key="key_test", value="abc")]
-        )
+    )
     assert workload._workload.controlInterfaceAccess.allowRules == [
         _ank_base.AccessRightsRule(
             stateRule=_ank_base.StateRule(
                 operation=_ank_base.ReadWriteEnum.RW_WRITE,
-                filterMasks=["mask"]
+                filterMasks=["mask"],
             )
-        )]
+        )
+    ]

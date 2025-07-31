@@ -91,6 +91,7 @@ class Workload:
     Attributes:
         name (str): The workload name.
     """
+
     def __init__(self, name: str) -> None:
         """
         Initialize a Workload object.
@@ -116,7 +117,7 @@ class Workload:
         return str(self._to_proto())
 
     @staticmethod
-    def builder() -> 'WorkloadBuilder':
+    def builder() -> "WorkloadBuilder":
         """
         Return a WorkloadBuilder object.
 
@@ -125,6 +126,7 @@ class Workload:
         """
         # pylint: disable=import-outside-toplevel
         from .workload_builder import WorkloadBuilder
+
         return WorkloadBuilder()
 
     def update_workload_name(self, name: str) -> None:
@@ -189,8 +191,7 @@ class Workload:
             WorkloadFieldException: If an invalid restart policy is provided.
         """
         if policy not in _ank_base.RestartPolicy.keys():
-            logger.error(
-                "Invalid restart policy provided.")
+            logger.error("Invalid restart policy provided.")
             raise WorkloadFieldException(
                 "restart policy", policy, _ank_base.RestartPolicy.keys()
             )
@@ -226,14 +227,15 @@ class Workload:
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
             if condition not in _ank_base.AddCondition.keys():
-                logger.error(
-                    "Invalid dependency condition provided.")
+                logger.error("Invalid dependency condition provided.")
                 raise WorkloadFieldException(
-                    "dependency condition", condition,
-                    _ank_base.AddCondition.keys()
+                    "dependency condition",
+                    condition,
+                    _ank_base.AddCondition.keys(),
                 )
-            self._workload.dependencies.dependencies[workload_name] = \
+            self._workload.dependencies.dependencies[workload_name] = (
                 _ank_base.AddCondition.Value(condition)
+            )
         self._add_mask(f"{self._main_mask}.dependencies")
 
     def add_tag(self, key: str, value: str) -> None:
@@ -272,12 +274,14 @@ class Workload:
         for key, value in tags:
             tag = _ank_base.Tag(key=key, value=value)
             self._workload.tags.tags.append(tag)
-        self.masks = [mask for mask in self.masks if not mask.startswith(
-            f"{self._main_mask}.tags"
-            )]
+        self.masks = [
+            mask
+            for mask in self.masks
+            if not mask.startswith(f"{self._main_mask}.tags")
+        ]
         self._add_mask(f"{self._main_mask}.tags")
 
-    def get_allow_rules(self) -> list['AccessRightRule']:
+    def get_allow_rules(self) -> list["AccessRightRule"]:
         """
         Return the allow rules of the workload.
 
@@ -289,7 +293,7 @@ class Workload:
             rules.append(AccessRightRule(rule))
         return rules
 
-    def update_allow_rules(self, rules: list['AccessRightRule']) -> None:
+    def update_allow_rules(self, rules: list["AccessRightRule"]) -> None:
         """
         Update the allow rules of the workload.
 
@@ -303,7 +307,7 @@ class Workload:
             )
         self._add_mask(f"{self._main_mask}.controlInterfaceAccess.allowRules")
 
-    def get_deny_rules(self) -> list['AccessRightRule']:
+    def get_deny_rules(self) -> list["AccessRightRule"]:
         """
         Return the deny rules of the workload.
 
@@ -315,7 +319,7 @@ class Workload:
             rules.append(AccessRightRule(rule))
         return rules
 
-    def update_deny_rules(self, rules: list['AccessRightRule']) -> None:
+    def update_deny_rules(self, rules: list["AccessRightRule"]) -> None:
         """
         Update the deny rules of the workload.
 
@@ -425,10 +429,13 @@ class Workload:
         )
         workload_dict["dependencies"] = {}
         if self._workload.dependencies:
-            for dep_key, dep_value in \
-                    self._workload.dependencies.dependencies.items():
-                workload_dict["dependencies"][dep_key] = \
+            for (
+                dep_key,
+                dep_value,
+            ) in self._workload.dependencies.dependencies.items():
+                workload_dict["dependencies"][dep_key] = (
                     _ank_base.AddCondition.Name(dep_value)
+                )
         workload_dict["tags"] = []
         if self._workload.tags:
             for tag in self._workload.tags.tags:
@@ -487,18 +494,16 @@ class Workload:
                 workload = workload.add_tag(tag["key"], tag["value"])
         if "controlInterfaceAccess" in dict_workload:
             if "allowRules" in dict_workload["controlInterfaceAccess"]:
-                for rule in dict_workload[
-                        "controlInterfaceAccess"][
-                        "allowRules"
-                        ]:
+                for rule in dict_workload["controlInterfaceAccess"][
+                    "allowRules"
+                ]:
                     workload = workload.add_allow_state_rule(
                         rule["operation"], rule["filterMask"]
                     )
             if "denyRules" in dict_workload["controlInterfaceAccess"]:
-                for rule in dict_workload[
-                        "controlInterfaceAccess"][
-                        "denyRules"
-                        ]:
+                for rule in dict_workload["controlInterfaceAccess"][
+                    "denyRules"
+                ]:
                     workload = workload.add_deny_state_rule(
                         rule["operation"], rule["filterMask"]
                     )
@@ -537,6 +542,7 @@ class AccessRightRule:
     Represents an access right rule for a workload. It can be either a
     state rule or a log rule.
     """
+
     def __init__(self, rule: _ank_base.AccessRightsRule) -> None:
         """
         Initializes the AccessRightRule. For initialization, use
@@ -580,8 +586,8 @@ class AccessRightRule:
 
     @staticmethod
     def state_rule(
-            operation: str, filter_masks: list[str]
-            ) -> 'AccessRightRule':
+        operation: str, filter_masks: list[str]
+    ) -> "AccessRightRule":
         """
         Create an access state rule for a workload.
         Supported operations: `Nothing`, `Write`, `Read`, `ReadWrite`.
@@ -605,9 +611,7 @@ class AccessRightRule:
         )
 
     @staticmethod
-    def log_rule(
-            workload_names: list[str]
-            ) -> 'AccessRightRule':
+    def log_rule(workload_names: list[str]) -> "AccessRightRule":
         """
         Create an access log rule for a workload.
 
@@ -619,9 +623,7 @@ class AccessRightRule:
         """
         return AccessRightRule(
             _ank_base.AccessRightsRule(
-                logRule=_ank_base.LogRule(
-                    workloadNames=workload_names
-                )
+                logRule=_ank_base.LogRule(workloadNames=workload_names)
             )
         )
 
@@ -649,23 +651,21 @@ class AccessRightRule:
             return {
                 "type": "StateRule",
                 "operation": operation,
-                "filterMask": [str(mask) for mask in filter_masks]
+                "filterMask": [str(mask) for mask in filter_masks],
             }
         if self.type == "LogRule":
             return {
                 "type": "LogRule",
                 "workloadNames": [
                     str(name) for name in self._rule.logRule.workloadNames
-                    ]
+                ],
             }
-        return {
-            "type": "Unknown"
-        }
+        return {"type": "Unknown"}
 
     @staticmethod
-    def _generate_state_rule(operation: str,
-                             filter_masks: list[str]
-                             ) -> _ank_base.StateRule:
+    def _generate_state_rule(
+        operation: str, filter_masks: list[str]
+    ) -> _ank_base.StateRule:
         """
         Generate an access rights rule for the workload.
 
@@ -686,19 +686,16 @@ class AccessRightRule:
             "ReadWrite": _ank_base.ReadWriteEnum.RW_READ_WRITE,
         }
         if operation not in enum_mapper:
-            logger.error(
-                "Invalid state rule operation provided.")
+            logger.error("Invalid state rule operation provided.")
             raise WorkloadFieldException(
                 "state rule operation", operation, enum_mapper.keys()
             )
         return _ank_base.StateRule(
-            operation=enum_mapper[operation],
-            filterMasks=filter_masks
+            operation=enum_mapper[operation], filterMasks=filter_masks
         )
 
     @staticmethod
-    def _state_rule_to_str(rule: _ank_base.StateRule
-                           ) -> tuple[str, list[str]]:
+    def _state_rule_to_str(rule: _ank_base.StateRule) -> tuple[str, list[str]]:
         """
         Convert an access rights rule to a tuple.
 
@@ -714,7 +711,4 @@ class AccessRightRule:
             _ank_base.ReadWriteEnum.RW_READ: "Read",
             _ank_base.ReadWriteEnum.RW_READ_WRITE: "ReadWrite",
         }
-        return (
-            enum_mapper[rule.operation],
-            rule.filterMasks
-        )
+        return (enum_mapper[rule.operation], rule.filterMasks)

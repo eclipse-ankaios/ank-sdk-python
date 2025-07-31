@@ -46,4 +46,4 @@ from .log_campaign import *
 from .control_interface import *
 from .file import *
 
-__all__ = [name for name in globals() if not name.startswith('_')]
+__all__ = [name for name in globals() if not name.startswith("_")]

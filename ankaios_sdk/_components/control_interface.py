@@ -66,7 +66,8 @@ from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
 
 
 class ControlInterfaceState(Enum):
-    """ The state of the control interface. """
+    """The state of the control interface."""
+
     INITIALIZED = 1
     "(int): Connection established state."
     TERMINATED = 2
@@ -93,13 +94,13 @@ class ControlInterface:
     It provides methods to send and receive data to and from the control
     interface pipes.
     """
+
     ANKAIOS_CONTROL_INTERFACE_BASE_PATH = DEFAULT_CONTROL_INTERFACE_PATH
     "(str): The base path for the Ankaios control interface."
 
-    def __init__(self,
-                 add_response_callback: Callable,
-                 add_log_callback: Callable
-                 ) -> None:
+    def __init__(
+        self, add_response_callback: Callable, add_log_callback: Callable
+    ) -> None:
         """
         Initialize the ControlInterface object. This is used
         to interact with the control interface.
@@ -135,13 +136,15 @@ class ControlInterface:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"):
+            f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"
+        ):
             raise ControlInterfaceException(
                 "Control interface input fifo does not exist."
             )
 
         if not os.path.exists(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"):
+            f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"
+        ):
             raise ControlInterfaceException(
                 "Control interface output fifo does not exist."
             )
@@ -158,8 +161,7 @@ class ControlInterface:
             ) from e
 
         self._read_thread = threading.Thread(
-            target=self._read_from_control_interface,
-            daemon=True
+            target=self._read_from_control_interface, daemon=True
         )
         self._read_thread.start()
         self.change_state(ControlInterfaceState.INITIALIZED)
@@ -199,8 +201,8 @@ class ControlInterface:
         self._logger.debug("Cleanup happened")
 
     def change_state(
-            self, state: ControlInterfaceState, info: str = None
-            ) -> None:
+        self, state: ControlInterfaceState, info: str = None
+    ) -> None:
         """
         Change the state of the control interface.
 
@@ -218,9 +220,7 @@ class ControlInterface:
         if info is None:
             self._logger.debug("State changed to %s.", state)
         else:
-            self._logger.debug(
-                "State changed to %s: %s", state, info
-            )
+            self._logger.debug("State changed to %s: %s", state, info)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -275,11 +275,10 @@ class ControlInterface:
                         break
 
                 if not varint_buffer:
-                    self.change_state(
-                        ControlInterfaceState.AGENT_DISCONNECTED)
+                    self.change_state(ControlInterfaceState.AGENT_DISCONNECTED)
                     self._logger.warning(
                         "Nothing to read from the input fifo pipe."
-                        )
+                    )
                     self._agent_gone_routine()
                     continue
                 # Decode the varint and receive the proto msg length
@@ -302,8 +301,9 @@ class ControlInterface:
 
                 # Filter out the logs responses
                 if response.content_type in [
-                        ResponseType.LOGS_ENTRY,
-                        ResponseType.LOGS_STOP_RESPONSE]:
+                    ResponseType.LOGS_ENTRY,
+                    ResponseType.LOGS_STOP_RESPONSE,
+                ]:
                     self._add_log_callback(
                         response.get_request_id(), response.content
                     )
@@ -317,8 +317,8 @@ class ControlInterface:
                 if response.content_type == ResponseType.CONNECTION_CLOSED:
                     self.change_state(
                         ControlInterfaceState.CONNECTION_CLOSED,
-                        response.content
-                        )
+                        response.content,
+                    )
                     raise ConnectionClosedException(response.content)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
@@ -338,9 +338,7 @@ class ControlInterface:
             try:
                 self._send_initial_hello()
             except BrokenPipeError as _:
-                self._logger.warning(
-                    "Waiting for the agent.."
-                    )
+                self._logger.warning("Waiting for the agent..")
                 time.sleep(agent_reconnect_interval)
             else:
                 self.change_state(ControlInterfaceState.INITIALIZED)
@@ -388,7 +386,8 @@ class ControlInterface:
             )
         if not self._state == ControlInterfaceState.INITIALIZED:
             raise ControlInterfaceException(
-                "Could not write to pipe, not connected.")
+                "Could not write to pipe, not connected."
+            )
 
         request_to_ankaios = _control_api.ToAnkaios(
             request=request._to_proto()
@@ -404,10 +403,9 @@ class ControlInterface:
             ControlInterfaceException: If not connected.
         """
         initial_hello = _control_api.ToAnkaios(
-            hello=_control_api.Hello(
-                protocolVersion=str(ANKAIOS_VERSION)
-            )
+            hello=_control_api.Hello(protocolVersion=str(ANKAIOS_VERSION))
         )
         self._write_to_pipe(initial_hello)
-        self._logger.debug("Sent initial hello message with the version %s",
-                           ANKAIOS_VERSION)
+        self._logger.debug(
+            "Sent initial hello message with the version %s", ANKAIOS_VERSION
+        )
