@@ -26,6 +26,13 @@ Classes
 - BinaryFileContent:
     Represents binary file content.
 
+Union Types
+-------------
+
+- FileContent:
+    Union type for file content, which can be either :py:class:`DataFileContent` or
+    :py:class:`BinaryFileContent`.
+
 Usage
 -----
 
@@ -84,16 +91,14 @@ class BinaryFileContent:
     This class is used to represent binary file content.
 
     Attributes:
-        value (str): The binary content value.
+        value (str): The binary content value as a `Base64`_ encoded string.
+
+    .. _Base64: https://datatracker.ietf.org/doc/html/rfc4648
     """
     value: str
 
 
 FileContent = Union[DataFileContent, BinaryFileContent]
-"""
-The type alias for file content,
-which can be either DataFileContent or BinaryFileContent.
-"""
 
 
 class File:

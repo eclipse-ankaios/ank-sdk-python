@@ -15,6 +15,7 @@
    ankaios
    complete_state
    workload
+   workload_builder
    workload_state
    manifest
    request

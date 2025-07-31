@@ -145,8 +145,8 @@ def test_add_logs():
     of type Logs Entries is received.
     """
     log_entries = [
-        LogEntry.from_entries(generate_test_log_entry(name="nginx_A")),
-        LogEntry.from_entries(generate_test_log_entry(name="nginx_B"))
+        LogEntry._from_entries(generate_test_log_entry(name="nginx_A")),
+        LogEntry._from_entries(generate_test_log_entry(name="nginx_B"))
     ]
     put_mock = MagicMock()
 

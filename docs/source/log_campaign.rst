@@ -16,5 +16,6 @@ LogQueue Class
 .. autoclass:: ankaios_sdk._components.log_campaign.LogQueue
     :special-members: __init__
     :members:
+    :inherited-members:
     :undoc-members:
     :show-inheritance:
