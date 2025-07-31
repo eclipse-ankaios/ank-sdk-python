@@ -70,6 +70,10 @@ This example has the Python SDK installed and allows to execute an interactive s
 
 `follow_state` executes indefinitely with a request to get the state being sent every 5 seconds.
 
+### `test_file`
+
+`test_file` exemplifies how files mounted to a workload can be manipulated.
+
 ### `get_logs`
 
 The `get_logs` example workload starts another workload that prints 5 log lines and then it requests them and prints them.

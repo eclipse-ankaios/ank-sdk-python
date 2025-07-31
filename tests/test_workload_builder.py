@@ -22,7 +22,9 @@ Fixtures:
 
 from unittest.mock import patch, mock_open
 import pytest
-from ankaios_sdk import Workload, WorkloadBuilder, WorkloadBuilderException
+from ankaios_sdk import (Workload, WorkloadBuilder,
+                         WorkloadBuilderException, File)
+from ankaios_sdk._components.file import DataFileContent, BinaryFileContent
 from ankaios_sdk._protos import _ank_base
 
 
@@ -185,6 +187,31 @@ def test_add_config(
 
     assert builder.add_config("alias_Test", "config1") == builder
     assert builder.configs == {"alias_Test": "config1"}
+
+
+def test_add_file(
+        builder: WorkloadBuilder
+        ):  # pylint: disable=redefined-outer-name
+    """
+    Test adding files to the WorkloadBuilder instance.
+
+    Args:
+        builder (WorkloadBuilder): The WorkloadBuilder fixture.
+    """
+    assert len(builder.files) == 0
+
+    assert builder.add_file(File.from_data(
+        "file_mount_point", data="file_content")
+    ) == builder
+    assert builder.add_file(File.from_binary_data(
+        "file_mount_point", binary_data="ialsdfvJKGU65e")
+    ) == builder
+    assert builder.files[0].mount_point == "file_mount_point"
+    assert builder.files[0].content == \
+        DataFileContent(value="file_content")
+    assert builder.files[1].mount_point == "file_mount_point"
+    assert builder.files[1].content == \
+        BinaryFileContent(value="ialsdfvJKGU65e")
 
 
 def test_build(

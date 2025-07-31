@@ -19,6 +19,7 @@
    manifest
    request
    response
+   file
    log_campaign
    control_interface
    utils

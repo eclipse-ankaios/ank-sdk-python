@@ -45,7 +45,7 @@ Usage
 __all__ = ["WorkloadBuilder"]
 
 
-from .workload import Workload, AccessRightRule
+from .workload import Workload, AccessRightRule, File
 from ..exceptions import WorkloadBuilderException
 
 
@@ -77,6 +77,7 @@ class WorkloadBuilder:
         self.allow_rules = []
         self.deny_rules = []
         self.configs = {}
+        self.files = []
 
     def workload_name(self, workload_name: str) -> "WorkloadBuilder":
         """
@@ -274,8 +275,24 @@ class WorkloadBuilder:
         Args:
             alias (str): The alias of the configuration.
             name (str): The name of the configuration.
+
+        Returns:
+            WorkloadBuilder: The builder object.
         """
         self.configs[alias] = name
+        return self
+
+    def add_file(self, file: File) -> "WorkloadBuilder":
+        """
+        Link a workload file to the workload.
+
+        Args:
+            file (File): The file object to mount to the workload.
+
+        Returns:
+            WorkloadBuilder: The builder object.
+        """
+        self.files.append(file)
         return self
 
     def build(self) -> Workload:
@@ -322,5 +339,7 @@ class WorkloadBuilder:
             workload.update_deny_rules(self.deny_rules)
         if len(self.configs) > 0:
             workload.update_configs(self.configs)
+        if len(self.files) > 0:
+            workload.update_files(self.files)
 
         return workload

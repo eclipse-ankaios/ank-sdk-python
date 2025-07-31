@@ -326,9 +326,9 @@ class LogEntry:
             LogsEntry: The converted LogsEntry object.
         """
         return LogEntry(WorkloadInstanceName(log.workloadName.agentName,
-                                              log.workloadName.workloadName,
-                                              log.workloadName.id),
-                         log.message)
+                                             log.workloadName.workloadName,
+                                             log.workloadName.id),
+                        log.message)
 
 
 @dataclass
