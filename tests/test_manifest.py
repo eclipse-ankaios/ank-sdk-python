@@ -38,23 +38,17 @@ configs:
         port: \"8081\""""
 
 MANIFEST_DICT = {
-    'apiVersion': 'v0.1',
-    'workloads': {
-        'nginx_test': {
-            'runtime': 'podman',
-            'restartPolicy': 'NEVER',
-            'agent': 'agent_A',
-            "configs": {
-                "ports": "test_ports"
-            },
-            'runtimeConfig': 'image: image/test\n'
+    "apiVersion": "v0.1",
+    "workloads": {
+        "nginx_test": {
+            "runtime": "podman",
+            "restartPolicy": "NEVER",
+            "agent": "agent_A",
+            "configs": {"ports": "test_ports"},
+            "runtimeConfig": "image: image/test\n",
         }
     },
-    'configs': {
-        "test_ports": {
-            "port": "8081"
-        }
-    }
+    "configs": {"test_ports": {"port": "8081"}},
 }
 MANIFEST_PROTO = _ank_base.State(
     apiVersion="v0.1",
@@ -69,7 +63,7 @@ MANIFEST_PROTO = _ank_base.State(
                     configs={
                         "ports": "test_ports",
                     }
-                )
+                ),
             )
         }
     ),
@@ -77,15 +71,11 @@ MANIFEST_PROTO = _ank_base.State(
         configs={
             "test_ports": _ank_base.ConfigItem(
                 object=_ank_base.ConfigObject(
-                    fields={
-                        "port": _ank_base.ConfigItem(
-                            String="8081"
-                        )
-                    }
+                    fields={"port": _ank_base.ConfigItem(String="8081")}
                 )
             )
         }
-    )
+    ),
 )
 
 
@@ -94,8 +84,9 @@ def test_from_file():
     Test the from_file method of the Manifest class,
     ensuring it correctly loads a manifest from a file and handles errors.
     """
-    with patch("builtins.open", mock_open(read_data=MANIFEST_CONTENT)), \
-            patch("ankaios_sdk.Manifest.from_string") as mock_from_string:
+    with patch("builtins.open", mock_open(read_data=MANIFEST_CONTENT)), patch(
+        "ankaios_sdk.Manifest.from_string"
+    ) as mock_from_string:
         _ = Manifest.from_file("manifest.yaml")
         mock_from_string.assert_called_once_with(MANIFEST_CONTENT)
 
@@ -127,17 +118,23 @@ def test_from_dict():
     desired_state = manifest._to_desired_state()
     assert desired_state == MANIFEST_PROTO
 
-    with pytest.raises(InvalidManifestException,
-                       match="apiVersion is missing."):
+    with pytest.raises(
+        InvalidManifestException, match="apiVersion is missing."
+    ):
         manifest = Manifest.from_dict({})
 
     with pytest.raises(InvalidManifestException):
-        _ = Manifest.from_dict({'apiVersion': 'v0.1', 'workloads':
-                                {'nginx_test': {}}})
+        _ = Manifest.from_dict(
+            {"apiVersion": "v0.1", "workloads": {"nginx_test": {}}}
+        )
 
     with pytest.raises(InvalidManifestException):
-        _ = Manifest.from_dict({'apiVersion': 'v0.1', 'workloads':
-                                {'nginx_test': {'invalid_key': ''}}})
+        _ = Manifest.from_dict(
+            {
+                "apiVersion": "v0.1",
+                "workloads": {"nginx_test": {"invalid_key": ""}},
+            }
+        )
 
 
 def test_calculate_masks():
@@ -147,17 +144,17 @@ def test_calculate_masks():
     """
     manifest_dict = MANIFEST_DICT.copy()
     manifest_dict["workloads"]["nginx_test_other"] = {
-            'runtime': 'podman',
-            'restartPolicy': 'NEVER',
-            'agent': 'agent_B',
-            'runtimeConfig': 'image: image/test'
-        }
+        "runtime": "podman",
+        "restartPolicy": "NEVER",
+        "agent": "agent_B",
+        "runtimeConfig": "image: image/test",
+    }
     manifest = Manifest.from_dict(manifest_dict)
     assert len(manifest._calculate_masks()) == 3
     assert manifest._calculate_masks() == [
         f"{WORKLOADS_PREFIX}.nginx_test_other",
         f"{WORKLOADS_PREFIX}.nginx_test",
-        f"{CONFIGS_PREFIX}.test_ports"
+        f"{CONFIGS_PREFIX}.test_ports",
     ]
 
 

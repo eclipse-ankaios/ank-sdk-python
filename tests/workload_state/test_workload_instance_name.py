@@ -29,26 +29,28 @@ def test_methods():
     workload_instance_name = WorkloadInstanceName(
         agent_name="agent_Test",
         workload_name="workload_Test",
-        workload_id="1234"
+        workload_id="1234",
     )
     assert workload_instance_name is not None
     assert workload_instance_name.agent_name == "agent_Test"
     assert workload_instance_name.workload_name == "workload_Test"
     assert workload_instance_name.workload_id == "1234"
     assert str(workload_instance_name) == "workload_Test.1234.agent_Test"
-    assert workload_instance_name.get_filter_mask() == \
-        "workloadStates.agent_Test.workload_Test.1234"
+    assert (
+        workload_instance_name.get_filter_mask()
+        == "workloadStates.agent_Test.workload_Test.1234"
+    )
     assert workload_instance_name.to_dict() == {
         "agent_name": "agent_Test",
         "workload_name": "workload_Test",
-        "workload_id": "1234"
+        "workload_id": "1234",
     }
-    assert workload_instance_name._to_proto() == \
-        _ank_base.WorkloadInstanceName(
-            agentName="agent_Test",
-            workloadName="workload_Test",
-            id="1234"
+    assert (
+        workload_instance_name._to_proto()
+        == _ank_base.WorkloadInstanceName(
+            agentName="agent_Test", workloadName="workload_Test", id="1234"
         )
+    )
 
 
 def test_equality():
@@ -58,12 +60,12 @@ def test_equality():
     workload_instance_name = WorkloadInstanceName(
         agent_name="agent_Test",
         workload_name="workload_Test",
-        workload_id="1234"
+        workload_id="1234",
     )
     other_workload_instance_name = WorkloadInstanceName(
         agent_name="agent_Test",
         workload_name="workload_Test",
-        workload_id="1234"
+        workload_id="1234",
     )
     assert workload_instance_name == other_workload_instance_name
     other_workload_instance_name.workload_id = "5678"

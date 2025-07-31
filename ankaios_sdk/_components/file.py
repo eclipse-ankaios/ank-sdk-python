@@ -82,6 +82,7 @@ class DataFileContent:
     Attributes:
         value (str): The text content value.
     """
+
     value: str
 
 
@@ -95,6 +96,7 @@ class BinaryFileContent:
 
     .. _Base64: https://datatracker.ietf.org/doc/html/rfc4648
     """
+
     value: str
 
 
@@ -111,6 +113,7 @@ class File:
         content (FileContent): The content of the file,
             which can be either text or binary.
     """
+
     def __init__(self, mount_point: str, content: FileContent) -> None:
         """
         Initialize a File instance.
@@ -136,7 +139,8 @@ class File:
             File: A File instance with text-based content.
         """
         return cls(
-            mount_point=mount_point, content=DataFileContent(value=data))
+            mount_point=mount_point, content=DataFileContent(value=data)
+        )
 
     @classmethod
     def from_binary_data(cls, mount_point: str, binary_data: str) -> "File":
@@ -150,8 +154,10 @@ class File:
         Returns:
             File: A File instance with binary content.
         """
-        return cls(mount_point=mount_point,
-                   content=BinaryFileContent(value=binary_data))
+        return cls(
+            mount_point=mount_point,
+            content=BinaryFileContent(value=binary_data),
+        )
 
     def __str__(self) -> str:
         """
@@ -202,18 +208,18 @@ class File:
         content = file_dict.get("content")
 
         if not content:
-            raise ValueError("Invalid file dictionary format. "
-                             "Expected 'content' key.")
+            raise ValueError(
+                "Invalid file dictionary format. Expected 'content' key."
+            )
 
         if content.get("data"):
             return File.from_data(
-                mount_point=mount_point,
-                data=file_dict["content"]["data"]
+                mount_point=mount_point, data=file_dict["content"]["data"]
             )
         if content.get("binaryData"):
             return File.from_binary_data(
                 mount_point=mount_point,
-                binary_data=file_dict["content"]["binaryData"]
+                binary_data=file_dict["content"]["binaryData"],
             )
         # Unreachable code, as the content must be either data or binaryData.
         raise ValueError(
@@ -233,19 +239,16 @@ class File:
         """
         if isinstance(self.content, DataFileContent):
             return _ank_base.File(
-                mountPoint=self.mount_point,
-                data=self.content.value
+                mountPoint=self.mount_point, data=self.content.value
             )
         if isinstance(self.content, BinaryFileContent):
             return _ank_base.File(
-                mountPoint=self.mount_point,
-                binaryData=self.content.value
+                mountPoint=self.mount_point, binaryData=self.content.value
             )
         # Unreachable code, as the content type
         # is checked in the methods above.
         raise ValueError(
-            "Unsupported file content type. "
-            "Expected Data or BinaryData."
+            "Unsupported file content type. Expected Data or BinaryData."
         )  # pragma: no cover
 
     @staticmethod
@@ -264,13 +267,12 @@ class File:
         """
         if proto_file.data:
             return File.from_data(
-                mount_point=proto_file.mountPoint,
-                data=proto_file.data
+                mount_point=proto_file.mountPoint, data=proto_file.data
             )
         if proto_file.binaryData:
             return File.from_binary_data(
                 mount_point=proto_file.mountPoint,
-                binary_data=proto_file.binaryData
+                binary_data=proto_file.binaryData,
             )
         # Unreachable code, as the protobuf
         # should always have one of these fields.

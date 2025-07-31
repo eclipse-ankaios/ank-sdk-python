@@ -19,8 +19,14 @@ This module contains unit tests for the Response class in the ankaios_sdk.
 import pytest
 from google.protobuf.internal.encoder import _VarintBytes
 from ankaios_sdk._protos import _ank_base, _control_api
-from ankaios_sdk import Response, ResponseType, CompleteState, \
-    ResponseException, LogEntry, LogsStopResponse
+from ankaios_sdk import (
+    Response,
+    ResponseType,
+    CompleteState,
+    ResponseException,
+    LogEntry,
+    LogsStopResponse,
+)
 from tests.response.test_log_response import generate_test_log_entry
 
 
@@ -29,7 +35,7 @@ MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
         requestId="1122",
         error=_ank_base.Error(
             message="Test error message",
-        )
+        ),
     )
 ).SerializeToString()
 
@@ -41,9 +47,9 @@ MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
                 apiVersion="v0.1",
                 workloads=_ank_base.WorkloadMap(
                     workloads={},
-                )
+                ),
             )
-        )
+        ),
     )
 ).SerializeToString()
 
@@ -53,7 +59,7 @@ MESSAGE_UPDATE_SUCCESS = _control_api.FromAnkaios(
         UpdateStateSuccess=_ank_base.UpdateStateSuccess(
             addedWorkloads=["new_nginx.12345.agent_A"],
             deletedWorkloads=["old_nginx.54321.agent_A"],
-        )
+        ),
     )
 )
 MESSAGE_BUFFER_UPDATE_SUCCESS = MESSAGE_UPDATE_SUCCESS.SerializeToString()
@@ -67,12 +73,10 @@ MESSAGE_BUFFER_LOGS_REQUEST_ACCEPTED = _control_api.FromAnkaios(
         logsRequestAccepted=_ank_base.LogsRequestAccepted(
             workloadNames=[
                 _ank_base.WorkloadInstanceName(
-                    workloadName="nginx",
-                    agentName="agent_A",
-                    id="1234"
+                    workloadName="nginx", agentName="agent_A", id="1234"
                 )
             ]
-        )
+        ),
     )
 ).SerializeToString()
 
@@ -80,14 +84,13 @@ MESSAGE_LOGS_ENTRIES_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
         logEntriesResponse=_ank_base.LogEntriesResponse(
-            logEntries=[
-                generate_test_log_entry()
-            ]
-        )
+            logEntries=[generate_test_log_entry()]
+        ),
     )
 )
-MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE = \
+MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE = (
     MESSAGE_LOGS_ENTRIES_RESPONSE.SerializeToString()
+)
 MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE_LENGTH = _VarintBytes(
     MESSAGE_LOGS_ENTRIES_RESPONSE.ByteSize()
 )
@@ -97,21 +100,19 @@ MESSAGE_LOGS_STOP_RESPONSE = _control_api.FromAnkaios(
         requestId="4455",
         logsStopResponse=_ank_base.LogsStopResponse(
             workloadName=_ank_base.WorkloadInstanceName(
-                workloadName="nginx",
-                agentName="agent_A",
-                id="1234"
+                workloadName="nginx", agentName="agent_A", id="1234"
             )
-        )
+        ),
     )
 )
-MESSAGE_BUFFER_LOGS_STOP_RESPONSE = \
+MESSAGE_BUFFER_LOGS_STOP_RESPONSE = (
     MESSAGE_LOGS_STOP_RESPONSE.SerializeToString()
+)
 
 
 MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED = _control_api.FromAnkaios(
     response=_ank_base.Response(
-        requestId="4455",
-        logsCancelAccepted=_ank_base.LogsCancelAccepted()
+        requestId="4455", logsCancelAccepted=_ank_base.LogsCancelAccepted()
     )
 ).SerializeToString()
 
@@ -126,8 +127,9 @@ MESSAGE_CONNECTION_CLOSED = _control_api.FromAnkaios(
         reason="Connection closed reason",
     )
 )
-MESSAGE_BUFFER_CONNECTION_CLOSED = \
+MESSAGE_BUFFER_CONNECTION_CLOSED = (
     MESSAGE_CONNECTION_CLOSED.SerializeToString()
+)
 MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH = _VarintBytes(
     MESSAGE_CONNECTION_CLOSED.ByteSize()
 )

@@ -17,9 +17,14 @@ This module contains unit tests for the WorkloadStateCollection
 class in the ankaios_sdk.
 """
 
-from ankaios_sdk import WorkloadStateCollection, WorkloadState, \
-    WorkloadExecutionState, WorkloadInstanceName, WorkloadStateEnum, \
-    WorkloadSubStateEnum
+from ankaios_sdk import (
+    WorkloadStateCollection,
+    WorkloadState,
+    WorkloadExecutionState,
+    WorkloadInstanceName,
+    WorkloadStateEnum,
+    WorkloadSubStateEnum,
+)
 from ankaios_sdk._protos import _ank_base
 
 
@@ -54,9 +59,9 @@ WORKLOAD_STATES_PROTO = _ank_base.WorkloadStatesMap(
                             stopping=_ank_base.STOPPING_WAITING_TO_STOP,
                         )
                     }
-                )
+                ),
             }
-        )
+        ),
     }
 )
 
@@ -73,21 +78,22 @@ def test_get():
 
     execution_state = _ank_base.ExecutionState(
         additionalInfo="Dummy information",
-        pending=_ank_base.PENDING_WAITING_TO_START
+        pending=_ank_base.PENDING_WAITING_TO_START,
     )
 
     workload_state = WorkloadState(
         agent_name="agent_Test",
         workload_name="workload_Test",
         workload_id="1234",
-        state=execution_state
+        state=execution_state,
     )
 
     # Test get_as_list
     workload_state_collection.add_workload_state(workload_state)
     assert len(workload_state_collection._workload_states) == 1
-    assert str(workload_state_collection.get_as_list()[0]) == \
-        str(workload_state)
+    assert str(workload_state_collection.get_as_list()[0]) == str(
+        workload_state
+    )
 
     # Test get_as_dict
     workload_states_dict = workload_state_collection.get_as_dict()
@@ -99,22 +105,24 @@ def test_get():
     assert "1234" in workload_states_dict["agent_Test"]["workload_Test"].keys()
     assert isinstance(
         workload_states_dict["agent_Test"]["workload_Test"]["1234"],
-        WorkloadExecutionState
+        WorkloadExecutionState,
     )
 
     # Test get_for_instance_name
     workload_instance_name = WorkloadInstanceName(
         agent_name="agent_Test",
         workload_name="workload_Test",
-        workload_id="1234"
+        workload_id="1234",
     )
     ret = workload_state_collection.get_for_instance_name(
-        workload_instance_name)
+        workload_instance_name
+    )
     assert str(ret) == str(workload_state)
     workload_instance_name.workload_id = "5678"
-    assert workload_state_collection.get_for_instance_name(
-        workload_instance_name
-    ) is None
+    assert (
+        workload_state_collection.get_for_instance_name(workload_instance_name)
+        is None
+    )
 
 
 def test_from_proto():
@@ -128,15 +136,14 @@ def test_from_proto():
     workload_states = workload_state_collection.get_as_list()
     assert len(workload_states) == 3
 
-    assert workload_states[0].workload_instance_name.agent_name == \
-        "agent_B"
-    assert workload_states[0].workload_instance_name.workload_name == \
-        "nginx"
-    assert workload_states[0].workload_instance_name.workload_id == \
-        "5678"
-    assert workload_states[0].execution_state.state == \
-        WorkloadStateEnum.PENDING
-    assert workload_states[0].execution_state.substate == \
-        WorkloadSubStateEnum.PENDING_WAITING_TO_START
-    assert workload_states[0].execution_state.additional_info == \
-        "Random info"
+    assert workload_states[0].workload_instance_name.agent_name == "agent_B"
+    assert workload_states[0].workload_instance_name.workload_name == "nginx"
+    assert workload_states[0].workload_instance_name.workload_id == "5678"
+    assert (
+        workload_states[0].execution_state.state == WorkloadStateEnum.PENDING
+    )
+    assert (
+        workload_states[0].execution_state.substate
+        == WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    )
+    assert workload_states[0].execution_state.additional_info == "Random info"

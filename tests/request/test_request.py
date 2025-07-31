@@ -17,8 +17,12 @@ This module contains unit tests for the Request class in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk import Request, GetStateRequest, \
-    UpdateStateRequest, CompleteState
+from ankaios_sdk import (
+    Request,
+    GetStateRequest,
+    UpdateStateRequest,
+    CompleteState,
+)
 from tests.workload.test_workload import generate_test_workload
 
 
@@ -30,8 +34,8 @@ def generate_test_request(request_type: str = "update_state") -> Request:
         Request: A Request instance.
     """
     with pytest.raises(
-            TypeError, match="Request cannot be instantiated directly."
-            ):
+        TypeError, match="Request cannot be instantiated directly."
+    ):
         _ = Request()
     if request_type == "update_state":
         complete_state = CompleteState(workloads=[generate_test_workload()])

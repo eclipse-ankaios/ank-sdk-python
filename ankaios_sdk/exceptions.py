@@ -32,11 +32,17 @@ Exceptions
 
 import inspect
 
-__all__ = ['AnkaiosException', 'WorkloadFieldException',
-           'WorkloadBuilderException', 'InvalidManifestException',
-           'ConnectionClosedException', 'ResponseException',
-           'ControlInterfaceException', 'AnkaiosProtocolException',
-           'AnkaiosResponseError']
+__all__ = [
+    "AnkaiosException",
+    "WorkloadFieldException",
+    "WorkloadBuilderException",
+    "InvalidManifestException",
+    "ConnectionClosedException",
+    "ResponseException",
+    "ControlInterfaceException",
+    "AnkaiosProtocolException",
+    "AnkaiosResponseError",
+]
 
 
 class AnkaiosException(Exception):
@@ -45,8 +51,9 @@ class AnkaiosException(Exception):
 
 class WorkloadFieldException(AnkaiosException):
     """Raised when the workload field is invalid"""
+
     def __init__(self, field: str, value: str, accepted_values: list) -> None:
-        message = f"Invalid value for {field}: \"{value}\"."
+        message = f'Invalid value for {field}: "{value}".'
         message += "Accepted values are: " + ", ".join(accepted_values)
         super().__init__(message)
 
@@ -73,6 +80,7 @@ class ControlInterfaceException(AnkaiosException):
 
 class AnkaiosProtocolException(AnkaiosException):
     """Raised when something unexpected is received"""
+
     def __init__(self, message):
         function_name = inspect.stack()[1].function
         super().__init__(f"{function_name}: {message}")

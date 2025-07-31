@@ -119,17 +119,37 @@ from typing import Union, Callable
 from datetime import datetime
 from queue import Queue, Empty
 
-from .exceptions import AnkaiosProtocolException, AnkaiosResponseError, \
-                        ConnectionClosedException
-from ._components import Workload, CompleteState, Request, \
-                         UpdateStateRequest, GetStateRequest, Response, \
-                         ResponseType, UpdateStateSuccess, \
-                         WorkloadStateCollection, Manifest, \
-                         WorkloadInstanceName, WorkloadStateEnum, \
-                         WorkloadExecutionState, ControlInterface, \
-                         LogCampaignResponse, LogQueue, LogResponse
-from .utils import AnkaiosLogLevel, get_logger, WORKLOADS_PREFIX, \
-                   CONFIGS_PREFIX
+from .exceptions import (
+    AnkaiosProtocolException,
+    AnkaiosResponseError,
+    ConnectionClosedException,
+)
+from ._components import (
+    Workload,
+    CompleteState,
+    Request,
+    UpdateStateRequest,
+    GetStateRequest,
+    Response,
+    ResponseType,
+    UpdateStateSuccess,
+    WorkloadStateCollection,
+    Manifest,
+    WorkloadInstanceName,
+    WorkloadStateEnum,
+    WorkloadExecutionState,
+    ControlInterface,
+    LogCampaignResponse,
+    LogQueue,
+    LogResponse,
+    LogsRequest,
+)
+from .utils import (
+    AnkaiosLogLevel,
+    get_logger,
+    WORKLOADS_PREFIX,
+    CONFIGS_PREFIX,
+)
 
 
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
@@ -143,12 +163,13 @@ class Ankaios:
     Attributes:
         logger (logging.Logger): The logger for the Ankaios class.
     """
+
     DEFAULT_TIMEOUT = 5.0
     "(float): The default timeout, if not manually provided."
 
-    def __init__(self,
-                 log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO
-                 ) -> None:
+    def __init__(
+        self, log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO
+    ) -> None:
         """
         Initialize the Ankaios object. The logger will be created and
         the connection to the control interface will be established.
@@ -171,7 +192,7 @@ class Ankaios:
         self._control_interface = ControlInterface(
             add_response_callback=self._add_response,
             add_log_callback=self._add_logs,
-            )
+        )
         self._control_interface.connect()
 
         # Workaround for suppressing the error log when checking the connection
@@ -211,8 +232,12 @@ class Ankaios:
             traceback (traceback): The traceback object.
         """
         if exc_type is not None:  # pragma: no cover
-            self.logger.error("An exception occurred: %s, %s, %s",
-                              exc_type, exc_value, traceback)
+            self.logger.error(
+                "An exception occurred: %s, %s, %s",
+                exc_type,
+                exc_value,
+                traceback,
+            )
         self._control_interface.disconnect()
 
     def _add_response(self, response: Response) -> None:
@@ -221,8 +246,7 @@ class Ankaios:
         when a response is received.
         """
         request_id = response.get_request_id()
-        self.logger.debug("Received a response with the id %s",
-                          request_id)
+        self.logger.debug("Received a response with the id %s", request_id)
         self._responses.put(response)
 
     def _add_logs(self, request_id: str, logs: list[LogResponse]) -> None:
@@ -235,10 +259,12 @@ class Ankaios:
                 self._logs_callbacks[request_id](log)
         else:
             self.logger.warning(
-                "Received logs for unknown request id %s", request_id)
+                "Received logs for unknown request id %s", request_id
+            )
 
-    def _get_response_by_id(self, request_id: str,
-                            timeout: float = DEFAULT_TIMEOUT) -> Response:
+    def _get_response_by_id(
+        self, request_id: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> Response:
         """
         Returns the response by the request id.
 
@@ -264,7 +290,7 @@ class Ankaios:
                 self.logger.error("Timeout while waiting for response.")
                 raise TimeoutError(
                     "Timeout while waiting for response."
-                    ) from exc
+                ) from exc
 
             if response.content_type == ResponseType.CONNECTION_CLOSED:
                 self.logger.error("Connection closed.")
@@ -272,14 +298,15 @@ class Ankaios:
 
             if response_id != request_id:
                 self.logger.warning(
-                    "Received a response with the wrong id: %s",
-                    response_id)
+                    "Received a response with the wrong id: %s", response_id
+                )
                 continue
             break
         return response
 
-    def _send_request(self, request: Request,
-                      timeout: float = DEFAULT_TIMEOUT) -> Response:
+    def _send_request(
+        self, request: Request, timeout: float = DEFAULT_TIMEOUT
+    ) -> Response:
         """
         Send a request and wait for the response.
 
@@ -309,9 +336,9 @@ class Ankaios:
         """
         self.logger.setLevel(level.value)
 
-    def apply_manifest(self, manifest: Manifest,
-                       timeout: float = DEFAULT_TIMEOUT
-                       ) -> UpdateStateSuccess:
+    def apply_manifest(
+        self, manifest: Manifest, timeout: float = DEFAULT_TIMEOUT
+    ) -> UpdateStateSuccess:
         """
         Send a request to apply a manifest.
 
@@ -332,8 +359,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(manifest=manifest),
-            manifest._calculate_masks()
+            CompleteState(manifest=manifest), manifest._calculate_masks()
         )
 
         # Send request
@@ -346,22 +372,23 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to apply manifest: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to apply manifest: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content.added_workloads),
-                len(content.deleted_workloads)
+                len(content.deleted_workloads),
             )
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def delete_manifest(self, manifest: Manifest,
-                        timeout: float = DEFAULT_TIMEOUT
-                        ) -> UpdateStateSuccess:
+    def delete_manifest(
+        self, manifest: Manifest, timeout: float = DEFAULT_TIMEOUT
+    ) -> UpdateStateSuccess:
         """
         Send a request to delete a manifest.
 
@@ -382,8 +409,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(),
-            manifest._calculate_masks()
+            CompleteState(), manifest._calculate_masks()
         )
 
         # Send request
@@ -396,22 +422,23 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to delete manifest: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to delete manifest: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content.added_workloads),
-                len(content.deleted_workloads)
+                len(content.deleted_workloads),
             )
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def apply_workload(self, workload: Workload,
-                       timeout: float = DEFAULT_TIMEOUT
-                       ) -> UpdateStateSuccess:
+    def apply_workload(
+        self, workload: Workload, timeout: float = DEFAULT_TIMEOUT
+    ) -> UpdateStateSuccess:
         """
         Send a request to run a workload.
 
@@ -432,8 +459,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(workloads=[workload]),
-            workload.masks
+            CompleteState(workloads=[workload]), workload.masks
         )
 
         # Send request
@@ -446,21 +472,23 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to run workload: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to run workload: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content.added_workloads),
-                len(content.deleted_workloads)
+                len(content.deleted_workloads),
             )
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def get_workload(self, workload_name: str,
-                     timeout: float = DEFAULT_TIMEOUT) -> list[Workload]:
+    def get_workload(
+        self, workload_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> list[Workload]:
         """
         Get the workload with the provided name from the
         requested complete state.
@@ -485,9 +513,9 @@ class Ankaios:
             [f"{WORKLOADS_PREFIX}.{workload_name}"], timeout
         ).get_workloads()
 
-    def delete_workload(self, workload_name: str,
-                        timeout: float = DEFAULT_TIMEOUT
-                        ) -> UpdateStateSuccess:
+    def delete_workload(
+        self, workload_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> UpdateStateSuccess:
         """
         Send a request to delete a workload.
 
@@ -508,8 +536,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(),
-            [f"{WORKLOADS_PREFIX}.{workload_name}"]
+            CompleteState(), [f"{WORKLOADS_PREFIX}.{workload_name}"]
         )
 
         try:
@@ -521,21 +548,21 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to delete workload: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to delete workload: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
                 "Update successful: %s added workloads, "
                 + "%s deleted workloads.",
                 len(content.added_workloads),
-                len(content.deleted_workloads)
+                len(content.deleted_workloads),
             )
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def update_configs(self, configs: dict,
-                       timeout: float = DEFAULT_TIMEOUT):
+    def update_configs(self, configs: dict, timeout: float = DEFAULT_TIMEOUT):
         """
         Update the configs. The names will be the keys of the dictionary.
 
@@ -553,8 +580,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(configs=configs),
-            [CONFIGS_PREFIX]
+            CompleteState(configs=configs), [CONFIGS_PREFIX]
         )
 
         try:
@@ -566,16 +592,21 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to set the configs: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to set the configs: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def add_config(self, name: str, config: Union[dict, list, str],
-                   timeout: float = DEFAULT_TIMEOUT):
+    def add_config(
+        self,
+        name: str,
+        config: Union[dict, list, str],
+        timeout: float = DEFAULT_TIMEOUT,
+    ):
         """
         Adds the config with the provided name.
         If the config exists, it will be replaced.
@@ -595,8 +626,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(configs={name: config}),
-            [f"{CONFIGS_PREFIX}.{name}"]
+            CompleteState(configs={name: config}), [f"{CONFIGS_PREFIX}.{name}"]
         )
 
         try:
@@ -608,16 +638,16 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to add the config: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to add the config: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def get_configs(self,
-                    timeout: float = DEFAULT_TIMEOUT) -> dict:
+    def get_configs(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Get the configs. The keys will be the names.
 
@@ -632,11 +662,12 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(
-            field_masks=[CONFIGS_PREFIX]).get_configs(), timeout
+        return (
+            self.get_state(field_masks=[CONFIGS_PREFIX]).get_configs(),
+            timeout,
+        )
 
-    def get_config(self, name: str,
-                   timeout: float = DEFAULT_TIMEOUT) -> dict:
+    def get_config(self, name: str, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Get the config with the provided name.
 
@@ -654,8 +685,12 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(
-            field_masks=[f"{CONFIGS_PREFIX}.{name}"]).get_configs(), timeout
+        return (
+            self.get_state(
+                field_masks=[f"{CONFIGS_PREFIX}.{name}"]
+            ).get_configs(),
+            timeout,
+        )
 
     def delete_all_configs(self, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -670,10 +705,7 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed.
         """
         # Create the request
-        request = UpdateStateRequest(
-            CompleteState(),
-            [CONFIGS_PREFIX]
-        )
+        request = UpdateStateRequest(CompleteState(), [CONFIGS_PREFIX])
 
         try:
             response = self._send_request(request, timeout)
@@ -684,8 +716,9 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to delete all configs: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to delete all configs: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
@@ -710,8 +743,7 @@ class Ankaios:
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(),
-            [f"{CONFIGS_PREFIX}.{name}"]
+            CompleteState(), [f"{CONFIGS_PREFIX}.{name}"]
         )
 
         try:
@@ -723,16 +755,20 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to delete config: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to delete config: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info("Update successful")
             return
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def get_state(self, field_masks: list[str] = None,
-                  timeout: float = DEFAULT_TIMEOUT, ) -> CompleteState:
+    def get_state(
+        self,
+        field_masks: list[str] = None,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> CompleteState:
         """
         Send a request to get the complete state.
 
@@ -774,9 +810,7 @@ class Ankaios:
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def get_agents(
-            self, timeout: float = DEFAULT_TIMEOUT
-            ) -> dict:
+    def get_agents(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
         Get the agents from the requested complete state.
 
@@ -797,9 +831,9 @@ class Ankaios:
         """
         return self.get_state(None, timeout).get_agents()
 
-    def get_workload_states(self,
-                            timeout: float = DEFAULT_TIMEOUT
-                            ) -> WorkloadStateCollection:
+    def get_workload_states(
+        self, timeout: float = DEFAULT_TIMEOUT
+    ) -> WorkloadStateCollection:
         """
         Get the workload states from the requested complete state.
 
@@ -818,14 +852,15 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(["workloadStates"], timeout)\
-            .get_workload_states()
+        return self.get_state(
+            ["workloadStates"], timeout
+        ).get_workload_states()
 
     def get_execution_state_for_instance_name(
-            self,
-            instance_name: WorkloadInstanceName,
-            timeout: float = DEFAULT_TIMEOUT
-            ) -> WorkloadExecutionState:
+        self,
+        instance_name: WorkloadInstanceName,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> WorkloadExecutionState:
         """
         Get the workload states for a specific workload instance name from the
         requested complete state.
@@ -850,17 +885,21 @@ class Ankaios:
         state = self.get_state([instance_name.get_filter_mask()], timeout)
         workload_states = state.get_workload_states().get_as_list()
         if len(workload_states) != 1:
-            self.logger.error("Expected exactly one workload state "
-                              + "for instance name %s, but got %s",
-                              instance_name, len(workload_states))
+            self.logger.error(
+                "Expected exactly one workload state "
+                + "for instance name %s, but got %s",
+                instance_name,
+                len(workload_states),
+            )
             raise AnkaiosProtocolException(
                 "Expected exactly one workload state for instance name "
-                + f"{instance_name}, but got {len(workload_states)}")
+                + f"{instance_name}, but got {len(workload_states)}"
+            )
         return workload_states[0].execution_state
 
-    def get_workload_states_on_agent(self, agent_name: str,
-                                     timeout: float = DEFAULT_TIMEOUT
-                                     ) -> WorkloadStateCollection:
+    def get_workload_states_on_agent(
+        self, agent_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> WorkloadStateCollection:
         """
         Get the workload states on a specific agent from the requested
         complete state.
@@ -884,9 +923,9 @@ class Ankaios:
         state = self.get_state(["workloadStates." + agent_name], timeout)
         return state.get_workload_states()
 
-    def get_workload_states_for_name(self, workload_name: str,
-                                     timeout: float = DEFAULT_TIMEOUT
-                                     ) -> WorkloadStateCollection:
+    def get_workload_states_for_name(
+        self, workload_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> WorkloadStateCollection:
         """
         Get the workload states for a specific workload name from the
         requested complete state.
@@ -907,22 +946,23 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        state = self.get_state(
-            ["workloadStates"], timeout
-        )
+        state = self.get_state(["workloadStates"], timeout)
         workload_states = state.get_workload_states().get_as_list()
         workload_states_for_name = WorkloadStateCollection()
         for workload_state in workload_states:
-            if workload_state.workload_instance_name.workload_name == \
-                    workload_name:
+            if (
+                workload_state.workload_instance_name.workload_name
+                == workload_name
+            ):
                 workload_states_for_name.add_workload_state(workload_state)
         return workload_states_for_name
 
-    def wait_for_workload_to_reach_state(self,
-                                         instance_name: WorkloadInstanceName,
-                                         state: WorkloadStateEnum,
-                                         timeout: float = DEFAULT_TIMEOUT
-                                         ) -> None:
+    def wait_for_workload_to_reach_state(
+        self,
+        instance_name: WorkloadInstanceName,
+        state: WorkloadStateEnum,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> None:
         """
         Waits for the workload to reach the specified state.
 
@@ -952,14 +992,19 @@ class Ankaios:
             time.sleep(0.1)
         raise TimeoutError(
             "Timeout while waiting for workload to reach state."
-            )
+        )
 
     # pylint: disable=too-many-arguments
-    def request_logs(self, workload_names: list[WorkloadInstanceName], *,
-                     follow: bool = False, tail: int = -1,
-                     since: Union[str, datetime] = "",
-                     until: Union[str, datetime] = "",
-                     timeout: float = DEFAULT_TIMEOUT) -> LogCampaignResponse:
+    def request_logs(
+        self,
+        workload_names: list[WorkloadInstanceName],
+        *,
+        follow: bool = False,
+        tail: int = -1,
+        since: Union[str, datetime] = "",
+        until: Union[str, datetime] = "",
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> LogCampaignResponse:
         """
         Request logs for the specified workloads.
 
@@ -984,12 +1029,16 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed.
         """
 
-        # Create the logs queue and get the request
-        log_queue = LogQueue(
+        logs_request = LogsRequest(
             workload_names=workload_names,
-            follow=follow, tail=tail,
-            since=since, until=until
+            follow=follow,
+            tail=tail,
+            since=since,
+            until=until,
         )
+
+        # Create the logs queue and get the request
+        log_queue = LogQueue(logs_request)
         request = log_queue._get_request()
 
         try:
@@ -1001,20 +1050,23 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to set the configs: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to set the configs: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.LOGS_REQUEST_ACCEPTED:
             self.logger.info("Logs request accepted, waiting for logs.")
             self._logs_callbacks[request.get_id()] = log_queue.put
             return LogCampaignResponse(
-                queue=log_queue,
-                accepted_workload_names=content
+                queue=log_queue, accepted_workload_names=content
             )
         raise AnkaiosProtocolException("Received unexpected content type.")
 
-    def stop_receiving_logs(self, log_campaign: LogCampaignResponse,
-                            timeout: float = DEFAULT_TIMEOUT) -> None:
+    def stop_receiving_logs(
+        self,
+        log_campaign: LogCampaignResponse,
+        timeout: float = DEFAULT_TIMEOUT,
+    ) -> None:
         """
         Stop receiving logs from the specified LogCampaignResponse.
 
@@ -1039,8 +1091,9 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            self.logger.error("Error while trying to set the configs: %s",
-                              content)
+            self.logger.error(
+                "Error while trying to set the configs: %s", content
+            )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.LOGS_CANCEL_ACCEPTED:
             self.logger.info("Logs cancel request accepted.")

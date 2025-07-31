@@ -48,11 +48,12 @@ from .workload import Workload
 from ..utils import WORKLOADS_PREFIX, CONFIGS_PREFIX, _to_config_item
 
 
-class Manifest():
+class Manifest:
     """
     Represents a workload manifest.
     The manifest can be loaded from a yaml file, string or dictionary.
     """
+
     def __init__(self, desired_state: _ank_base.State) -> None:
         """
         Initializes a Manifest instance with the given manifest data.
@@ -69,7 +70,7 @@ class Manifest():
         self._desired_state: _ank_base.State = desired_state
 
     @staticmethod
-    def from_file(file_path: str) -> 'Manifest':
+    def from_file(file_path: str) -> "Manifest":
         """
         Loads a manifest from a file.
 
@@ -84,13 +85,13 @@ class Manifest():
             yaml.YAMLError: If there is an error parsing the YAML file.
         """
         try:
-            with open(file_path, 'r', encoding="utf-8") as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 return Manifest.from_string(file.read())
         except Exception as e:
             raise ValueError(f"Error reading manifest file: {e}") from e
 
     @staticmethod
-    def from_string(manifest: str) -> 'Manifest':
+    def from_string(manifest: str) -> "Manifest":
         """
         Creates a Manifest instance from a YAML string.
 
@@ -109,7 +110,7 @@ class Manifest():
             raise ValueError(f"Error parsing manifest: {e}") from e
 
     @staticmethod
-    def from_dict(manifest: dict) -> 'Manifest':
+    def from_dict(manifest: dict) -> "Manifest":
         """
         Creates a Manifest instance from a dictionary.
 
@@ -121,9 +122,7 @@ class Manifest():
         """
         desired_state = _ank_base.State()
         if "apiVersion" not in manifest.keys():
-            raise InvalidManifestException(
-                "apiVersion is missing."
-            )
+            raise InvalidManifestException("apiVersion is missing.")
         desired_state.apiVersion = manifest["apiVersion"]
         if "workloads" in manifest.keys():
             workloads = manifest["workloads"]
@@ -155,15 +154,19 @@ class Manifest():
         """
         masks = []
         if self._desired_state.workloads.workloads:
-            masks.extend([
-                f"{WORKLOADS_PREFIX}.{key}"
-                for key in self._desired_state.workloads.workloads.keys()
-            ])
+            masks.extend(
+                [
+                    f"{WORKLOADS_PREFIX}.{key}"
+                    for key in self._desired_state.workloads.workloads.keys()
+                ]
+            )
         if self._desired_state.configs.configs:
-            masks.extend([
-                f"{CONFIGS_PREFIX}.{key}"
-                for key in self._desired_state.configs.configs.keys()
-            ])
+            masks.extend(
+                [
+                    f"{CONFIGS_PREFIX}.{key}"
+                    for key in self._desired_state.configs.configs.keys()
+                ]
+            )
         return masks
 
     def _to_desired_state(self) -> _ank_base.State:

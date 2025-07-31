@@ -18,8 +18,11 @@ in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk._components.file import File, \
-    DataFileContent, BinaryFileContent
+from ankaios_sdk._components.file import (
+    File,
+    DataFileContent,
+    BinaryFileContent,
+)
 from ankaios_sdk._protos import _ank_base
 
 

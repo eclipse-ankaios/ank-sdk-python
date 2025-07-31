@@ -17,10 +17,12 @@ import sys, signal
 
 still_sleepy = True
 
+
 def signal_handler(sig, frame):
     still_sleepy = False
     sys.exit(0)
-    
+
+
 # Add a SIGTERM handler to allow a quick shutdown
 signal.signal(signal.SIGTERM, signal_handler)
 

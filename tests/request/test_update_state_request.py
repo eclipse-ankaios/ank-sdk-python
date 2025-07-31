@@ -26,7 +26,9 @@ def test_update_state():
     """
     complete_state = CompleteState()
     request = UpdateStateRequest(complete_state, ["test_mask"])
-    assert request._request.updateStateRequest.newState == \
-        complete_state._to_proto()
+    assert (
+        request._request.updateStateRequest.newState
+        == complete_state._to_proto()
+    )
     assert request._request.updateStateRequest.updateMask == ["test_mask"]
     assert str(request) == str(request._to_proto())

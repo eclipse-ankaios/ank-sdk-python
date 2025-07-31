@@ -22,6 +22,7 @@ import sys, signal
 with Ankaios() as ankaios:
 
     looping = True
+
     def signal_handler(sig, frame):
         global looping
         looping = False
@@ -32,25 +33,31 @@ with Ankaios() as ankaios:
     while looping:
         try:
             # Request the state of the system, filtered with the workloadStates
-            complete_state = ankaios.get_state(timeout=5, field_masks=["workloadStates"])
+            complete_state = ankaios.get_state(
+                timeout=5, field_masks=["workloadStates"]
+            )
         except ControlInterfaceException as e:
             print(f"Error while getting the state: {e}")
         else:
             # Get the workload states present in the complete_state
-            workload_states_dict = complete_state.get_workload_states().get_as_dict()
+            workload_states_dict = (
+                complete_state.get_workload_states().get_as_dict()
+            )
 
             # Print the states of the workloads:
             for agent_name in workload_states_dict:
                 for workload_name in workload_states_dict[agent_name]:
-                    for workload_id in workload_states_dict[agent_name][workload_name]:
+                    for workload_id in workload_states_dict[agent_name][
+                        workload_name
+                    ]:
                         print(
                             f"Workload {workload_name} on agent {agent_name} has the state "
                             + str(
-                                workload_states_dict[agent_name][workload_name][
-                                    workload_id
-                                ].state
+                                workload_states_dict[agent_name][
+                                    workload_name
+                                ][workload_id].state
                             )
                         )
-            
+
         # Sleep for 5 seconds
         sleep(5)

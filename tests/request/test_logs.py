@@ -28,15 +28,13 @@ def test_logs_request():
     """
     # Test raises error if empty
     with pytest.raises(
-            ValueError, match="At least one workload name must be provided."
-            ):
+        ValueError, match="At least one workload name must be provided."
+    ):
         _ = LogsRequest(workload_names=[])
 
     # Test success with datetime
     workload_name = WorkloadInstanceName(
-        workload_name="nginx",
-        agent_name="agent_A",
-        workload_id="1234"
+        workload_name="nginx", agent_name="agent_A", workload_id="1234"
     )
     request = LogsRequest(
         workload_names=[workload_name],
@@ -47,8 +45,9 @@ def test_logs_request():
     )
     assert request is not None
     assert request._request.HasField("logsRequest")
-    assert request._request.logsRequest.\
-        workloadNames[0].workloadName == "nginx"
+    assert (
+        request._request.logsRequest.workloadNames[0].workloadName == "nginx"
+    )
     assert request._request.logsRequest.workloadNames[0].agentName == "agent_A"
     assert request._request.logsRequest.workloadNames[0].id == "1234"
     assert request._request.logsRequest.follow is True
@@ -71,8 +70,6 @@ def test_cancel_request():
     """
     Test the logs cancel request type.
     """
-    request = LogsCancelRequest(
-        request_id="1234"
-    )
+    request = LogsCancelRequest(request_id="1234")
     assert request is not None
     assert request._request.HasField("logsCancelRequest")

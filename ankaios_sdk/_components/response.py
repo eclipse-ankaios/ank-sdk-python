@@ -66,8 +66,14 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess",
-           "LogEntry", "LogsStopResponse", "LogResponse"]
+__all__ = [
+    "Response",
+    "ResponseType",
+    "UpdateStateSuccess",
+    "LogEntry",
+    "LogsStopResponse",
+    "LogResponse",
+]
 
 from dataclasses import dataclass
 from typing import Any, Union
@@ -93,6 +99,7 @@ class Response:
         content: The content of the response, which can be a string,
             CompleteState, or UpdateStateSuccess.
     """
+
     def __init__(self, message_buffer: bytes) -> None:
         """
         Initializes the Response object with the received message buffer.
@@ -119,9 +126,7 @@ class Response:
             # Deserialize the received proto msg
             from_ankaios.ParseFromString(self.buffer)
         except Exception as e:
-            logger.error(
-                "Error parsing the received message: %s", e
-            )
+            logger.error("Error parsing the received message: %s", e)
             raise ResponseException(f"Parsing error: '{e}'") from e
         if from_ankaios.HasField("response"):
             self._response = from_ankaios.response
@@ -131,10 +136,12 @@ class Response:
             self.content = from_ankaios.connectionClosed.reason
         else:
             raise ResponseException(  # pragma: no cover
-                "Invalid response type.")
+                "Invalid response type."
+            )
         logger.debug(
             "Got response of type '%s' with request id '%s'",
-            self.content_type, self.get_request_id()
+            self.content_type,
+            self.get_request_id(),
         )
 
     def _from_proto(self) -> None:
@@ -157,16 +164,14 @@ class Response:
             self.content_type = ResponseType.UPDATE_STATE_SUCCESS
             self.content = UpdateStateSuccess()
             for workload in update_state_msg.addedWorkloads:
-                workload_name, workload_id, agent_name = \
-                    workload.split(".")
+                workload_name, workload_id, agent_name = workload.split(".")
                 self.content.added_workloads.append(
                     WorkloadInstanceName(
                         agent_name, workload_name, workload_id
                     )
                 )
             for workload in update_state_msg.deletedWorkloads:
-                workload_name, workload_id, agent_name = \
-                    workload.split(".")
+                workload_name, workload_id, agent_name = workload.split(".")
                 self.content.deleted_workloads.append(
                     WorkloadInstanceName(
                         agent_name, workload_name, workload_id
@@ -181,20 +186,20 @@ class Response:
                 )
         elif self._response.HasField("logsRequestAccepted"):
             self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
+            workload_names = self._response.logsRequestAccepted.workloadNames
             self.content = [
                 WorkloadInstanceName(
-                    workload.agentName,
-                    workload.workloadName,
-                    workload.id
+                    workload.agentName, workload.workloadName, workload.id
                 )
-                for workload in self._response
-                .logsRequestAccepted.workloadNames
+                for workload in workload_names
             ]
         elif self._response.HasField("logsStopResponse"):
             self.content_type = ResponseType.LOGS_STOP_RESPONSE
-            self.content = [LogsStopResponse._from_stop_response(
-                self._response.logsStopResponse
-            )]
+            self.content = [
+                LogsStopResponse._from_stop_response(
+                    self._response.logsStopResponse
+                )
+            ]
         elif self._response.HasField("logsCancelAccepted"):
             self.content_type = ResponseType.LOGS_CANCEL_ACCEPTED
             self.content = None
@@ -212,7 +217,7 @@ class Response:
             return None
         return self._response.requestId
 
-    def get_content(self) -> tuple['ResponseType', Any]:
+    def get_content(self) -> tuple["ResponseType", Any]:
         """
         Gets the content of the response. It can be either:
           - a string (error / connection closed)
@@ -228,7 +233,8 @@ class Response:
 
 
 class ResponseType(Enum):
-    """ Enumeration for the different types of response. """
+    """Enumeration for the different types of response."""
+
     ERROR = 1
     "(int): Got an error from Ankaios."
     COMPLETE_STATE = 2
@@ -261,6 +267,7 @@ class UpdateStateSuccess:
     Represents an object that holds the added and deleted workloads.
     This is automatically returned whenever a state update is successful.
     """
+
     def __init__(self) -> None:
         """
         Initializes the UpdateStateSuccess.
@@ -276,10 +283,14 @@ class UpdateStateSuccess:
             dict: The dictionary representation.
         """
         return {
-            "added_workloads": [instance_name.to_dict()
-                                for instance_name in self.added_workloads],
-            "deleted_workloads": [instance_name.to_dict()
-                                  for instance_name in self.deleted_workloads]
+            "added_workloads": [
+                instance_name.to_dict()
+                for instance_name in self.added_workloads
+            ],
+            "deleted_workloads": [
+                instance_name.to_dict()
+                for instance_name in self.deleted_workloads
+            ],
         }
 
     def __str__(self) -> str:
@@ -290,11 +301,15 @@ class UpdateStateSuccess:
             str: The string representation.
         """
         added_workloads = [
-            str(instance_name) for instance_name in self.added_workloads]
+            str(instance_name) for instance_name in self.added_workloads
+        ]
         deleted_workloads = [
-            str(instance_name) for instance_name in self.deleted_workloads]
-        return f"Added workloads: {added_workloads}, " \
-               f"Deleted workloads: {deleted_workloads}"
+            str(instance_name) for instance_name in self.deleted_workloads
+        ]
+        return (
+            f"Added workloads: {added_workloads}, "
+            f"Deleted workloads: {deleted_workloads}"
+        )
 
 
 @dataclass
@@ -302,6 +317,7 @@ class LogEntry:
     """
     Represents a log entry from a workload instance.
     """
+
     workload_instance_name: WorkloadInstanceName
     """
     The name of the workload instance from which the log entry was received.
@@ -316,17 +332,23 @@ class LogEntry:
         Returns:
             str: The string representation of the LogsEntry.
         """
-        return (f"Log from {self.workload_instance_name.workload_name}."
-                f"{self.workload_instance_name.workload_id}."
-                f"{self.workload_instance_name.agent_name}: "
-                f"{self.message}")
+        return (
+            f"Log from {self.workload_instance_name.workload_name}."
+            f"{self.workload_instance_name.workload_id}."
+            f"{self.workload_instance_name.agent_name}: "
+            f"{self.message}"
+        )
 
     @staticmethod
-    def _from_entries(log: _ank_base.LogEntry) -> 'LogEntry':
-        return LogEntry(WorkloadInstanceName(log.workloadName.agentName,
-                                             log.workloadName.workloadName,
-                                             log.workloadName.id),
-                        log.message)
+    def _from_entries(log: _ank_base.LogEntry) -> "LogEntry":
+        return LogEntry(
+            WorkloadInstanceName(
+                log.workloadName.agentName,
+                log.workloadName.workloadName,
+                log.workloadName.id,
+            ),
+            log.message,
+        )
 
 
 @dataclass
@@ -335,6 +357,7 @@ class LogsStopResponse:
     Represents a response for marking the end of the log stream from a
     workload instance.
     """
+
     workload_instance_name: WorkloadInstanceName
     """
     The name of the workload instance from which no more logs will be sent.
@@ -347,19 +370,24 @@ class LogsStopResponse:
         Returns:
             str: The string representation of the LogsStopResponse.
         """
-        return (f"Stopped receiving logs from "
-                f"{self.workload_instance_name.workload_name}."
-                f"{self.workload_instance_name.workload_id}."
-                f"{self.workload_instance_name.agent_name}.")
+        return (
+            f"Stopped receiving logs from "
+            f"{self.workload_instance_name.workload_name}."
+            f"{self.workload_instance_name.workload_id}."
+            f"{self.workload_instance_name.agent_name}."
+        )
 
     @staticmethod
     def _from_stop_response(
-        log: _ank_base.LogsStopResponse
-    ) -> 'LogsStopResponse':
+        log: _ank_base.LogsStopResponse,
+    ) -> "LogsStopResponse":
         return LogsStopResponse(
-            WorkloadInstanceName(log.workloadName.agentName,
-                                 log.workloadName.workloadName,
-                                 log.workloadName.id))
+            WorkloadInstanceName(
+                log.workloadName.agentName,
+                log.workloadName.workloadName,
+                log.workloadName.id,
+            )
+        )
 
 
 LogResponse = Union[LogEntry, LogsStopResponse]

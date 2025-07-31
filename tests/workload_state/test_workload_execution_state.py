@@ -18,8 +18,11 @@ class in the ankaios_sdk.
 """
 
 import pytest
-from ankaios_sdk import WorkloadExecutionState, WorkloadStateEnum, \
-    WorkloadSubStateEnum
+from ankaios_sdk import (
+    WorkloadExecutionState,
+    WorkloadStateEnum,
+    WorkloadSubStateEnum,
+)
 from ankaios_sdk._protos import _ank_base
 
 
@@ -31,13 +34,15 @@ def test_interpret_state():
     workload_state = WorkloadExecutionState(
         _ank_base.ExecutionState(
             additionalInfo="Dummy information",
-            pending=_ank_base.PENDING_WAITING_TO_START
+            pending=_ank_base.PENDING_WAITING_TO_START,
         )
     )
 
     assert workload_state.state == WorkloadStateEnum.PENDING
-    assert workload_state.substate == \
-        WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    assert (
+        workload_state.substate
+        == WorkloadSubStateEnum.PENDING_WAITING_TO_START
+    )
     assert workload_state.additional_info == "Dummy information"
 
 
@@ -48,7 +53,5 @@ def test_interpret_state_error():
     """
     with pytest.raises(ValueError, match="Invalid state for workload."):
         WorkloadExecutionState(
-            _ank_base.ExecutionState(
-                additionalInfo="No state present"
-            )
+            _ank_base.ExecutionState(additionalInfo="No state present")
         )
