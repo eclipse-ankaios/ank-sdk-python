@@ -55,7 +55,9 @@ def test_log_queue():
     )
     log_queue = LogQueue([workload_name])
 
-    log_entry = LogEntry.from_entries(generate_test_log_entry())
+    log_entry = LogEntry._from_entries(
+        generate_test_log_entry()
+    )
     log_queue.put(log_entry)
     assert log_queue.empty() is False
     entry = log_queue.get()

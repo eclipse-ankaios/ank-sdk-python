@@ -13,12 +13,12 @@ Workload Class
     :undoc-members:
     :show-inheritance:
 
-WorkloadBuilder Class
+AccessRightRule Class
 ---------------------
-.. _workloadbuilder-class:
+.. _accessrightrule-class:
 
-.. autoclass:: ankaios_sdk._components.workload.WorkloadBuilder
-    :special-members: __init__
+.. autoclass:: ankaios_sdk._components.workload.AccessRightRule
+    :special-members: __init__, __str__
     :members:
     :undoc-members:
-    :show-inheritance:
+

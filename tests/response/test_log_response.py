@@ -61,7 +61,9 @@ def test_log_entries():
     """
     Test the Log entries Response class.
     """
-    log_entry = LogEntry.from_entries(generate_test_log_entry())
+    log_entry = LogEntry._from_entries(
+        generate_test_log_entry()
+    )
     assert log_entry is not None
     assert str(log_entry) == "Log from nginx.1234.agent_A: Test log message"
 
@@ -70,7 +72,7 @@ def test_log_stop_response():
     """
     Test the Log stop response.
     """
-    log_stop_response = LogsStopResponse.from_stop_response(
+    log_stop_response = LogsStopResponse._from_stop_response(
         generate_test_logs_stop_reponse()
     )
     assert log_stop_response is not None

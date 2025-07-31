@@ -24,8 +24,11 @@ Classes
     Represents a response from the control interface.
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
-- LogsResponse:
-    Represents a log response received from the Ankaios system.
+- LogEntry:
+    Represents a log entry from a workload instance.
+- LogsStopResponse:
+    Represents a response for marking the end of the log stream from a
+    workload instance.
 
 Enums
 -----
@@ -33,9 +36,12 @@ Enums
 - ResponseType:
     Enumeration for the different types of response. It includes
     ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
-- LogsType:
-    Enumeration for the different types of logs responses. It includes
-    LOGS_ENTRY and LOGS_STOP_RESPONSE.
+
+Union Types
+-------------
+- LogResponse:
+    Union type for log responses, which can be either :py:class:`LogEntry` or
+    :py:class:`LogsStopResponse`.
 
 Usage
 ------
@@ -175,7 +181,9 @@ class Response:
             self.content_type = ResponseType.LOGS_ENTRY
             self.content = []
             for log_entry in self._response.logEntriesResponse.logEntries:
-                self.content.append(LogEntry.from_entries(log_entry))
+                self.content.append(
+                    LogEntry._from_entries(log_entry)
+                )
         elif self._response.HasField("logsRequestAccepted"):
             self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
             workload_names = self._response.logsRequestAccepted.workloadNames
@@ -188,7 +196,7 @@ class Response:
         elif self._response.HasField("logsStopResponse"):
             self.content_type = ResponseType.LOGS_STOP_RESPONSE
             self.content = [
-                LogsStopResponse.from_stop_response(
+                LogsStopResponse._from_stop_response(
                     self._response.logsStopResponse
                 )
             ]
@@ -308,15 +316,14 @@ class UpdateStateSuccess:
 class LogEntry:
     """
     Represents a log entry from a workload instance.
-
-    Attributes:
-        workload_instance_name (WorkloadInstanceName): The name of the
-            workload instance from which the log entry was received.
-        message (str): The log message.
     """
 
     workload_instance_name: WorkloadInstanceName
+    """
+    The name of the workload instance from which the log entry was received.
+    """
     message: str
+    """The log message."""
 
     def __str__(self) -> str:
         """
@@ -333,14 +340,7 @@ class LogEntry:
         )
 
     @staticmethod
-    def from_entries(log: _ank_base.LogEntry) -> "LogEntry":
-        """
-        Creates a LogsEntry from a LogEntry.
-        Args:
-            log (_ank_base.LogEntry): The log entry to convert.
-        Returns:
-            LogsEntry: The converted LogsEntry object.
-        """
+    def _from_entries(log: _ank_base.LogEntry) -> "LogEntry":
         return LogEntry(
             WorkloadInstanceName(
                 log.workloadName.agentName,
@@ -355,14 +355,13 @@ class LogEntry:
 class LogsStopResponse:
     """
     Represents a response for marking the end of the log stream from a
-        workload instance.
-
-    Attributes:
-        workload_instance_name (WorkloadInstanceName): The name of the
-            workload instance from which no more logs will be sent.
+    workload instance.
     """
 
     workload_instance_name: WorkloadInstanceName
+    """
+    The name of the workload instance from which no more logs will be sent.
+    """
 
     def __str__(self) -> str:
         """
@@ -379,17 +378,9 @@ class LogsStopResponse:
         )
 
     @staticmethod
-    def from_stop_response(
+    def _from_stop_response(
         log: _ank_base.LogsStopResponse,
     ) -> "LogsStopResponse":
-        """
-        Creates a LogsStopResponse from a LogsStopResponse.
-        Args:
-            log (_ank_base.LogsStopResponse): The logs stop response
-                to convert.
-        Returns:
-            LogsStopResponse: The converted LogsStopResponse object.
-        """
         return LogsStopResponse(
             WorkloadInstanceName(
                 log.workloadName.agentName,
