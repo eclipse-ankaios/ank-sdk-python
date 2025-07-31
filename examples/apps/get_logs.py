@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from ankaios_sdk import Ankaios, AnkaiosLogLevel, AnkaiosException, Workload, LogResponse, LogsType
+from ankaios_sdk import Ankaios, AnkaiosLogLevel, AnkaiosException, Workload, LogResponse, LogEntry, LogsStopResponse
 import sys, signal
 
 # Create a new Ankaios object.
@@ -64,17 +64,19 @@ with Ankaios(log_level=AnkaiosLogLevel.DEBUG) as ankaios:
             log: LogResponse = log_campaign.queue.get()
 
             # Interpret the received message
-            if log.type == LogsType.LOGS_ENTRY:
-                # Log entry received
-                print(f"Received message: {log.message}")
-            elif log.type == LogsType.LOGS_STOP_RESPONSE:
-                # Stop response received, break the loop
-                print("Received stop response, stopping log retrieval.")
-                break
+            match log:
+                case LogEntry():
+                    # Log entry received
+                    print(f"Received message: {log.message}")
+                case LogsStopResponse():
+                    # Stop response received, break the loop
+                    print("Received stop response, stopping log retrieval.")
+                    break
+
+
+        # Stop receiving logs
+        ankaios.stop_receiving_logs(log_campaign)
 
     # Catch the AnkaiosException in case something went wrong
     except AnkaiosException as e:
         print("Ankaios Exception occurred: ", e)
-
-    # Stop receiving logs
-    ankaios.stop_receiving_logs(log_campaign)
