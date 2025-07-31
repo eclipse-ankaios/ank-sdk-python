@@ -33,7 +33,8 @@ def test_log_queue_requests():
     workload_name = WorkloadInstanceName(
         workload_name="nginx", agent_name="agent_A", workload_id="1234"
     )
-    log_queue = LogQueue([workload_name])
+
+    log_queue = LogQueue(LogsRequest(workload_names=[workload_name]))
     assert log_queue is not None
 
     request = log_queue._get_request()
