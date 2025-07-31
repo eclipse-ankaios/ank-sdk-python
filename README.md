@@ -60,6 +60,7 @@ are using. For information regarding versioning, please refer to this table:
 | -------- | ------- |
 | 0.4.x and below | No Python SDK available. Please update Ankaios. |
 | 0.5.x | 0.5.x     |
+| 0.6.x | 0.6.x     |
 
 ## Usage
 
