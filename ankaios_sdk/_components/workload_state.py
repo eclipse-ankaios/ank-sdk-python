@@ -358,6 +358,20 @@ class WorkloadInstanceName:
         return f"workloadStates.{self.agent_name}." \
                + f"{self.workload_name}.{self.workload_id}"
 
+    def _to_proto(self) -> _ank_base.WorkloadInstanceName:
+        """
+        Converts the workload instance name to a proto message.
+
+        Returns:
+            _ank_base.WorkloadInstanceName: The protobuf message
+                representing the workload instance name.
+        """
+        return _ank_base.WorkloadInstanceName(
+            agentName=self.agent_name,
+            workloadName=self.workload_name,
+            id=self.workload_id
+        )
+
 
 # pylint: disable=too-few-public-methods
 class WorkloadState:

@@ -11,7 +11,7 @@ File Class
     :members:
     :undoc-members:
 
-FileContent Type Alias
+FileContent Union Type
 ----------------------
 
 .. autoclass:: ankaios_sdk._components.file.FileContent
@@ -27,3 +27,4 @@ BinaryFileContent Class
 
 .. autoclass:: ankaios_sdk._components.file.BinaryFileContent
     :members:
+

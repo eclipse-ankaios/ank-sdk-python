@@ -13,8 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Response and UpdateStateSuccess classes,
-used for receiving messages from the control interface.
+This script defines the Response class and its associated types for handling
+responses from the control interface. It includes methods for parsing the
+received messages and converting them into appropriate Python objects.
 
 Classes
 --------
@@ -23,6 +24,11 @@ Classes
     Represents a response from the control interface.
 - UpdateStateSuccess:
     Represents a response for a successful update state request.
+- LogEntry:
+    Represents a log entry from a workload instance.
+- LogsStopResponse:
+    Represents a response for marking the end of the log stream from a
+    workload instance.
 
 Enums
 -----
@@ -30,6 +36,12 @@ Enums
 - ResponseType:
     Enumeration for the different types of response. It includes
     ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
+
+Union Types
+-------------
+- LogResponse:
+    Union type for log responses, which can be either :py:class:`LogEntry` or
+    :py:class:`LogsStopResponse`.
 
 Usage
 ------
@@ -54,11 +66,13 @@ Usage
         update_state_success.to_dict()
 """
 
-__all__ = ["Response", "ResponseType", "UpdateStateSuccess"]
+__all__ = ["Response", "ResponseType", "UpdateStateSuccess",
+           "LogEntry", "LogsStopResponse", "LogResponse"]
 
-from typing import Union
+from dataclasses import dataclass
+from typing import Any, Union
 from enum import Enum
-from .._protos import _control_api
+from .._protos import _ank_base, _control_api
 from ..exceptions import ResponseException
 from ..utils import get_logger
 from .complete_state import CompleteState
@@ -118,6 +132,10 @@ class Response:
         else:
             raise ResponseException(  # pragma: no cover
                 "Invalid response type.")
+        logger.debug(
+            "Got response of type '%s' with request id '%s'",
+            self.content_type, self.get_request_id()
+        )
 
     def _from_proto(self) -> None:
         """
@@ -154,6 +172,32 @@ class Response:
                         agent_name, workload_name, workload_id
                     )
                 )
+        elif self._response.HasField("logEntriesResponse"):
+            self.content_type = ResponseType.LOGS_ENTRY
+            self.content = []
+            for log_entry in self._response.logEntriesResponse.logEntries:
+                self.content.append(
+                    LogEntry._from_entries(log_entry)
+                )
+        elif self._response.HasField("logsRequestAccepted"):
+            self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
+            self.content = [
+                WorkloadInstanceName(
+                    workload.agentName,
+                    workload.workloadName,
+                    workload.id
+                )
+                for workload in self._response
+                .logsRequestAccepted.workloadNames
+            ]
+        elif self._response.HasField("logsStopResponse"):
+            self.content_type = ResponseType.LOGS_STOP_RESPONSE
+            self.content = [LogsStopResponse._from_stop_response(
+                self._response.logsStopResponse
+            )]
+        elif self._response.HasField("logsCancelAccepted"):
+            self.content_type = ResponseType.LOGS_CANCEL_ACCEPTED
+            self.content = None
         else:
             raise ResponseException("Invalid response type.")
 
@@ -168,14 +212,14 @@ class Response:
             return None
         return self._response.requestId
 
-    def get_content(self) -> \
-            tuple[
-                'ResponseType',
-                Union[str, 'CompleteState', 'UpdateStateSuccess']
-                ]:
+    def get_content(self) -> tuple['ResponseType', Any]:
         """
-        Gets the content of the response. It can be either a string (if error),
-        a CompleteState instance, or a UpdateStateSuccess instance.
+        Gets the content of the response. It can be either:
+          - a string (error / connection closed)
+          - a CompleteState object
+          - an UpdateStateSuccess object
+          - a list of log entires
+          - a log stop response
 
         Returns:
             tuple[ResponseType, any]: the content type and the content.
@@ -191,7 +235,15 @@ class ResponseType(Enum):
     "(int): Got the complete state."
     UPDATE_STATE_SUCCESS = 3
     "(int): Got a successful update state response."
-    CONNECTION_CLOSED = 4
+    LOGS_ENTRY = 4
+    "(int): Got logs entry."
+    LOGS_REQUEST_ACCEPTED = 5
+    "(int): Logs request accepted, waiting for logs."
+    LOGS_STOP_RESPONSE = 6
+    "(int): Got logs stop response."
+    LOGS_CANCEL_ACCEPTED = 7
+    "(int): Logs cancel request accepted."
+    CONNECTION_CLOSED = 8
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -243,3 +295,71 @@ class UpdateStateSuccess:
             str(instance_name) for instance_name in self.deleted_workloads]
         return f"Added workloads: {added_workloads}, " \
                f"Deleted workloads: {deleted_workloads}"
+
+
+@dataclass
+class LogEntry:
+    """
+    Represents a log entry from a workload instance.
+    """
+    workload_instance_name: WorkloadInstanceName
+    """
+    The name of the workload instance from which the log entry was received.
+    """
+    message: str
+    """The log message."""
+
+    def __str__(self) -> str:
+        """
+        Converts the LogsEntry to a string.
+
+        Returns:
+            str: The string representation of the LogsEntry.
+        """
+        return (f"Log from {self.workload_instance_name.workload_name}."
+                f"{self.workload_instance_name.workload_id}."
+                f"{self.workload_instance_name.agent_name}: "
+                f"{self.message}")
+
+    @staticmethod
+    def _from_entries(log: _ank_base.LogEntry) -> 'LogEntry':
+        return LogEntry(WorkloadInstanceName(log.workloadName.agentName,
+                                             log.workloadName.workloadName,
+                                             log.workloadName.id),
+                        log.message)
+
+
+@dataclass
+class LogsStopResponse:
+    """
+    Represents a response for marking the end of the log stream from a
+    workload instance.
+    """
+    workload_instance_name: WorkloadInstanceName
+    """
+    The name of the workload instance from which no more logs will be sent.
+    """
+
+    def __str__(self) -> str:
+        """
+        Converts the LogsStopResponse to a string.
+
+        Returns:
+            str: The string representation of the LogsStopResponse.
+        """
+        return (f"Stopped receiving logs from "
+                f"{self.workload_instance_name.workload_name}."
+                f"{self.workload_instance_name.workload_id}."
+                f"{self.workload_instance_name.agent_name}.")
+
+    @staticmethod
+    def _from_stop_response(
+        log: _ank_base.LogsStopResponse
+    ) -> 'LogsStopResponse':
+        return LogsStopResponse(
+            WorkloadInstanceName(log.workloadName.agentName,
+                                 log.workloadName.workloadName,
+                                 log.workloadName.id))
+
+
+LogResponse = Union[LogEntry, LogsStopResponse]

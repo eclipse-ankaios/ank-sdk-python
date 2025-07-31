@@ -18,6 +18,7 @@ class in the ankaios_sdk.
 """
 
 from ankaios_sdk import WorkloadInstanceName
+from ankaios_sdk._protos import _ank_base
 
 
 def test_methods():
@@ -42,6 +43,12 @@ def test_methods():
         "workload_name": "workload_Test",
         "workload_id": "1234"
     }
+    assert workload_instance_name._to_proto() == \
+        _ank_base.WorkloadInstanceName(
+            agentName="agent_Test",
+            workloadName="workload_Test",
+            id="1234"
+        )
 
 
 def test_equality():

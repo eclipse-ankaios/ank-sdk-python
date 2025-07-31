@@ -21,7 +21,8 @@ import sys, signal
 with Ankaios() as ankaios:
 
     def signal_handler(sig, frame):
-        ankaios.disconnect()
+        global ankaios
+        del ankaios
         sys.exit(0)
 
     # Add a SIGTERM handler to allow a clean shutdown

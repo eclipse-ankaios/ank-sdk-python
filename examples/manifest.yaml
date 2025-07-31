@@ -9,5 +9,8 @@ workloads:
           operation: ReadWrite
           filterMask:
             - "*"
+        - type: LogRule
+          workloadNames:
+            - "count_to_five"
     runtimeConfig: |
       image: localhost/app:0.1

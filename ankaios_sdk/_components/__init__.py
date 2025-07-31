@@ -31,14 +31,18 @@ Imports
     responsible for defining a response from the system.
 - Manifest component:
     responsible for defining a manifest object.
+- LogCampaign component:
+    responsible for defining a log campaign object and log queues.
 """
 
 from .workload import *
+from .workload_builder import *
 from .workload_state import *
 from .complete_state import *
 from .request import *
 from .response import *
 from .manifest import *
+from .log_campaign import *
 from .control_interface import *
 from .file import *
 

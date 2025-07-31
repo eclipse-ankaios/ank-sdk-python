@@ -54,9 +54,8 @@ def generate_protos():
 
     ankaios_version = config['metadata']['ankaios_version']
     protos_dir = f"{PROJECT_DIR}/_protos/{ankaios_version}"
-    proto_files = PROTO_FILES
 
-    for proto_file in proto_files:
+    for proto_file in PROTO_FILES:
         proto_path = os.path.join(protos_dir, proto_file)
         if not os.path.exists(proto_path):
             raise Exception(f"Error: {proto_file} not found.")
