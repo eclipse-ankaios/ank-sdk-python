@@ -1,6 +1,5 @@
 {
     "recommendations": [
-        "kevinrose.vsc-python-indent",
         "ms-python.python",
         "ms-python.black-formatter"
     ]
