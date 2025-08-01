@@ -91,6 +91,9 @@ jobs:
 
   docs:
     needs: release
+    permissions:
+      pages: write
+      id-token: write
     uses: ./.github/workflows/documentation.yml
 
   publish:
