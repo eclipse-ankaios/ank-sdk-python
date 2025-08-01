@@ -18,6 +18,7 @@ import configparser
 
 PROJECT_DIR = "ankaios_sdk"
 ANKAIOS_RELEASE_LINK = "https://github.com/eclipse-ankaios/ankaios/releases/download/v{version}/{file}"
+ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/api/proto/{file}"
 PROTO_FILES = ["ank_base.proto", "control_api.proto"]
 
 config = configparser.ConfigParser()
@@ -34,9 +35,12 @@ def extract_the_proto_files():
         os.makedirs(f"{PROJECT_DIR}/_protos/{ankaios_version}")
 
     for file in PROTO_FILES:
-        file_url = ANKAIOS_RELEASE_LINK.format(
-            version=ankaios_version, file=file
-        )
+        if ankaios_version.endswith("-pre"):
+            file_url = ANKAIOS_MAIN_LINK.format(file=file)
+        else:
+            file_url = ANKAIOS_RELEASE_LINK.format(
+                version=ankaios_version, file=file
+            )
         file_path = f"{PROJECT_DIR}/_protos/{ankaios_version}/{file}"
         if os.path.exists(file_path):
             continue
