@@ -96,6 +96,10 @@ def generate_protos():
 
 
 setup(
+    name=config["metadata"]["name"],
+    version=config["metadata"]["version"],
+    author=config["metadata"]["author"],
+    license=config["metadata"]["license"],
     description="Eclipse Ankaios Python SDK - provides a convenient Python interface for interacting with the Ankaios platform.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
