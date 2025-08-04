@@ -5,7 +5,7 @@ source docs_env/bin/activate
 
 pip install ".[docs]"
 
-cd docs
+cd ../docs
 
 # make html
 sphinx-build -b html source build -W --keep-going
