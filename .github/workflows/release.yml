@@ -89,13 +89,6 @@ jobs:
         reports/pylint-report.zip \
         reports/codestyle-report.zip
 
-  docs:
-    needs: release
-    permissions:
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/documentation.yml
-
   publish:
     needs: release
     environment:
@@ -116,3 +109,10 @@ jobs:
       uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
       with:
         attestations: true
+
+  docs:
+    needs: publish
+    permissions:
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/documentation.yml
