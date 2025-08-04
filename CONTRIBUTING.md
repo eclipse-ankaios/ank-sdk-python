@@ -11,13 +11,15 @@ For contributions, you'll also need to create an [Eclipse Foundation account](ht
 If you have a bug to report or a feature to suggest, please use the New Issue button on the Issues page to access templates for these items.
 
 Code contributions are to be submitted via pull requests.
-For this fork this repository, apply the suggested changes and create a
+To make a contribution, fork this repository, apply the suggested changes and create a
 pull request to integrate them.
 Before creating the request, please ensure the following which we will check
 besides a technical review:
 
 - **No breaks**: All builds and tests pass (GitHub actions).
 - **Python coding guidelines**: Make sure to follow the coding schema of the project.
+
+If a version change is required in the PR, use the [update_version.sh](./tools/update_version.sh) script to update the version.
 
 ## Communication
 
