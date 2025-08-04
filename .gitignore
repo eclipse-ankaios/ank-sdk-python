@@ -25,3 +25,6 @@ docs/build_versioned/
 
 # Tests
 examples/app/app.py
+
+# docs temp folder
+docs_env

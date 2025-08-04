@@ -14,7 +14,7 @@ cd "$base_dir/docs"
 # make html
 sphinx-build -b html source build -W --keep-going
 
-cd ..
+cd "$base_dir"
 
 deactivate
 rm -rf docs_env
