@@ -17,7 +17,7 @@
 set -e
 
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-base_dir="$script_dir"
+base_dir="$script_dir/.."
 sdk_version=""
 ankaios_version=""
 api_version=""

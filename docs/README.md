@@ -1,7 +1,7 @@
 ## Documentation
 
-The documentation can be automatically generated using the script `generate_docs.sh`. This will create a virtual environment, install the
-necesarry dependencies, generate the documentation and then delete that temporary environment.
+The documentation can be automatically generated using the script [generate_docs.sh](../tools/generate_docs.sh). This will create a virtual environment, install the
+necessary dependencies, generate the documentation and then delete that temporary environment.
 
 All the steps can be done manually as well. The documentation dependencies can be installed by running the `pip install` with the `docs` extra, and the
 documentation can be handled by the Makefile:
