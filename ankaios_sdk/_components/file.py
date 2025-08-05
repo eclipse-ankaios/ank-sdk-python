@@ -27,7 +27,7 @@ Classes
     Represents binary file content.
 
 Union Types
--------------
+-----------
 
 - FileContent:
     Union type for file content, which can be either

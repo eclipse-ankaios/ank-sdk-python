@@ -38,13 +38,13 @@ Enums
     ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
 
 Union Types
--------------
+-----------
 - LogResponse:
     Union type for log responses, which can be either :py:class:`LogEntry` or
     :py:class:`LogsStopResponse`.
 
 Usage
-------
+-----
 
 - Get response content:
     .. code-block:: python
@@ -181,9 +181,7 @@ class Response:
             self.content_type = ResponseType.LOGS_ENTRY
             self.content = []
             for log_entry in self._response.logEntriesResponse.logEntries:
-                self.content.append(
-                    LogEntry._from_entries(log_entry)
-                )
+                self.content.append(LogEntry._from_entries(log_entry))
         elif self._response.HasField("logsRequestAccepted"):
             self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
             workload_names = self._response.logsRequestAccepted.workloadNames
@@ -327,10 +325,10 @@ class LogEntry:
 
     def __str__(self) -> str:
         """
-        Converts the LogsEntry to a string.
+        Converts the LogEntry to a string.
 
         Returns:
-            str: The string representation of the LogsEntry.
+            str: The string representation of the LogEntry.
         """
         return (
             f"Log from {self.workload_instance_name.workload_name}."

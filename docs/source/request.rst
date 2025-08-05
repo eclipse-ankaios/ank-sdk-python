@@ -27,3 +27,21 @@ GetStateRequest Class
     :members:
     :undoc-members:
     :show-inheritance:
+
+LogsRequest Class
+-----------------
+
+.. autoclass:: ankaios_sdk._components.request.LogsRequest
+    :special-members: __init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+LogsCancelRequest Class
+-----------------------
+
+.. autoclass:: ankaios_sdk._components.request.LogsCancelRequest
+    :special-members: __init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
