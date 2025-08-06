@@ -70,11 +70,13 @@ class ControlInterfaceState(Enum):
 
     INITIALIZED = 1
     "(int): Connection established state."
-    TERMINATED = 2
+    CONNECTED = 2
+    "(int): Connection established state."
+    TERMINATED = 3
     "(int): Connection stopped state."
-    AGENT_DISCONNECTED = 3
+    AGENT_DISCONNECTED = 4
     "(int): Agent disconnected state."
-    CONNECTION_CLOSED = 4
+    CONNECTION_CLOSED = 5
     "(int): Connection closed state."
 
     def __str__(self) -> str:
@@ -132,7 +134,7 @@ class ControlInterface:
         Raises:
             ControlInterfaceException: If an error occurred.
         """
-        if self._state == ControlInterfaceState.INITIALIZED:
+        if self._state == ControlInterfaceState.CONNECTED:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
@@ -171,7 +173,10 @@ class ControlInterface:
         """
         Disconnect from the control interface.
         """
-        if not self._state == ControlInterfaceState.INITIALIZED:
+        if self._state not in [
+            ControlInterfaceState.INITIALIZED,
+            ControlInterfaceState.CONNECTED,
+        ]:
             self._logger.debug("Already disconnected.")
             return
 
@@ -299,6 +304,24 @@ class ControlInterface:
                     self._logger.error("Error while reading: %s", e)
                     continue
 
+                # Check if the response is a control interface accepted
+                if self._state == ControlInterfaceState.INITIALIZED:
+                    if (
+                        response.content_type
+                        != ResponseType.CONTROL_INTERFACE_ACCEPTED
+                    ):
+                        self._logger.error(
+                            "Received response %s, but expected "
+                            "CONTROL_INTERFACE_ACCEPTED. Ignoring..",
+                            response.content_type,
+                        )
+                        continue
+                    else:
+                        self._logger.debug(
+                            "Received control interface accepted response."
+                        )
+                        self.change_state(ControlInterfaceState.CONNECTED)
+
                 # Filter out the logs responses
                 if response.content_type in [
                     ResponseType.LOGS_ENTRY,
@@ -320,6 +343,15 @@ class ControlInterface:
                         response.content,
                     )
                     raise ConnectionClosedException(response.content)
+                if (
+                    response.content_type
+                    == ResponseType.CONTROL_INTERFACE_ACCEPTED
+                ):
+                    self._logger.warning(
+                        "Received unexpected "
+                        "CONTROL_INTERFACE_ACCEPTED response."
+                    )
+                    continue
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
