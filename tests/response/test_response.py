@@ -134,6 +134,16 @@ MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH = _VarintBytes(
     MESSAGE_CONNECTION_CLOSED.ByteSize()
 )
 
+MESSAGE_CONTROL_INTERFACE_ACCEPTED = _control_api.FromAnkaios(
+    controlInterfaceAccepted=_control_api.ControlInterfaceAccepted()
+)
+MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED = (
+    MESSAGE_CONTROL_INTERFACE_ACCEPTED.SerializeToString()
+)
+MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED_LENGTH = _VarintBytes(
+    MESSAGE_CONTROL_INTERFACE_ACCEPTED.ByteSize()
+)
+
 
 def test_initialisation():
     """

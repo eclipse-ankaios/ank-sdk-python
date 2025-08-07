@@ -134,7 +134,10 @@ class ControlInterface:
         Raises:
             ControlInterfaceException: If an error occurred.
         """
-        if self._state == ControlInterfaceState.CONNECTED:
+        if self._state in [
+            ControlInterfaceState.INITIALIZED,
+            ControlInterfaceState.CONNECTED,
+        ]:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
@@ -304,52 +307,70 @@ class ControlInterface:
                     self._logger.error("Error while reading: %s", e)
                     continue
 
-                # Check if the response is a control interface accepted
+                # Handle the initialized state
                 if self._state == ControlInterfaceState.INITIALIZED:
                     if (
                         response.content_type
-                        != ResponseType.CONTROL_INTERFACE_ACCEPTED
+                        == ResponseType.CONTROL_INTERFACE_ACCEPTED
                     ):
+                        self._logger.debug(
+                            "Received control interface accepted response."
+                        )
+                        self.change_state(ControlInterfaceState.CONNECTED)
+                    elif (
+                        response.content_type == ResponseType.CONNECTION_CLOSED
+                    ):
+                        self._add_response_callback(response)
+                        self.change_state(
+                            ControlInterfaceState.CONNECTION_CLOSED,
+                            response.content,
+                        )
+                        raise ConnectionClosedException(response.content)
+                    else:
                         self._logger.error(
                             "Received response %s, but expected "
                             "CONTROL_INTERFACE_ACCEPTED. Ignoring..",
                             response.content_type,
                         )
                         continue
-                    else:
-                        self._logger.debug(
-                            "Received control interface accepted response."
+
+                # Handle the connected state
+                elif self._state == ControlInterfaceState.CONNECTED:
+                    # Filter out the logs responses
+                    if response.content_type in [
+                        ResponseType.LOGS_ENTRY,
+                        ResponseType.LOGS_STOP_RESPONSE,
+                    ]:
+                        self._add_log_callback(
+                            response.get_request_id(), response.content
                         )
-                        self.change_state(ControlInterfaceState.CONNECTED)
+                        continue
 
-                # Filter out the logs responses
-                if response.content_type in [
-                    ResponseType.LOGS_ENTRY,
-                    ResponseType.LOGS_STOP_RESPONSE,
-                ]:
-                    self._add_log_callback(
-                        response.get_request_id(), response.content
-                    )
-                    continue
+                    # Send out the response to the Ankaios class
+                    self._add_response_callback(response)
 
-                # Send out the response to the Ankaios class
-                self._add_response_callback(response)
-
-                # Check if the response is connection closed in order to
-                # terminate the thread.
-                if response.content_type == ResponseType.CONNECTION_CLOSED:
-                    self.change_state(
-                        ControlInterfaceState.CONNECTION_CLOSED,
-                        response.content,
-                    )
-                    raise ConnectionClosedException(response.content)
-                if (
-                    response.content_type
-                    == ResponseType.CONTROL_INTERFACE_ACCEPTED
-                ):
+                    # Check if the response is connection closed in order to
+                    # terminate the thread.
+                    if response.content_type == ResponseType.CONNECTION_CLOSED:
+                        self.change_state(
+                            ControlInterfaceState.CONNECTION_CLOSED,
+                            response.content,
+                        )
+                        raise ConnectionClosedException(response.content)
+                    if (
+                        response.content_type
+                        == ResponseType.CONTROL_INTERFACE_ACCEPTED
+                    ):
+                        self._logger.warning(
+                            "Received unexpected "
+                            "CONTROL_INTERFACE_ACCEPTED response."
+                        )
+                        continue
+                else:
                     self._logger.warning(
-                        "Received unexpected "
-                        "CONTROL_INTERFACE_ACCEPTED response."
+                        "Received response %s, but not in a valid state. "
+                        "Ignoring..",
+                        response.content_type,
                     )
                     continue
         except Exception as e:  # pylint: disable=broad-exception-caught

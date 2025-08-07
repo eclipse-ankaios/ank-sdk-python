@@ -70,7 +70,7 @@ def test_connection():
     ci = ControlInterface(
         add_response_callback=lambda _: None, add_log_callback=lambda _: None
     )
-    ci._state = ControlInterfaceState.INITIALIZED
+    ci._state = ControlInterfaceState.CONNECTED
 
     # Already connected
     with pytest.raises(ControlInterfaceException, match="Already connected."):
