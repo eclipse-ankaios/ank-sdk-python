@@ -80,20 +80,14 @@ MESSAGE_BUFFER_LOGS_REQUEST_ACCEPTED = _control_api.FromAnkaios(
     )
 ).SerializeToString()
 
-MESSAGE_LOGS_ENTRIES_RESPONSE = _control_api.FromAnkaios(
+MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
         logEntriesResponse=_ank_base.LogEntriesResponse(
             logEntries=[generate_test_log_entry()]
         ),
     )
-)
-MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE = (
-    MESSAGE_LOGS_ENTRIES_RESPONSE.SerializeToString()
-)
-MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE_LENGTH = _VarintBytes(
-    MESSAGE_LOGS_ENTRIES_RESPONSE.ByteSize()
-)
+).SerializeToString()
 
 MESSAGE_LOGS_STOP_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
@@ -132,6 +126,16 @@ MESSAGE_BUFFER_CONNECTION_CLOSED = (
 )
 MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH = _VarintBytes(
     MESSAGE_CONNECTION_CLOSED.ByteSize()
+)
+
+MESSAGE_CONTROL_INTERFACE_ACCEPTED = _control_api.FromAnkaios(
+    controlInterfaceAccepted=_control_api.ControlInterfaceAccepted()
+)
+MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED = (
+    MESSAGE_CONTROL_INTERFACE_ACCEPTED.SerializeToString()
+)
+MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED_LENGTH = _VarintBytes(
+    MESSAGE_CONTROL_INTERFACE_ACCEPTED.ByteSize()
 )
 
 

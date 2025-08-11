@@ -195,23 +195,18 @@ class Ankaios:
         )
         self._control_interface.connect()
 
-        # Workaround for suppressing the error log when checking the connection
-        self._connection_established = False
-
-        # Test connection
-        try:
-            self.get_state(field_masks=["desiredState.apiVersion"])
-            self._connection_established = True
-        except AnkaiosResponseError:
-            self._connection_established = True
-        except AnkaiosProtocolException as e:
-            self.logger.warning("Connection test failed with: %s", e)
-        except ConnectionClosedException as e:
-            self.logger.error("%s", e)
-            raise e
-        except Exception as e:
-            self.logger.error("An unexpected error occurred: %s", e)
-            raise e
+        # Wait for the connection to be established
+        start_time = time.time()
+        while not self._control_interface.connected:
+            if time.time() - start_time > self.DEFAULT_TIMEOUT:
+                self.logger.error(
+                    "Connection to the control interface timed out."
+                )
+                self._control_interface.disconnect()
+                raise ConnectionClosedException(
+                    "Connection to the control interface timed out."
+                )
+            time.sleep(0.1)
 
     def __enter__(self) -> "Ankaios":
         """
@@ -801,10 +796,7 @@ class Ankaios:
         # Interpret response
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
-            if self._connection_established:
-                self.logger.error(
-                    "Error while trying to get state: %s", content
-                )
+            self.logger.error("Error while trying to get state: %s", content)
             raise AnkaiosResponseError(content)
         if content_type == ResponseType.COMPLETE_STATE:
             return content

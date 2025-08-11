@@ -18,7 +18,7 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 
 from io import StringIO
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 import pytest
 from ankaios_sdk import (
     Ankaios,
@@ -64,12 +64,12 @@ def generate_test_ankaios() -> Ankaios:
         Ankaios: The Ankaios instance.
     """
     with patch("ankaios_sdk.ControlInterface.connect") as mock_connect, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state:
+        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    ) as mock_connected:
+        mock_connected.return_value = True
         ankaios = Ankaios()
         mock_connect.assert_called_once()
-        mock_get_state.assert_called_once()
-    ankaios._control_interface._state = ControlInterfaceState.INITIALIZED
+    ankaios._control_interface._state = ControlInterfaceState.CONNECTED
     return ankaios
 
 
@@ -99,50 +99,36 @@ def test_connect_disconnect():
     with patch(
         "ankaios_sdk.ControlInterface.connect"
     ) as mock_ci_connect, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state, patch(
+        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    ) as mock_ci_connected, patch(
         "ankaios_sdk.ControlInterface.disconnect"
     ) as mock_ci_disconnect:
+        mock_ci_connected.return_value = True
         with Ankaios() as ankaios:
             assert isinstance(ankaios, Ankaios)
             mock_ci_connect.assert_called_once()
-            mock_get_state.assert_called_once()
             assert ankaios.logger.level == AnkaiosLogLevel.INFO.value
         mock_ci_disconnect.assert_called_once()
 
 
-def test_connection():
+def test_connection_timeout():
     """
-    Test the get_state from the ctor, used for ensuring the connection
-    is established.
+    Test the connection timeout case.
     """
-    with patch("ankaios_sdk.ControlInterface.connect") as _, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state:
-        mock_get_state.side_effect = AnkaiosResponseError()
-        _ = Ankaios()
-        mock_get_state.assert_called_once()
-
-    with patch("ankaios_sdk.ControlInterface.connect") as _, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state:
-        mock_get_state.side_effect = AnkaiosProtocolException("")
-        _ = Ankaios()
-        mock_get_state.assert_called_once()
-
-    with patch("ankaios_sdk.ControlInterface.connect") as _, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state, pytest.raises(ConnectionClosedException):
-        mock_get_state.side_effect = ConnectionClosedException()
-        _ = Ankaios()
-        mock_get_state.assert_called_once()
-
-    with patch("ankaios_sdk.ControlInterface.connect") as _, patch(
-        "ankaios_sdk.Ankaios.get_state"
-    ) as mock_get_state, pytest.raises(TimeoutError):
-        mock_get_state.side_effect = TimeoutError()
-        _ = Ankaios()
-        mock_get_state.assert_called_once()
+    with patch("time.time") as mock_time, patch("time.sleep"), patch(
+        "ankaios_sdk.ControlInterface.connect"
+    ) as mock_ci_connect, patch(
+        "ankaios_sdk.ControlInterface.disconnect"
+    ) as _, patch(
+        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    ) as mock_ci_connected:
+        # The first 2 values are needed to call the sleep
+        # The last 2 values are needed to exceed the timeout properly
+        mock_time.side_effect = [100.0, 101.0, 105.1, 105.1]
+        mock_ci_connected.return_value = False
+        with pytest.raises(ConnectionClosedException):
+            _ = Ankaios()
+        mock_ci_connect.assert_called_once()
 
 
 def test_add_response():
@@ -169,7 +155,7 @@ def test_add_logs():
     """
     log_entries = [
         LogEntry._from_entries(generate_test_log_entry(name="nginx_A")),
-        LogEntry._from_entries(generate_test_log_entry(name="nginx_B"))
+        LogEntry._from_entries(generate_test_log_entry(name="nginx_B")),
     ]
     put_mock = MagicMock()
 
