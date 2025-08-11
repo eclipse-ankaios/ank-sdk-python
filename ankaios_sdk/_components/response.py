@@ -183,9 +183,7 @@ class Response:
             self.content_type = ResponseType.LOGS_ENTRY
             self.content = []
             for log_entry in self._response.logEntriesResponse.logEntries:
-                self.content.append(
-                    LogEntry._from_entries(log_entry)
-                )
+                self.content.append(LogEntry._from_entries(log_entry))
         elif self._response.HasField("logsRequestAccepted"):
             self.content_type = ResponseType.LOGS_REQUEST_ACCEPTED
             workload_names = self._response.logsRequestAccepted.workloadNames
@@ -215,7 +213,10 @@ class Response:
         Returns:
             str: The request id of the response.
         """
-        if self.content_type == ResponseType.CONNECTION_CLOSED:
+        if self.content_type in [
+            ResponseType.CONTROL_INTERFACE_ACCEPTED,
+            ResponseType.CONNECTION_CLOSED,
+        ]:
             return None
         return self._response.requestId
 
