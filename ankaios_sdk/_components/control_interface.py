@@ -69,12 +69,14 @@ class ControlInterfaceState(Enum):
     """The state of the control interface."""
 
     INITIALIZED = 1
+    "(int): Connection initialized state."
+    CONNECTED = 2
     "(int): Connection established state."
-    TERMINATED = 2
+    TERMINATED = 3
     "(int): Connection stopped state."
-    AGENT_DISCONNECTED = 3
+    AGENT_DISCONNECTED = 4
     "(int): Agent disconnected state."
-    CONNECTION_CLOSED = 4
+    CONNECTION_CLOSED = 5
     "(int): Connection closed state."
 
     def __str__(self) -> str:
@@ -115,7 +117,8 @@ class ControlInterface:
         self._output_file = None
         # The state of the control interface must not be changed directly.
         # Use the change_state method instead.
-        self._state = ControlInterfaceState.TERMINATED
+        self._state_value = ControlInterfaceState.TERMINATED
+        self._state_lock = threading.Lock()
         self._read_thread = None
         self._disconnect_event = threading.Event()
 
@@ -123,6 +126,38 @@ class ControlInterface:
         self._add_log_callback = add_log_callback
 
         self._logger = get_logger()
+
+    @property
+    def _state(self) -> ControlInterfaceState:
+        """
+        Get the current state of the control interface.
+
+        Returns:
+            ControlInterfaceState: The current state.
+        """
+        with self._state_lock:
+            return self._state_value
+
+    @_state.setter
+    def _state(self, value: ControlInterfaceState) -> None:
+        """
+        Set the current state of the control interface.
+
+        Args:
+            value (ControlInterfaceState): The new state to set.
+        """
+        with self._state_lock:
+            self._state_value = value
+
+    @property
+    def connected(self) -> bool:
+        """
+        Check if the control interface is connected.
+
+        Returns:
+            bool: True if connected, False otherwise.
+        """
+        return self._state == ControlInterfaceState.CONNECTED
 
     def connect(self) -> None:
         """
@@ -132,7 +167,10 @@ class ControlInterface:
         Raises:
             ControlInterfaceException: If an error occurred.
         """
-        if self._state == ControlInterfaceState.INITIALIZED:
+        if self._state in [
+            ControlInterfaceState.INITIALIZED,
+            ControlInterfaceState.CONNECTED,
+        ]:
             raise ControlInterfaceException("Already connected.")
 
         if not os.path.exists(
@@ -171,7 +209,10 @@ class ControlInterface:
         """
         Disconnect from the control interface.
         """
-        if not self._state == ControlInterfaceState.INITIALIZED:
+        if self._state not in [
+            ControlInterfaceState.INITIALIZED,
+            ControlInterfaceState.CONNECTED,
+        ]:
             self._logger.debug("Already disconnected.")
             return
 
@@ -299,33 +340,88 @@ class ControlInterface:
                     self._logger.error("Error while reading: %s", e)
                     continue
 
-                # Filter out the logs responses
-                if response.content_type in [
-                    ResponseType.LOGS_ENTRY,
-                    ResponseType.LOGS_STOP_RESPONSE,
-                ]:
-                    self._add_log_callback(
-                        response.get_request_id(), response.content
-                    )
-                    continue
-
-                # Send out the response to the Ankaios class
-                self._add_response_callback(response)
-
-                # Check if the response is connection closed in order to
-                # terminate the thread.
-                if response.content_type == ResponseType.CONNECTION_CLOSED:
-                    self.change_state(
-                        ControlInterfaceState.CONNECTION_CLOSED,
-                        response.content,
-                    )
-                    raise ConnectionClosedException(response.content)
+                # Handle the response
+                self._handle_response(response)
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
             self._input_file.close()
             self._input_file = None
             self._cleanup()
+
+    def _handle_response(self, response: Response) -> None:
+        """
+        Handle the response received from the control interface.
+
+        Args:
+            response (Response): The response object to handle.
+
+        Raises:
+            ControlInterfaceException: If the response is not in a valid state.
+            ConnectionClosedException: If the connection is closed.
+        """
+        # Handle the initialized state
+        if self._state == ControlInterfaceState.INITIALIZED:
+            if (
+                response.content_type
+                == ResponseType.CONTROL_INTERFACE_ACCEPTED
+            ):
+                self._logger.debug(
+                    "Received control interface accepted response."
+                )
+                self.change_state(ControlInterfaceState.CONNECTED)
+            elif response.content_type == ResponseType.CONNECTION_CLOSED:
+                self._add_response_callback(response)
+                self.change_state(
+                    ControlInterfaceState.CONNECTION_CLOSED,
+                    response.content,
+                )
+                raise ConnectionClosedException(response.content)
+            else:
+                self._logger.error(
+                    "Received response %s, but expected "
+                    "CONTROL_INTERFACE_ACCEPTED. Ignoring..",
+                    response.content_type,
+                )
+                return
+
+        # Handle the connected state
+        elif self._state == ControlInterfaceState.CONNECTED:
+            # Filter out the logs responses
+            if response.content_type in [
+                ResponseType.LOGS_ENTRY,
+                ResponseType.LOGS_STOP_RESPONSE,
+            ]:
+                self._add_log_callback(
+                    response.get_request_id(), response.content
+                )
+                return
+
+            # Send out the response to the Ankaios class
+            self._add_response_callback(response)
+
+            # Check if the response is connection closed in order to
+            # terminate the thread.
+            if response.content_type == ResponseType.CONNECTION_CLOSED:
+                self.change_state(
+                    ControlInterfaceState.CONNECTION_CLOSED,
+                    response.content,
+                )
+                raise ConnectionClosedException(response.content)
+            if (
+                response.content_type
+                == ResponseType.CONTROL_INTERFACE_ACCEPTED
+            ):
+                self._logger.warning(
+                    "Received unexpected "
+                    "control interface accepted response."
+                )
+        else:
+            self._logger.warning(
+                "Received response %s, but not in a valid state. "
+                "Ignoring..",
+                response.content_type,
+            )
 
     def _agent_gone_routine(self) -> None:
         """
@@ -384,7 +480,7 @@ class ControlInterface:
             raise ConnectionClosedException(
                 "Could not write to pipe, connection closed."
             )
-        if not self._state == ControlInterfaceState.INITIALIZED:
+        if not self._state == ControlInterfaceState.CONNECTED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected."
             )

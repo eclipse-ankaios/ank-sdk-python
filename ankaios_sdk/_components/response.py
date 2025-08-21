@@ -131,6 +131,8 @@ class Response:
         if from_ankaios.HasField("response"):
             self._response = from_ankaios.response
             self._from_proto()
+        elif from_ankaios.HasField("controlInterfaceAccepted"):
+            self.content_type = ResponseType.CONTROL_INTERFACE_ACCEPTED
         elif from_ankaios.HasField("connectionClosed"):
             self.content_type = ResponseType.CONNECTION_CLOSED
             self.content = from_ankaios.connectionClosed.reason
@@ -211,7 +213,10 @@ class Response:
         Returns:
             str: The request id of the response.
         """
-        if self.content_type == ResponseType.CONNECTION_CLOSED:
+        if self.content_type in [
+            ResponseType.CONTROL_INTERFACE_ACCEPTED,
+            ResponseType.CONNECTION_CLOSED,
+        ]:
             return None
         return self._response.requestId
 
@@ -235,19 +240,21 @@ class ResponseType(Enum):
 
     ERROR = 1
     "(int): Got an error from Ankaios."
-    COMPLETE_STATE = 2
+    CONTROL_INTERFACE_ACCEPTED = 2
+    "(int): Control interface connection accepted."
+    COMPLETE_STATE = 3
     "(int): Got the complete state."
-    UPDATE_STATE_SUCCESS = 3
+    UPDATE_STATE_SUCCESS = 4
     "(int): Got a successful update state response."
-    LOGS_ENTRY = 4
+    LOGS_ENTRY = 5
     "(int): Got logs entry."
-    LOGS_REQUEST_ACCEPTED = 5
+    LOGS_REQUEST_ACCEPTED = 6
     "(int): Logs request accepted, waiting for logs."
-    LOGS_STOP_RESPONSE = 6
+    LOGS_STOP_RESPONSE = 7
     "(int): Got logs stop response."
-    LOGS_CANCEL_ACCEPTED = 7
+    LOGS_CANCEL_ACCEPTED = 8
     "(int): Logs cancel request accepted."
-    CONNECTION_CLOSED = 8
+    CONNECTION_CLOSED = 9
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
