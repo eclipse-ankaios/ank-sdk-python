@@ -352,7 +352,6 @@ class ControlInterface:
     def _handle_response(self, response: Response) -> None:
         """
         Handle the response received from the control interface.
-        This method must
 
         Args:
             response (Response): The response object to handle.
