@@ -39,3 +39,14 @@ assignees: ''
 <!-- Before filling in the final result, summarize the use-case and/or workflow in a comment and discuss it with the committers -->
 
 **To be filled by the one closing the issue.**
+
+### Tasks
+
+- [ ] Assign yourself as `assignee`;
+- [ ] Fix the issue;
+- [ ] Add a utest for this issue, if it's needed;
+- [ ] Document the code similar to how it's done for the other code;
+- [ ] Check and fix utests, coverage and lints; <!-- Check `run_checks.py` for how to run each tool -->
+- [ ] Update documentation if needed; <!-- `docs/source` for the pages and objects in the scripts, `docs/Makefile` for generating and viewing the documentation -->
+- [ ] Create Pull Request and fix possible workflow failures;
+- [ ] Add the `ready_for_review` label.

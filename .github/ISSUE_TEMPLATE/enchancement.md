@@ -8,11 +8,9 @@ assignees: ''
 ---
 
 ## Description
-
 <!-- provide a description of the enhancement -->
 
 ## Goals
-
 <!-- describe the goals you want to achieve with this enhancement -->
 
 ## Final result
@@ -24,11 +22,10 @@ assignees: ''
 
 ### Tasks
 
-<!--
-An optional lists of tasks that need to be executed
-By using the list syntax ("[ ]"), github can track and visualize progress on the story.
--->
-
-- [ ] Task 1
-- [ ] Task 2
-- [ ] ...
+- [ ] Assign yourself as `assignee`;
+- [ ] Implement enhancement;
+- [ ] Document the code similar to how it's done for the other code;
+- [ ] Check and fix utests, coverage and lints; <!-- Check run_checks.py for how to run each tool -->
+- [ ] Update documentation if needed; <!-- docs/source for the pages and objects in the scripts, docs/Makefile for generating and viewing the documentation -->
+- [ ] Create Pull Request and fix possible workflow failures;
+- [ ] Add the `ready_for_review` label.
