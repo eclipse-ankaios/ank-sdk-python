@@ -42,13 +42,15 @@ MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
 MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="2233",
-        completeState=_ank_base.CompleteState(
-            desiredState=_ank_base.State(
-                apiVersion="v0.1",
-                workloads=_ank_base.WorkloadMap(
-                    workloads={},
+        completeStateResponse=_ank_base.CompleteStateResponse(
+            completeState=_ank_base.CompleteState(
+                desiredState=_ank_base.State(
+                    apiVersion="v0.1",
+                    workloads=_ank_base.WorkloadMap(
+                        workloads={},
+                    ),
                 ),
-            )
+            ),
         ),
     )
 ).SerializeToString()

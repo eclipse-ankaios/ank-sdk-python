@@ -110,6 +110,17 @@ Usage
             print(f"State not reached in time.")
         else:
             print(f"State reached.")
+
+Field masks
+-----------
+
+Some of the methods support field masks to filter the state.
+Some examples of field masks include:
+- "desiredState.workloads"  # All workloads in the desired state
+- "desiredState.workloads.<workload_name>"  # Workload with the specific name
+- "desiredState.configs"  # All configs in the desired state
+- "workloadStates"  # All workload states
+- "workloadStates.<agent_name>.<workload_name>"  # State of a specific workload
 """
 
 __all__ = ["Ankaios"]
@@ -143,6 +154,9 @@ from ._components import (
     LogQueue,
     LogResponse,
     LogsRequest,
+    EventsRequest,
+    EventQueue,
+    EventEntry,
 )
 from .utils import (
     AnkaiosLogLevel,
@@ -184,6 +198,7 @@ class Ankaios:
         # Thread safe queue for responses and logs
         self._responses: Queue = Queue()
         self._logs_callbacks: dict[str, Callable] = {}
+        self._events_callbacks: dict[str, Callable] = {}
 
         self.logger = get_logger()
         self.set_logger_level(log_level)
@@ -192,6 +207,7 @@ class Ankaios:
         self._control_interface = ControlInterface(
             add_response_callback=self._add_response,
             add_log_callback=self._add_logs,
+            add_event_callback=self._add_events,
         )
         self._control_interface.connect()
 
@@ -255,6 +271,18 @@ class Ankaios:
         else:
             self.logger.warning(
                 "Received logs for unknown request id %s", request_id
+            )
+
+    def _add_events(self, request_id: str, event: EventEntry) -> None:
+        """
+        Method will be called automatically from the Control Interface
+        when an event is received.
+        """
+        if request_id in self._events_callbacks:
+            self._events_callbacks[request_id](event)
+        else:
+            self.logger.warning(
+                "Received event with unknown request id %s", request_id
             )
 
     def _get_response_by_id(
@@ -1090,5 +1118,90 @@ class Ankaios:
         if content_type == ResponseType.LOGS_CANCEL_ACCEPTED:
             self.logger.info("Logs cancel request accepted.")
             self._logs_callbacks.pop(request.get_id(), None)
+            return None
+        raise AnkaiosProtocolException("Received unexpected content type.")
+
+    def register_event(
+        self, field_masks: list[str], timeout: float = DEFAULT_TIMEOUT
+    ) -> "EventQueue":
+        """
+        Register an event.
+
+        Args:
+            field_masks (list[str]): The masks to filter the state for events.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            TimeoutError: If the request timed out.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If the response has unexpected
+                content type.
+            ConnectionClosedException: If the connection is closed.
+        """
+        event_request = EventsRequest(masks=field_masks)
+
+        # Create the event queue and get the request
+        event_queue = EventQueue(event_request)
+        request = event_queue._get_request()
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error(
+                "Error while trying to register event: %s", content
+            )
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.COMPLETE_STATE:
+            self.logger.info("Event registered successfully, state received.")
+            self._events_callbacks[request.get_id()] = event_queue.add_event
+            return event_queue
+        raise AnkaiosProtocolException("Received unexpected content type.")
+
+    def unregister_event(
+        self, event_queue: "EventQueue", timeout: float = DEFAULT_TIMEOUT
+    ) -> None:
+        """
+        Unregister an event.
+
+        Args:
+            event_queue (EventQueue): The event queue to be unregistered.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            TimeoutError: If the request timed out.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If the response has unexpected
+                content type.
+            ConnectionClosedException: If the connection is closed.
+        """
+        # Get the cancel request
+        request = event_queue._get_cancel_request()
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error(
+                "Error while trying to unregister event: %s", content
+            )
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.EVENT_CANCEL_ACCEPTED:
+            self.logger.info("Event unregister request accepted.")
+            self._events_callbacks.pop(request.get_id(), None)
             return None
         raise AnkaiosProtocolException("Received unexpected content type.")
