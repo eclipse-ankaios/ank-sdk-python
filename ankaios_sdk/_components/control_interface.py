@@ -101,7 +101,10 @@ class ControlInterface:
     "(str): The base path for the Ankaios control interface."
 
     def __init__(
-        self, add_response_callback: Callable, add_log_callback: Callable, add_event_callback: Callable
+        self,
+        add_response_callback: Callable,
+        add_log_callback: Callable,
+        add_event_callback: Callable,
     ) -> None:
         """
         Initialize the ControlInterface object. This is used

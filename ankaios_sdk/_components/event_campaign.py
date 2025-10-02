@@ -36,7 +36,7 @@ Usage
     .. code-block:: python
 
         event_queue: EventQueue
-        event: EventEntry = event_queue.get()  # blocks until an event is available
+        event: EventEntry = event_queue.get()  # blocking call
 """
 
 __all__ = ["EventQueue"]
@@ -50,7 +50,7 @@ from .complete_state import CompleteState
 
 class EventQueue(Queue):
     """
-    Represents a queue of updates through the log campaign.
+    Represents a queue of updates through the event campaign.
     Inherits from the standard Queue class.
     All objects in this queue are of type :py:type:`EventEntry`.
     """
@@ -64,7 +64,7 @@ class EventQueue(Queue):
         Initializes the EventQueue with the given parameters.
 
         Args:
-            request (EventRequest): The request object containing the log
+            request (EventRequest): The request object containing the event
                 campaign parameters.
         """
         super().__init__()

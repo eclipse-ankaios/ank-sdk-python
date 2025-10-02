@@ -70,7 +70,7 @@ AGENTS_PROTO = _ank_base.AgentMap(
 )
 
 
-COMPLETE_PROTO = proto_msg = _ank_base.CompleteState(
+COMPLETE_STATE_PROTO = _ank_base.CompleteState(
     desiredState=_ank_base.State(
         apiVersion="v0.1", workloads=WORKLOAD_PROTO, configs=CONFIGS_PROTO
     ),
@@ -176,7 +176,7 @@ def test_to_dict():
     """
     Test converting the CompleteState to a dictionary.
     """
-    complete_state = CompleteState(_proto=COMPLETE_PROTO)
+    complete_state = CompleteState(_proto=COMPLETE_STATE_PROTO)
 
     complete_state_dict = complete_state.to_dict()
     assert complete_state_dict == {
@@ -272,7 +272,7 @@ def test_proto():
     """
     Test converting the CompleteState instance to and from a protobuf message.
     """
-    complete_state = CompleteState(_proto=COMPLETE_PROTO)
+    complete_state = CompleteState(_proto=COMPLETE_STATE_PROTO)
     new_proto = complete_state._to_proto()
 
-    assert new_proto == COMPLETE_PROTO
+    assert new_proto == COMPLETE_STATE_PROTO

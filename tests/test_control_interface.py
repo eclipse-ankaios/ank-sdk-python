@@ -38,6 +38,7 @@ from tests.response.test_response import (
     MESSAGE_BUFFER_CONNECTION_CLOSED,
     MESSAGE_BUFFER_CONNECTION_CLOSED_LENGTH,
     MESSAGE_BUFFER_LOGS_ENTRIES_RESPONSE,
+    MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE,
 )
 
 
@@ -441,6 +442,28 @@ def test_handle_response_logs():
 
     response_callback.assert_not_called()
     logs_callback.assert_called_once()
+
+
+def test_handle_response_events():
+    """
+    Test the _handle_response method of the Ankaios class.
+    Test the events callback.
+    """
+    events_response = Response(MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE)
+    response_callback = MagicMock()
+    events_callback = MagicMock()
+
+    ci = ControlInterface(
+        add_response_callback=response_callback,
+        add_log_callback=lambda _: None,
+        add_event_callback=events_callback,
+    )
+    ci._state = ControlInterfaceState.CONNECTED
+
+    ci._handle_response(events_response)
+
+    response_callback.assert_not_called()
+    events_callback.assert_called_once()
 
 
 def test_agent_gone_routine():

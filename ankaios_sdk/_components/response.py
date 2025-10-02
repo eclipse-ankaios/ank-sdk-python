@@ -149,6 +149,7 @@ class Response:
             self.get_request_id(),
         )
 
+    # pylint: disable=too-many-branches
     def _from_proto(self) -> None:
         """
         Converts the parsed protobuf message to a Response object.
@@ -445,6 +446,7 @@ class EventEntry:
             ret += f"  Updated fields: {self.updated_fields}\n"
         if self.removed_fields:
             ret += f"  Deleted fields: {self.removed_fields}\n"
+        return ret
 
     @staticmethod
     def _from_response(

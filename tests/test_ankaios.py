@@ -16,6 +16,8 @@
 This module contains unit tests for the Ankaios class in the ankaios_sdk.
 """
 
+# pylint: disable=too-many-lines
+
 from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock, PropertyMock
@@ -36,6 +38,7 @@ from ankaios_sdk import (
     AnkaiosResponseError,
     ConnectionClosedException,
     LogCampaignResponse,
+    EventQueue,
 )
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
@@ -48,11 +51,13 @@ from tests.response.test_response import (
     MESSAGE_BUFFER_CONNECTION_CLOSED,
     MESSAGE_BUFFER_LOGS_REQUEST_ACCEPTED,
     MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED,
+    MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE,
 )
 from tests.test_manifest import MANIFEST_DICT
 from tests.workload_state.test_workload_state import (
     generate_test_workload_state,
 )
+from tests.test_event_campaign import generate_test_event_entry
 
 
 def generate_test_ankaios() -> Ankaios:
@@ -157,18 +162,40 @@ def test_add_logs():
         LogEntry._from_entries(generate_test_log_entry(name="nginx_A")),
         LogEntry._from_entries(generate_test_log_entry(name="nginx_B")),
     ]
-    put_mock = MagicMock()
+    add_logs_cb_mock = MagicMock()
 
     ankaios = generate_test_ankaios()
     ankaios.logger = MagicMock()
     assert len(ankaios._logs_callbacks) == 0
-    ankaios._logs_callbacks = {"correct_id": put_mock}
+    ankaios._logs_callbacks = {"correct_id": add_logs_cb_mock}
     ankaios._add_logs("correct_id", log_entries)
-    assert put_mock.call_count == 2
+    assert add_logs_cb_mock.call_count == 2
     ankaios.logger.warning.assert_not_called()
 
     ankaios._add_logs("wrong_id", log_entries)
-    assert put_mock.call_count == 2
+    assert add_logs_cb_mock.call_count == 2
+    ankaios.logger.warning.assert_called_once()
+
+
+def test_add_events():
+    """
+    Test the _add_events method of the Ankaios class.
+    This method is called from the ControlInterface when a response
+    of type EventEntry is received.
+    """
+    event_entry = generate_test_event_entry()
+    add_event_cb_mock = MagicMock()
+
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert len(ankaios._events_callbacks) == 0
+    ankaios._events_callbacks = {"correct_id": add_event_cb_mock}
+    ankaios._add_events("correct_id", event_entry)
+    assert add_event_cb_mock.call_count == 1
+    ankaios.logger.warning.assert_not_called()
+
+    ankaios._add_events("wrong_id", event_entry)
+    assert add_event_cb_mock.call_count == 1
     ankaios.logger.warning.assert_called_once()
 
 
@@ -930,5 +957,114 @@ def test_stop_receiving_logs():
         )
         with pytest.raises(AnkaiosProtocolException):
             ankaios.stop_receiving_logs(log_campaign)
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
+def test_register_events():
+    """
+    Test the register_event method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert len(ankaios._events_callbacks) == 0
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_COMPLETE_STATE
+        )
+        events_queue = ankaios.register_event(field_masks=["field1"])
+        request = mock_send_request.call_args[0][0]
+        assert isinstance(events_queue, EventQueue)
+        assert len(ankaios._events_callbacks) == 1
+        # pylint: disable=comparison-with-callable
+        assert (
+            ankaios._events_callbacks[request.get_id()]
+            == events_queue.add_event
+        )
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosResponseError):
+            ankaios.register_event(field_masks=["field1"])
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.register_event(field_masks=["field1"])
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_UPDATE_SUCCESS
+        )
+        with pytest.raises(AnkaiosProtocolException):
+            ankaios.register_event(field_masks=["field1"])
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
+def test_unregister_event():
+    """
+    Test the unregister_event method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+    assert len(ankaios._events_callbacks) == 0
+
+    # Populate the events callback with a campaign
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_COMPLETE_STATE
+        )
+        events_queue = ankaios.register_event(field_masks=["field1"])
+        assert isinstance(events_queue, EventQueue)
+        assert len(ankaios._events_callbacks) == 1
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE
+        )
+        cancel_request = events_queue._get_cancel_request()
+        ankaios.unregister_event(events_queue)
+        request = mock_send_request.call_args[0][0]
+        assert cancel_request._to_proto() == request._to_proto()
+        assert len(ankaios._events_callbacks) == 0
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosResponseError):
+            ankaios.unregister_event(events_queue)
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.unregister_event(events_queue)
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_UPDATE_SUCCESS
+        )
+        with pytest.raises(AnkaiosProtocolException):
+            ankaios.unregister_event(events_queue)
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()

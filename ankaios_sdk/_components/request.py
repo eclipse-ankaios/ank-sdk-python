@@ -31,6 +31,11 @@ Classes
 - LogsCancelRequest:
     Represents a request to stop the real-time log stream from the
     Ankaios system.
+- EventsRequest:
+    Represents a request to register for events from the Ankaios system.
+- EventsCancelRequest:
+    Represents a request to unregister from the event stream of a specific
+    events campaign in the Ankaios system.
 
 Usage
 -----
@@ -78,6 +83,7 @@ __all__ = [
     "LogsRequest",
     "LogsCancelRequest",
     "EventsRequest",
+    "EventsCancelRequest",
 ]
 
 import uuid
