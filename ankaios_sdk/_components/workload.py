@@ -49,7 +49,7 @@ Usage
     .. code-block:: python
 
         tags = workload.get_tags()
-        tags.pop("key1")
+        del tags["key1"]
         workload.update_tags(tags)
 
 - Print the updated workload:
@@ -246,34 +246,33 @@ class Workload:
             key (str): The key of the tag.
             value (str): The value of the tag.
         """
-        tag = _ank_base.Tag(key=key, value=value)
-        self._workload.tags.tags.append(tag)
+        tag = {key: value}
+        self._workload.tags.tags.update(tag)
         if f"{self._main_mask}.tags" not in self.masks:
             self._add_mask(f"{self._main_mask}.tags.{key}")
 
-    def get_tags(self) -> list[tuple[str, str]]:
+    def get_tags(self) -> dict[str, str]:
         """
         Return the tags of the workload.
 
         Returns:
             list: A list of tuples containing tag keys and values.
         """
-        tags = []
-        for tag in self._workload.tags.tags:
-            tags.append((tag.key, tag.value))
+        tags = {}
+        for key, value in self._workload.tags.tags.items():
+            tags.update({key: value})
         return tags
 
-    def update_tags(self, tags: list) -> None:
+    def update_tags(self, tags: dict) -> None:
         """
         Update the tags of the workload.
 
         Args:
-            tags (list): A list of tuples containing tag keys and values.
+            tags (dict): A dict containing tag keys and values.
         """
-        del self._workload.tags.tags[:]
-        for key, value in tags:
-            tag = _ank_base.Tag(key=key, value=value)
-            self._workload.tags.tags.append(tag)
+        self._workload.tags.tags.clear()
+        for key, value in tags.items():
+            self._workload.tags.tags.update({key: value})
         self.masks = [
             mask
             for mask in self.masks
@@ -436,12 +435,10 @@ class Workload:
                 workload_dict["dependencies"][dep_key] = (
                     _ank_base.AddCondition.Name(dep_value)
                 )
-        workload_dict["tags"] = []
+        workload_dict["tags"] = {}
         if self._workload.tags:
-            for tag in self._workload.tags.tags:
-                workload_dict["tags"].append(
-                    {"key": tag.key, "value": tag.value}
-                )
+            for key, value in self._workload.tags.tags.items():
+                workload_dict["tags"].update({key: value})
         workload_dict["controlInterfaceAccess"] = {}
         if self._workload.controlInterfaceAccess:
             workload_dict["controlInterfaceAccess"]["allowRules"] = []
@@ -490,8 +487,8 @@ class Workload:
             for dep_key, dep_value in dict_workload["dependencies"].items():
                 workload = workload.add_dependency(dep_key, dep_value)
         if "tags" in dict_workload:
-            for tag in dict_workload["tags"]:
-                workload = workload.add_tag(tag["key"], tag["value"])
+            for key, value in dict_workload["tags"].items():
+                workload = workload.add_tag(key, value)
         if "controlInterfaceAccess" in dict_workload:
             if "allowRules" in dict_workload["controlInterfaceAccess"]:
                 for rule in dict_workload["controlInterfaceAccess"][
