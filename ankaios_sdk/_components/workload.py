@@ -256,7 +256,7 @@ class Workload:
         Return the tags of the workload.
 
         Returns:
-            list: A list of tuples containing tag keys and values.
+            dict: A dict containing tag keys and values.
         """
         tags = {}
         for key, value in self._workload.tags.tags.items():
