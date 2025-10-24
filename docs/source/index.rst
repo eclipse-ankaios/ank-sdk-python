@@ -22,6 +22,7 @@
    response
    file
    log_campaign
+   event_campaign
    control_interface
    utils
    exceptions

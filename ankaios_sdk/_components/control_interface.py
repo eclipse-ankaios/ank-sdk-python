@@ -101,7 +101,10 @@ class ControlInterface:
     "(str): The base path for the Ankaios control interface."
 
     def __init__(
-        self, add_response_callback: Callable, add_log_callback: Callable
+        self,
+        add_response_callback: Callable,
+        add_log_callback: Callable,
+        add_event_callback: Callable,
     ) -> None:
         """
         Initialize the ControlInterface object. This is used
@@ -124,6 +127,7 @@ class ControlInterface:
 
         self._add_response_callback = add_response_callback
         self._add_log_callback = add_log_callback
+        self._add_event_callback = add_event_callback
 
         self._logger = get_logger()
 
@@ -393,6 +397,15 @@ class ControlInterface:
                 ResponseType.LOGS_STOP_RESPONSE,
             ]:
                 self._add_log_callback(
+                    response.get_request_id(), response.content
+                )
+                return
+
+            # Filter out the events
+            if response.content_type in [
+                ResponseType.EVENT_RESPONSE,
+            ]:
+                self._add_event_callback(
                     response.get_request_id(), response.content
                 )
                 return
