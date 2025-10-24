@@ -109,11 +109,11 @@ def test_add_tag(
     """
     assert len(builder.tags) == 0
 
-    assert builder.add_tag("key_test", "abc") == builder
-    assert builder.tags == [("key_test", "abc")]
+    assert builder.add_tag("key_test_1", "abc") == builder
+    assert builder.tags == {"key_test_1": "abc"}
 
-    assert builder.add_tag("key_test", "bcd") == builder
-    assert builder.tags == [("key_test", "abc"), ("key_test", "bcd")]
+    assert builder.add_tag("key_test_2", "bcd") == builder
+    assert builder.tags == {"key_test_1": "abc", "key_test_2": "bcd"}
 
 
 def test_add_state_rule(
@@ -278,9 +278,7 @@ def test_build(
             "workload_test_other": _ank_base.AddCondition.ADD_COND_RUNNING
         }
     )
-    assert workload._workload.tags == _ank_base.Tags(
-        tags=[_ank_base.Tag(key="key_test", value="abc")]
-    )
+    assert workload._workload.tags == _ank_base.Tags(tags={"key_test": "abc"})
     assert workload._workload.controlInterfaceAccess.allowRules == [
         _ank_base.AccessRightsRule(
             stateRule=_ank_base.StateRule(

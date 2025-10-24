@@ -43,9 +43,7 @@ WORKLOAD_PROTO = _ank_base.WorkloadMap(
             runtime="podman",
             runtimeConfig=r"image: control_interface_prod:0.1\n",
             restartPolicy=_ank_base.ALWAYS,
-            tags=_ank_base.Tags(
-                tags=[_ank_base.Tag(key="owner", value="Ankaios team")]
-            ),
+            tags=_ank_base.Tags(tags={"owner": "Ankaios team"}),
             dependencies=_ank_base.Dependencies(
                 dependencies={"nginx": _ank_base.ADD_COND_RUNNING}
             ),
@@ -217,15 +215,15 @@ def test_tags(workload: Workload):  # pylint: disable=redefined-outer-name
     """
     assert len(workload.get_tags()) == 2
 
-    # Allow duplicate tags
+    # Disallow duplicate tags
     workload.add_tag("key1", "new_value1")
-    assert len(workload.get_tags()) == 3
+    assert len(workload.get_tags()) == 2
 
     tags = workload.get_tags()
-    tags = tags[1:]
+    _ = tags.pop(list(tags.keys())[0])
     workload.update_tags(tags)
 
-    assert len(workload.get_tags()) == 2
+    assert len(workload.get_tags()) == 1
 
 
 def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
@@ -334,10 +332,7 @@ def test_to_proto(workload: Workload):  # pylint: disable=redefined-outer-name
         "workload_test_other": _ank_base.ADD_COND_RUNNING
     }
     assert proto.tags == _ank_base.Tags(
-        tags=[
-            _ank_base.Tag(key="key1", value="value1"),
-            _ank_base.Tag(key="key2", value="value2"),
-        ]
+        tags={"key1": "value1", "key2": "value2"},
     )
 
 
@@ -401,7 +396,7 @@ def test_from_to_dict():
         ),
         (
             "update_tags",
-            {"tags": [("key1", "value1"), ("key2", "value2")]},
+            {"tags": {"key1": "value1", "key2": "value2"}},
             f"{WORKLOADS_PREFIX}.workload_test.tags",
         ),
         (
