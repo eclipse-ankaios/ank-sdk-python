@@ -61,7 +61,7 @@ class WorkloadBuilder:
         wl_runtime_config (str): The runtime configuration.
         wl_restart_policy (str): The restart policy.
         dependencies (dict): The dependencies.
-        tags (list): The tags.
+        tags (dict): The tags.
     """
 
     def __init__(self) -> None:
@@ -74,7 +74,7 @@ class WorkloadBuilder:
         self.wl_runtime_config = None
         self.wl_restart_policy = None
         self.dependencies = {}
-        self.tags = []
+        self.tags = {}
         self.allow_rules = []
         self.deny_rules = []
         self.configs = {}
@@ -188,7 +188,7 @@ class WorkloadBuilder:
         Returns:
             WorkloadBuilder: The builder object.
         """
-        self.tags.append((key, value))
+        self.tags.update({key: value})
         return self
 
     def add_allow_state_rule(
