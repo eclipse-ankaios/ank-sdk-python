@@ -45,3 +45,21 @@ LogsCancelRequest Class
     :members:
     :undoc-members:
     :show-inheritance:
+
+EventsRequest Class
+-------------------
+
+.. autoclass:: ankaios_sdk._components.request.EventsRequest
+    :special-members: __init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+EventsCancelRequest Class
+-------------------------
+
+.. autoclass:: ankaios_sdk._components.request.EventsCancelRequest
+    :special-members: __init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
