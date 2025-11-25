@@ -63,8 +63,10 @@ FILES_PROTO = _ank_base.Files(
 AGENTS_PROTO = _ank_base.AgentMap(
     agents={
         "agent_A": _ank_base.AgentAttributes(
-            cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
-            free_memory=_ank_base.FreeMemory(free_memory=1024),
+            status=_ank_base.AgentStatus(
+                cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
+                free_memory=_ank_base.FreeMemory(free_memory=1024),
+            )
         )
     }
 )

@@ -214,9 +214,10 @@ class CompleteState:
         """
         agents = {}
         for name, attributes in self._complete_state.agents.agents.items():
+            status = attributes.status
             agents[name] = {
-                "cpu_usage": int(attributes.cpu_usage.cpu_usage),
-                "free_memory": attributes.free_memory.free_memory,
+                "cpu_usage": int(status.cpu_usage.cpu_usage),
+                "free_memory": status.free_memory.free_memory,
             }
         return agents
 
