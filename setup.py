@@ -109,7 +109,6 @@ setup(
     packages=find_packages(where="."),
     include_package_data=True,
     classifiers=[
-        "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",

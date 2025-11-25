@@ -189,7 +189,7 @@ def test_to_dict():
                     "runtimeConfig": "image: control_interface_prod:0.1\\n",
                     "dependencies": {"nginx": "ADD_COND_RUNNING"},
                     "restartPolicy": "ALWAYS",
-                    "tags": [{"key": "owner", "value": "Ankaios team"}],
+                    "tags": {"owner": "Ankaios team"},
                     "controlInterfaceAccess": {
                         "allowRules": [
                             {
