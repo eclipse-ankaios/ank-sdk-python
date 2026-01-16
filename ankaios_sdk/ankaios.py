@@ -147,6 +147,7 @@ from ._components import (
 from .utils import (
     AnkaiosLogLevel,
     get_logger,
+    AGENTS_PREFIX,
     WORKLOADS_PREFIX,
     CONFIGS_PREFIX,
 )
@@ -800,6 +801,54 @@ class Ankaios:
             raise AnkaiosResponseError(content)
         if content_type == ResponseType.COMPLETE_STATE:
             return content
+        raise AnkaiosProtocolException("Received unexpected content type.")
+
+    def set_agent_tags(
+        self,
+        agent_name: str,
+        tags: dict[str, str],
+        timeout: float = DEFAULT_TIMEOUT,
+    ):
+        """
+        Set the tags for a specific agent.
+
+        Args:
+            agent_name (str): The name of the agent.
+            tags (dict[str, str]): The tags to be set.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            TimeoutError: If the request timed out.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If the response has unexpected
+                content type.
+            ConnectionClosedException: If the connection is closed.
+        """
+        # Create the request
+        complete_state = CompleteState()
+        complete_state.set_agent_tags(agent_name, tags)
+        request = UpdateStateRequest(
+            complete_state, [f"{AGENTS_PREFIX}.{agent_name}.tags"]
+        )
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error(
+                "Error while trying to set agent tags: %s", content
+            )
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
+            self.logger.info("Update successful")
+            return
         raise AnkaiosProtocolException("Received unexpected content type.")
 
     def get_agents(self, timeout: float = DEFAULT_TIMEOUT) -> dict:

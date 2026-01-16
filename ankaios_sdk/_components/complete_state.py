@@ -216,10 +216,24 @@ class CompleteState:
         for name, attributes in self._complete_state.agents.agents.items():
             status = attributes.status
             agents[name] = {
+                "tags": dict(attributes.tags.tags),
                 "cpu_usage": int(status.cpu_usage.cpu_usage),
                 "free_memory": status.free_memory.free_memory,
             }
         return agents
+
+    def set_agent_tags(self, agent_name: str, tags: dict[str, str]) -> None:
+        """
+        Sets the tags for a specific agent.
+
+        Args:
+            agent_name (str): The name of the agent.
+            tags (dict[str, str]): The tags to set for the agent.
+        """
+        agent_attributes = self._complete_state.agents.agents[agent_name]
+        agent_attributes.tags.tags.clear()
+        for key, value in tags.items():
+            agent_attributes.tags.tags[key] = value
 
     def set_configs(self, configs: dict) -> None:
         """

@@ -673,6 +673,49 @@ def test_get_state():
         ankaios.logger.error.assert_called()
 
 
+def test_set_agent_tags():
+    """
+    Test the set_agent_tags method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_UPDATE_SUCCESS
+        )
+        ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosResponseError):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_COMPLETE_STATE
+        )
+        with pytest.raises(AnkaiosProtocolException):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
 def test_get_agents():
     """
     Test the get agents method of the Ankaios class.

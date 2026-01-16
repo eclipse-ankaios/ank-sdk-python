@@ -66,7 +66,8 @@ AGENTS_PROTO = _ank_base.AgentMap(
             status=_ank_base.AgentStatus(
                 cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
                 free_memory=_ank_base.FreeMemory(free_memory=1024),
-            )
+            ),
+            tags=_ank_base.Tags(tags={"tag_key": "tag_value"}),
         )
     }
 )
@@ -140,6 +141,11 @@ def test_get_agents():
     assert "agent_A" in agents
     assert agents["agent_A"]["cpu_usage"] == 50
     assert agents["agent_A"]["free_memory"] == 1024
+    assert agents["agent_A"]["tags"] == {"tag_key": "tag_value"}
+
+    complete_state.set_agent_tags("agent_A", {"new_tag": "new_value"})
+    agents = complete_state.get_agents()
+    assert agents["agent_A"]["tags"] == {"new_tag": "new_value"}
 
 
 def test_get_configs():
@@ -263,7 +269,13 @@ def test_to_dict():
                 }
             },
         },
-        "agents": {"agent_A": {"cpu_usage": 50, "free_memory": 1024}},
+        "agents": {
+            "agent_A": {
+                "tags": {"tag_key": "tag_value"},
+                "cpu_usage": 50,
+                "free_memory": 1024,
+            }
+        },
     }
 
     # Test that it can be converted to json

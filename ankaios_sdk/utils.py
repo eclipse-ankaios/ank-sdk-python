@@ -49,6 +49,9 @@ WORKLOADS_PREFIX = "desiredState.workloads"
 CONFIGS_PREFIX = "desiredState.configs"
 "(str): The prefix for the configs in the desired state."
 
+AGENTS_PREFIX = "agents"
+"(str): The prefix for the agents in the Ankaios manifest."
+
 DEFAULT_CONTROL_INTERFACE_PATH = "/run/ankaios/control_interface"
 "(str): The base path for the Ankaios control interface."
 
