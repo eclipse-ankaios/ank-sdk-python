@@ -18,7 +18,7 @@ import configparser
 
 PROJECT_DIR = "ankaios_sdk"
 ANKAIOS_RELEASE_LINK = "https://github.com/eclipse-ankaios/ankaios/releases/download/v{version}/{file}"
-ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/api/proto/{file}"
+ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/ankaios_api/proto/{file}"
 PROTO_FILES = ["ank_base.proto", "control_api.proto"]
 
 config = configparser.ConfigParser()
