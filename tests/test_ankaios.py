@@ -729,7 +729,9 @@ def test_get_agents():
     ) as mock_state_get_agents:
         mock_get_state.return_value = CompleteState()
         ankaios.get_agents()
-        mock_get_state.assert_called_once_with(["agents"], Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            ["agents"], Ankaios.DEFAULT_TIMEOUT
+        )
         mock_state_get_agents.assert_called_once()
 
 
