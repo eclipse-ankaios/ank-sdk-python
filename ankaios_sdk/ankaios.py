@@ -871,7 +871,7 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(None, timeout).get_agents()
+        return self.get_state([f"{AGENTS_PREFIX}"], timeout).get_agents()
 
     def get_agent(
         self, agent_name: str, timeout: float = DEFAULT_TIMEOUT
