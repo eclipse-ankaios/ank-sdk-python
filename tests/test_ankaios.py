@@ -16,6 +16,8 @@
 This module contains unit tests for the Ankaios class in the ankaios_sdk.
 """
 
+# pylint: disable=too-many-lines
+
 from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock, PropertyMock
@@ -728,6 +730,48 @@ def test_get_agents():
         mock_get_state.return_value = CompleteState()
         ankaios.get_agents()
         mock_get_state.assert_called_once_with(None, Ankaios.DEFAULT_TIMEOUT)
+        mock_state_get_agents.assert_called_once()
+
+
+def test_get_agent():
+    """
+    Test the get agent method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    agent_name = "agent_A"
+    agent_attributes = MagicMock()
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, patch(
+        "ankaios_sdk.CompleteState.get_agents"
+    ) as mock_state_get_agents:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_agents.return_value = {agent_name: agent_attributes}
+        ret = ankaios.get_agent(agent_name)
+        assert ret == agent_attributes
+        mock_get_state.assert_called_once_with(
+            field_masks=[f"agents.{agent_name}"],
+            timeout=Ankaios.DEFAULT_TIMEOUT,
+        )
+        mock_state_get_agents.assert_called_once()
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, patch(
+        "ankaios_sdk.CompleteState.get_agents"
+    ) as mock_state_get_agents:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_agents.return_value = {
+            "another_agent": agent_attributes
+        }
+
+        with pytest.raises(
+            AnkaiosProtocolException,
+            match="Agent agent_A not found",
+        ):
+            ankaios.get_agent(agent_name)
+
+        mock_get_state.assert_called_once_with(
+            field_masks=[f"agents.{agent_name}"],
+            timeout=Ankaios.DEFAULT_TIMEOUT,
+        )
         mock_state_get_agents.assert_called_once()
 
 

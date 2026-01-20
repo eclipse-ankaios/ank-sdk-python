@@ -21,6 +21,8 @@ Classes
 
 - CompleteState:
     Represents the complete state of the Ankaios cluster.
+- AgentAttributes:
+    Represents the attributes of an agent in the Ankaios cluster.
 
 Usage
 -----
@@ -51,7 +53,7 @@ Usage
 
         workloads = complete_state.get_workloads()
 
-- Get the connected agents:
+- Get the agents and their attributes:
     .. code-block:: python
 
         agents = complete_state.get_agents()
@@ -60,9 +62,16 @@ Usage
     .. code-block:: python
 
         workload_states = complete_state.get_workload_states()
+
+- Get the tags and status of a specific agent:
+    .. code-block:: python
+
+        agent_attributes = AgentAttributes()
+        tags = agent_attributes.tags
+        status = agent_attributes.status
 """
 
-__all__ = ["CompleteState"]
+__all__ = ["CompleteState", "AgentAttributes"]
 
 from typing import Union
 from .._protos import _ank_base
@@ -205,21 +214,17 @@ class CompleteState:
         )
         return workload_state_collection
 
-    def get_agents(self) -> dict[str, dict]:
+    def get_agents(self) -> dict[str, "AgentAttributes"]:
         """
         Gets the connected agents and their attributes.
 
         Returns:
-            dict[str, dict]: A dict with the agents and their attributes.
+            dict[str, AgentAttributes]: A dict with the agents and
+                their attributes.
         """
         agents = {}
         for name, attributes in self._complete_state.agents.agents.items():
-            status = attributes.status
-            agents[name] = {
-                "tags": dict(attributes.tags.tags),
-                "cpu_usage": int(status.cpu_usage.cpu_usage),
-                "free_memory": status.free_memory.free_memory,
-            }
+            agents[name] = AgentAttributes._from_proto(attributes)
         return agents
 
     def set_agent_tags(self, agent_name: str, tags: dict[str, str]) -> None:
@@ -309,7 +314,9 @@ class CompleteState:
                     data["workload_states"][agent_name][workload_name][
                         workload_id
                     ] = exec_state.to_dict()
-        data["agents"] = self.get_agents()
+        data["agents"] = {}
+        for agent_name, agent_attributes in self.get_agents().items():
+            data["agents"][agent_name] = agent_attributes.to_dict()
         return data
 
     def _to_proto(self) -> _ank_base.CompleteState:
@@ -321,3 +328,57 @@ class CompleteState:
                 the complete state.
         """
         return self._complete_state
+
+
+class AgentAttributes:
+    """
+    A class to represent the attributes of an agent.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initializes an AgentAttributes instance.
+        """
+        self.tags: dict[str, str] = {}
+        self._status: _ank_base.AgentStatus = _ank_base.AgentStatus()
+
+    @property
+    def status(self) -> dict[str, str]:
+        """
+        Gets the status of the agent.
+
+        Returns:
+            dict[str, str]: The status of the agent.
+        """
+        status = {
+            "cpu_usage": int(self._status.cpu_usage.cpu_usage),
+            "free_memory": self._status.free_memory.free_memory,
+        }
+        return status
+
+    def to_dict(self) -> dict:
+        """
+        Returns the AgentAttributes as a dictionary.
+
+        Returns:
+            dict: The AgentAttributes as a dictionary.
+        """
+        data = {
+            "tags": self.tags,
+            "status": self.status,
+        }
+        return data
+
+    @staticmethod
+    def _from_proto(proto: _ank_base.AgentAttributes) -> "AgentAttributes":
+        """
+        Initializes the AgentAttributes instance from a proto message.
+
+        Args:
+            proto (_ank_base.AgentAttributes): The proto message to
+                initialize the agent attributes.
+        """
+        obj = AgentAttributes()
+        obj.tags = dict(proto.tags.tags)
+        obj._status = proto.status
+        return obj

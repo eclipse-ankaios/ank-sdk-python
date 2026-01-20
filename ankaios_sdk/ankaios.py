@@ -135,6 +135,7 @@ from ._components import (
     UpdateStateSuccess,
     WorkloadStateCollection,
     Manifest,
+    AgentAttributes,
     WorkloadInstanceName,
     WorkloadStateEnum,
     WorkloadExecutionState,
@@ -853,7 +854,7 @@ class Ankaios:
 
     def get_agents(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
-        Get the agents from the requested complete state.
+        Get the agents and their attributes.
 
         Args:
             timeout (float): The maximum time to wait for the response,
@@ -871,6 +872,36 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(None, timeout).get_agents()
+
+    def get_agent(
+        self, agent_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> AgentAttributes:
+        """
+        Get the attributes of a specific agent.
+
+        Args:
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Returns:
+            AgentAttributes: The attributes of the agent.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            ControlInterfaceException: If not connected.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If an error occurred while getting
+                the state or the agent is not found.
+            ConnectionClosedException: If the connection is closed.
+        """
+        agents = self.get_state(
+            field_masks=[f"{AGENTS_PREFIX}.{agent_name}"], timeout=timeout
+        ).get_agents()
+
+        if agent_name not in agents:
+            self.logger.error("Agent %s not found", agent_name)
+            raise AnkaiosProtocolException(f"Agent {agent_name} not found")
+        return agents[agent_name]
 
     def get_workload_states(
         self, timeout: float = DEFAULT_TIMEOUT
