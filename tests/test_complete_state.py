@@ -89,7 +89,10 @@ def test_general_functionality():
     assert complete_state.get_api_version() == SUPPORTED_API_VERSION
     complete_state._set_api_version("v0.2")
     assert complete_state.get_api_version() == "v0.2"
-    assert str(complete_state) == 'desiredState {\n  apiVersion: "v0.2"\n}\n'
+    assert (
+        str(complete_state)
+        == 'desiredState {\n  apiVersion: "v0.2"\n  workloads {\n  }\n}\n'
+    )
 
 
 def test_workload_functionality():
