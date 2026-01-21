@@ -28,6 +28,7 @@ from ankaios_sdk import (
     LogsStopResponse,
     EventEntry,
 )
+from tests.test_complete_state import CONFIGS_PROTO
 from tests.response.test_log_response import generate_test_log_entry
 
 
@@ -130,12 +131,16 @@ MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE = _control_api.FromAnkaios(
                     workloads=_ank_base.WorkloadMap(
                         workloads={},
                     ),
+                    configs=CONFIGS_PROTO,
                 ),
             ),
             alteredFields=_ank_base.AlteredFields(
-                addedFields=["field1"],
-                updatedFields=["field2"],
-                removedFields=["field3"],
+                addedFields=[
+                    "desiredState.configs.config2",
+                    "desiredState.configs.config3",
+                ],
+                updatedFields=["desiredState.configs.config1"],
+                removedFields=["desiredState.configs.config4"],
             ),
         ),
     )
