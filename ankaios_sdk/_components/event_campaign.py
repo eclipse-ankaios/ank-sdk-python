@@ -55,7 +55,6 @@ class EventQueue(Queue):
     All objects in this queue are of type :py:type:`EventEntry`.
     """
 
-    # -- # pylint: disable=too-many-arguments
     def __init__(
         self,
         request_id: EventsRequest,

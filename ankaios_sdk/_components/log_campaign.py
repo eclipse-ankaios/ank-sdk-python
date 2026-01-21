@@ -78,7 +78,6 @@ class LogQueue(Queue):
     All objects in this queue are of type :py:type:`LogResponse`.
     """
 
-    # --- # pylint: disable=too-many-arguments
     def __init__(
         self,
         request_id: str,
