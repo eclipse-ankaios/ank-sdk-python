@@ -48,12 +48,6 @@ with Ankaios(log_level=AnkaiosLogLevel.DEBUG) as ankaios:
     )
 
     try:
-        # Run the workload
-        update_response = ankaios.apply_workload(workload)
-
-        # Get the WorkloadInstanceName to check later if the workload is running
-        workload_instance_name = update_response.added_workloads[0]
-
         # Register to events to the workload
         try:
             event_queue = ankaios.register_event(
@@ -62,6 +56,9 @@ with Ankaios(log_level=AnkaiosLogLevel.DEBUG) as ankaios:
         except AnkaiosException as e:
             print("Ankaios Exception occurred during event registration: ", e)
             sys.exit(1)
+
+        # Run the workload
+        update_response = ankaios.apply_workload(workload)
 
         while True:
             # Get the events out of the queue

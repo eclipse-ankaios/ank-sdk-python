@@ -46,7 +46,7 @@ MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
         completeStateResponse=_ank_base.CompleteStateResponse(
             completeState=_ank_base.CompleteState(
                 desiredState=_ank_base.State(
-                    apiVersion="v0.1",
+                    apiVersion="v1",
                     workloads=_ank_base.WorkloadMap(
                         workloads={},
                     ),
@@ -126,7 +126,7 @@ MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE = _control_api.FromAnkaios(
         completeStateResponse=_ank_base.CompleteStateResponse(
             completeState=_ank_base.CompleteState(
                 desiredState=_ank_base.State(
-                    apiVersion="v0.1",
+                    apiVersion="v1",
                     workloads=_ank_base.WorkloadMap(
                         workloads={},
                     ),

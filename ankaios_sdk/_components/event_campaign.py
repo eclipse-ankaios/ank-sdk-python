@@ -71,7 +71,7 @@ class EventQueue(Queue):
         self.complete_state: CompleteState = None
         self._request = request
 
-    def add_event(self, event: "EventEntry") -> None:
+    def add_event(self, event: EventEntry) -> None:
         """
         Adds an event to the queue and updates the known complete state.
 

@@ -74,7 +74,7 @@ AGENTS_PROTO = _ank_base.AgentMap(
 
 COMPLETE_STATE_PROTO = _ank_base.CompleteState(
     desiredState=_ank_base.State(
-        apiVersion="v0.1", workloads=WORKLOAD_PROTO, configs=CONFIGS_PROTO
+        apiVersion="v1", workloads=WORKLOAD_PROTO, configs=CONFIGS_PROTO
     ),
     workloadStates=WORKLOAD_STATES_PROTO,
     agents=AGENTS_PROTO,
@@ -167,7 +167,7 @@ def test_from_manifest():
     """
     manifest = Manifest.from_dict(MANIFEST_DICT)
     complete_state = CompleteState(manifest=manifest)
-    assert complete_state.get_api_version() == "v0.1"
+    assert complete_state.get_api_version() == "v1"
     workloads = complete_state.get_workloads()
     assert len(workloads) == 1
     assert workloads[0].name == "nginx_test"
@@ -183,7 +183,7 @@ def test_to_dict():
     complete_state_dict = complete_state.to_dict()
     assert complete_state_dict == {
         "desired_state": {
-            "api_version": "v0.1",
+            "api_version": "v1",
             "workloads": {
                 "dynamic_nginx": {
                     "agent": "agent_A",

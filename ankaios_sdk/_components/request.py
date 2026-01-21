@@ -35,7 +35,7 @@ Classes
     Represents a request to register for events from the Ankaios system.
 - EventsCancelRequest:
     Represents a request to unregister from the event stream of a specific
-    events campaign in the Ankaios system.
+    event campaign in the Ankaios system.
 
 Usage
 -----
@@ -320,7 +320,7 @@ class EventsRequest(Request):
 class EventsCancelRequest(Request):
     """
     Represents a request for unregistering from the event stream
-    of a specific events campaign in the Ankaios system.
+    of a specific event campaign in the Ankaios system.
     """
 
     def __init__(self, request_id: str) -> None:

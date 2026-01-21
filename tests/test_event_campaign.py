@@ -76,6 +76,6 @@ def test_events_queue():
     assert events_queue.complete_state == complete_state
 
     assert (
-        str(entry) == "Event notification:\n  Added fields: ['field1']\n  "
+        str(entry) == "Event:\n  Added fields: ['field1']\n  "
         "Updated fields: ['field2']\n  Deleted fields: ['field3']\n"
     )

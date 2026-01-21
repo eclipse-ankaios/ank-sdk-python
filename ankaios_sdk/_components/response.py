@@ -30,7 +30,7 @@ Classes
     Represents a response for marking the end of the log stream from a
     workload instance.
 - EventEntry:
-    Represents an event notification.
+    Represents an event.
 
 Enums
 -----
@@ -424,7 +424,7 @@ class EventEntry:
     """
 
     complete_state: CompleteState
-    """The complete state of the event."""
+    """The complete state of the event indicating the state changes."""
     added_fields: list[str]
     """The list of added fields of the state."""
     updated_fields: list[str]
@@ -439,7 +439,7 @@ class EventEntry:
         Returns:
             str: The string representation of the EventEntry.
         """
-        ret = "Event notification:\n"
+        ret = "Event:\n"
         if self.added_fields:
             ret += f"  Added fields: {self.added_fields}\n"
         if self.updated_fields:
