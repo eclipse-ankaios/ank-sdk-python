@@ -44,7 +44,6 @@ __all__ = ["LogCampaignResponse", "LogQueue"]
 
 from queue import Queue
 from .workload_state import WorkloadInstanceName
-from .request import LogsRequest, LogsCancelRequest
 
 
 # pylint: disable=too-few-public-methods
@@ -79,35 +78,16 @@ class LogQueue(Queue):
     All objects in this queue are of type :py:type:`LogResponse`.
     """
 
-    # pylint: disable=too-many-arguments
+    # --- # pylint: disable=too-many-arguments
     def __init__(
         self,
-        request: LogsRequest,
+        request_id: str,
     ) -> None:
         """
         Initializes the LogQueue with the given parameters.
 
         Args:
-            request (LogsRequest): The request object containing the log
-                campaign parameters.
+            request_id (str): The request id of the logs campaign.
         """
         super().__init__()
-        self._request = request
-
-    def _get_request(self) -> LogsRequest:
-        """
-        Returns the LogsRequest object.
-
-        Returns:
-            LogsRequest: The LogsRequest object.
-        """
-        return self._request
-
-    def _get_cancel_request(self) -> LogsCancelRequest:
-        """
-        Returns the LogsCancelRequest object.
-
-        Returns:
-            LogsCancelRequest: The LogsCancelRequest object.
-        """
-        return LogsCancelRequest(request_id=self._request.get_id())
+        self._request_id = request_id

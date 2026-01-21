@@ -20,30 +20,8 @@ from ankaios_sdk import (
     LogQueue,
     WorkloadInstanceName,
     LogEntry,
-    LogsRequest,
-    LogsCancelRequest,
 )
 from tests.response.test_log_response import generate_test_log_entry
-
-
-def test_log_queue_requests():
-    """
-    Test the log queue requests generation.
-    """
-    workload_name = WorkloadInstanceName(
-        workload_name="nginx", agent_name="agent_A", workload_id="1234"
-    )
-
-    log_queue = LogQueue(LogsRequest(workload_names=[workload_name]))
-    assert log_queue is not None
-
-    request = log_queue._get_request()
-    request_id = request.get_id()
-    assert isinstance(request, LogsRequest)
-
-    cancel_request = log_queue._get_cancel_request()
-    assert isinstance(cancel_request, LogsCancelRequest)
-    assert cancel_request.get_id() == request_id
 
 
 def test_log_queue():

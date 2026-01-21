@@ -154,7 +154,9 @@ from ._components import (
     LogQueue,
     LogResponse,
     LogsRequest,
+    LogsCancelRequest,
     EventsRequest,
+    EventsCancelRequest,
     EventQueue,
     EventEntry,
 )
@@ -1049,7 +1051,7 @@ class Ankaios:
             ConnectionClosedException: If the connection is closed.
         """
 
-        logs_request = LogsRequest(
+        request = LogsRequest(
             workload_names=workload_names,
             follow=follow,
             tail=tail,
@@ -1057,9 +1059,8 @@ class Ankaios:
             until=until,
         )
 
-        # Create the logs queue and get the request
-        log_queue = LogQueue(logs_request)
-        request = log_queue._get_request()
+        # Create the logs queue and get the request id
+        log_queue = LogQueue(request.get_id())
 
         try:
             response = self._send_request(request, timeout)
@@ -1099,8 +1100,7 @@ class Ankaios:
             ControlInterfaceException: If not connected.
             ConnectionClosedException: If the connection is closed.
         """
-        # Get the cancel request
-        request = log_campaign.queue._get_cancel_request()
+        request = LogsCancelRequest(request_id=log_campaign.queue._request_id)
 
         try:
             response = self._send_request(request, timeout)
@@ -1140,11 +1140,10 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        event_request = EventsRequest(masks=field_masks)
+        request = EventsRequest(masks=field_masks)
 
-        # Create the event queue and get the request
-        event_queue = EventQueue(event_request)
-        request = event_queue._get_request()
+        # Create the event queue and get the request id
+        event_queue = EventQueue(request.get_id())
 
         try:
             response = self._send_request(request, timeout)
@@ -1184,8 +1183,7 @@ class Ankaios:
                 content type.
             ConnectionClosedException: If the connection is closed.
         """
-        # Get the cancel request
-        request = event_queue._get_cancel_request()
+        request = EventsCancelRequest(request_id=event_queue._request_id)
 
         try:
             response = self._send_request(request, timeout)

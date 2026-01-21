@@ -43,7 +43,7 @@ __all__ = ["EventQueue"]
 
 
 from queue import Queue
-from .request import EventsRequest, EventsCancelRequest
+from .request import EventsRequest
 from .response import EventEntry
 from .complete_state import CompleteState
 
@@ -55,21 +55,20 @@ class EventQueue(Queue):
     All objects in this queue are of type :py:type:`EventEntry`.
     """
 
-    # pylint: disable=too-many-arguments
+    # -- # pylint: disable=too-many-arguments
     def __init__(
         self,
-        request: EventsRequest,
+        request_id: EventsRequest,
     ) -> None:
         """
         Initializes the EventQueue with the given parameters.
 
         Args:
-            request (EventRequest): The request object containing the event
-                campaign parameters.
+            request_id (str): The request id of the event campaign.
         """
         super().__init__()
         self.complete_state: CompleteState = None
-        self._request = request
+        self._request_id = request_id
 
     def add_event(self, event: EventEntry) -> None:
         """
@@ -80,21 +79,3 @@ class EventQueue(Queue):
         """
         self.complete_state = event.complete_state
         self.put(event)
-
-    def _get_request(self) -> EventsRequest:
-        """
-        Returns the EventRequest object.
-
-        Returns:
-            EventRequest: The EventRequest object.
-        """
-        return self._request
-
-    def _get_cancel_request(self) -> EventsCancelRequest:
-        """
-        Returns the EventCancelRequest object.
-
-        Returns:
-            EventCancelRequest: The EventCancelRequest object.
-        """
-        return EventsCancelRequest(request_id=self._request.get_id())

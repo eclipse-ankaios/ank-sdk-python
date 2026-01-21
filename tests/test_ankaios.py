@@ -38,7 +38,9 @@ from ankaios_sdk import (
     AnkaiosResponseError,
     ConnectionClosedException,
     LogCampaignResponse,
+    LogsCancelRequest,
     EventQueue,
+    EventsCancelRequest,
 )
 from ankaios_sdk.utils import WORKLOADS_PREFIX
 from tests.workload.test_workload import generate_test_workload
@@ -926,7 +928,7 @@ def test_stop_receiving_logs():
         mock_send_request.return_value = Response(
             MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED
         )
-        cancel_request = log_campaign.queue._get_cancel_request()
+        cancel_request = LogsCancelRequest(log_campaign.queue._request_id)
         ankaios.stop_receiving_logs(log_campaign)
         request = mock_send_request.call_args[0][0]
         assert cancel_request._to_proto() == request._to_proto()
@@ -1035,7 +1037,9 @@ def test_unregister_event():
         mock_send_request.return_value = Response(
             MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE
         )
-        cancel_request = events_queue._get_cancel_request()
+        cancel_request = EventsCancelRequest(
+            request_id=events_queue._request_id
+        )
         ankaios.unregister_event(events_queue)
         request = mock_send_request.call_args[0][0]
         assert cancel_request._to_proto() == request._to_proto()

@@ -24,7 +24,6 @@ from ankaios_sdk import (
     EventQueue,
     EventEntry,
     EventsRequest,
-    EventsCancelRequest,
     CompleteState,
 )
 from tests.test_complete_state import COMPLETE_STATE_PROTO
@@ -42,22 +41,6 @@ def generate_test_event_entry(complete_state=None):
         updated_fields=["field2"],
         removed_fields=["field3"],
     )
-
-
-def test_event_queue_requests():
-    """
-    Test the events queue.
-    """
-    events_queue = EventQueue(EventsRequest(masks=["field1"]))
-    assert events_queue is not None
-
-    request = events_queue._get_request()
-    request_id = request.get_id()
-    assert isinstance(request, EventsRequest)
-
-    cancel_request = events_queue._get_cancel_request()
-    assert isinstance(cancel_request, EventsCancelRequest)
-    assert cancel_request.get_id() == request_id
 
 
 def test_events_queue():
