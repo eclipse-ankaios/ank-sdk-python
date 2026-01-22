@@ -135,6 +135,7 @@ from ._components import (
     UpdateStateSuccess,
     WorkloadStateCollection,
     Manifest,
+    AgentAttributes,
     WorkloadInstanceName,
     WorkloadStateEnum,
     WorkloadExecutionState,
@@ -147,6 +148,7 @@ from ._components import (
 from .utils import (
     AnkaiosLogLevel,
     get_logger,
+    AGENTS_PREFIX,
     WORKLOADS_PREFIX,
     CONFIGS_PREFIX,
 )
@@ -802,9 +804,57 @@ class Ankaios:
             return content
         raise AnkaiosProtocolException("Received unexpected content type.")
 
+    def set_agent_tags(
+        self,
+        agent_name: str,
+        tags: dict[str, str],
+        timeout: float = DEFAULT_TIMEOUT,
+    ):
+        """
+        Set the tags for a specific agent.
+
+        Args:
+            agent_name (str): The name of the agent.
+            tags (dict[str, str]): The tags to be set.
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Raises:
+            ControlInterfaceException: If not connected.
+            TimeoutError: If the request timed out.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If the response has unexpected
+                content type.
+            ConnectionClosedException: If the connection is closed.
+        """
+        # Create the request
+        complete_state = CompleteState()
+        complete_state.set_agent_tags(agent_name, tags)
+        request = UpdateStateRequest(
+            complete_state, [f"{AGENTS_PREFIX}.{agent_name}.tags"]
+        )
+
+        try:
+            response = self._send_request(request, timeout)
+        except TimeoutError as e:
+            self.logger.error("%s", e)
+            raise e
+
+        # Interpret response
+        (content_type, content) = response.get_content()
+        if content_type == ResponseType.ERROR:
+            self.logger.error(
+                "Error while trying to set agent tags: %s", content
+            )
+            raise AnkaiosResponseError(f"Received error: {content}")
+        if content_type == ResponseType.UPDATE_STATE_SUCCESS:
+            self.logger.info("Update successful")
+            return
+        raise AnkaiosProtocolException("Received unexpected content type.")
+
     def get_agents(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
-        Get the agents from the requested complete state.
+        Get the agents and their attributes.
 
         Args:
             timeout (float): The maximum time to wait for the response,
@@ -821,7 +871,37 @@ class Ankaios:
                 the state.
             ConnectionClosedException: If the connection is closed.
         """
-        return self.get_state(None, timeout).get_agents()
+        return self.get_state([f"{AGENTS_PREFIX}"], timeout).get_agents()
+
+    def get_agent(
+        self, agent_name: str, timeout: float = DEFAULT_TIMEOUT
+    ) -> AgentAttributes:
+        """
+        Get the attributes of a specific agent.
+
+        Args:
+            timeout (float): The maximum time to wait for the response,
+                in seconds.
+
+        Returns:
+            AgentAttributes: The attributes of the agent.
+
+        Raises:
+            TimeoutError: If the request timed out.
+            ControlInterfaceException: If not connected.
+            AnkaiosResponseError: If the response is an error.
+            AnkaiosProtocolException: If an error occurred while getting
+                the state or the agent is not found.
+            ConnectionClosedException: If the connection is closed.
+        """
+        agents = self.get_state(
+            field_masks=[f"{AGENTS_PREFIX}.{agent_name}"], timeout=timeout
+        ).get_agents()
+
+        if agent_name not in agents:
+            self.logger.error("Agent %s not found", agent_name)
+            raise AnkaiosProtocolException(f"Agent {agent_name} not found")
+        return agents[agent_name]
 
     def get_workload_states(
         self, timeout: float = DEFAULT_TIMEOUT

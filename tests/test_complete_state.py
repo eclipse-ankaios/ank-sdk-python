@@ -17,7 +17,12 @@ This module contains unit tests for the Manifest class in the ankaios_sdk.
 """
 
 import json
-from ankaios_sdk import CompleteState, WorkloadStateCollection, Manifest
+from ankaios_sdk import (
+    CompleteState,
+    WorkloadStateCollection,
+    Manifest,
+    AgentAttributes,
+)
 from ankaios_sdk._components.complete_state import SUPPORTED_API_VERSION
 from ankaios_sdk._protos import _ank_base
 from tests.workload.test_workload import generate_test_workload, WORKLOAD_PROTO
@@ -66,7 +71,8 @@ AGENTS_PROTO = _ank_base.AgentMap(
             status=_ank_base.AgentStatus(
                 cpu_usage=_ank_base.CpuUsage(cpu_usage=50),
                 free_memory=_ank_base.FreeMemory(free_memory=1024),
-            )
+            ),
+            tags=_ank_base.Tags(tags={"tag_key": "tag_value"}),
         )
     }
 )
@@ -138,8 +144,13 @@ def test_get_agents():
     agents = complete_state.get_agents()
     assert len(agents) == 1
     assert "agent_A" in agents
-    assert agents["agent_A"]["cpu_usage"] == 50
-    assert agents["agent_A"]["free_memory"] == 1024
+    assert agents["agent_A"].status["cpu_usage"] == 50
+    assert agents["agent_A"].status["free_memory"] == 1024
+    assert agents["agent_A"].tags == {"tag_key": "tag_value"}
+
+    complete_state.set_agent_tags("agent_A", {"new_tag": "new_value"})
+    agents = complete_state.get_agents()
+    assert agents["agent_A"].tags == {"new_tag": "new_value"}
 
 
 def test_get_configs():
@@ -263,7 +274,15 @@ def test_to_dict():
                 }
             },
         },
-        "agents": {"agent_A": {"cpu_usage": 50, "free_memory": 1024}},
+        "agents": {
+            "agent_A": {
+                "tags": {"tag_key": "tag_value"},
+                "status": {
+                    "cpu_usage": 50,
+                    "free_memory": 1024,
+                },
+            }
+        },
     }
 
     # Test that it can be converted to json
@@ -278,3 +297,15 @@ def test_proto():
     new_proto = complete_state._to_proto()
 
     assert new_proto == COMPLETE_STATE_PROTO
+
+
+def test_agent_attributes():
+    """
+    Test the AgentAttributes class.
+    """
+    agent_attributes = AgentAttributes._from_proto(
+        AGENTS_PROTO.agents["agent_A"]
+    )
+    assert agent_attributes.status["cpu_usage"] == 50
+    assert agent_attributes.status["free_memory"] == 1024
+    assert agent_attributes.tags == {"tag_key": "tag_value"}

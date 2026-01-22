@@ -11,3 +11,12 @@ CompleteState Class
     :members:
     :undoc-members:
     :show-inheritance:
+
+AgentAttributes Class
+---------------------
+
+.. autoclass:: ankaios_sdk._components.complete_state.AgentAttributes
+    :special-members: __init__
+    :members:
+    :undoc-members:
+    :show-inheritance:

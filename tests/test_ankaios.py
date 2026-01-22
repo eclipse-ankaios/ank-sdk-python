@@ -16,6 +16,8 @@
 This module contains unit tests for the Ankaios class in the ankaios_sdk.
 """
 
+# pylint: disable=too-many-lines
+
 from io import StringIO
 import logging
 from unittest.mock import patch, MagicMock, PropertyMock
@@ -673,6 +675,49 @@ def test_get_state():
         ankaios.logger.error.assert_called()
 
 
+def test_set_agent_tags():
+    """
+    Test the set_agent_tags method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    ankaios.logger = MagicMock()
+
+    # Test success
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_UPDATE_SUCCESS
+        )
+        ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.info.assert_called()
+
+    # Test error
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(MESSAGE_BUFFER_ERROR)
+        with pytest.raises(AnkaiosResponseError):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test timeout
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+    # Test invalid content type
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_COMPLETE_STATE
+        )
+        with pytest.raises(AnkaiosProtocolException):
+            ankaios.set_agent_tags("agent_A", {"updated_tag": "value"})
+        mock_send_request.assert_called_once()
+        ankaios.logger.error.assert_called()
+
+
 def test_get_agents():
     """
     Test the get agents method of the Ankaios class.
@@ -684,7 +729,51 @@ def test_get_agents():
     ) as mock_state_get_agents:
         mock_get_state.return_value = CompleteState()
         ankaios.get_agents()
-        mock_get_state.assert_called_once_with(None, Ankaios.DEFAULT_TIMEOUT)
+        mock_get_state.assert_called_once_with(
+            ["agents"], Ankaios.DEFAULT_TIMEOUT
+        )
+        mock_state_get_agents.assert_called_once()
+
+
+def test_get_agent():
+    """
+    Test the get agent method of the Ankaios class.
+    """
+    ankaios = generate_test_ankaios()
+    agent_name = "agent_A"
+    agent_attributes = MagicMock()
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, patch(
+        "ankaios_sdk.CompleteState.get_agents"
+    ) as mock_state_get_agents:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_agents.return_value = {agent_name: agent_attributes}
+        ret = ankaios.get_agent(agent_name)
+        assert ret == agent_attributes
+        mock_get_state.assert_called_once_with(
+            field_masks=[f"agents.{agent_name}"],
+            timeout=Ankaios.DEFAULT_TIMEOUT,
+        )
+        mock_state_get_agents.assert_called_once()
+
+    with patch("ankaios_sdk.Ankaios.get_state") as mock_get_state, patch(
+        "ankaios_sdk.CompleteState.get_agents"
+    ) as mock_state_get_agents:
+        mock_get_state.return_value = CompleteState()
+        mock_state_get_agents.return_value = {
+            "another_agent": agent_attributes
+        }
+
+        with pytest.raises(
+            AnkaiosProtocolException,
+            match="Agent agent_A not found",
+        ):
+            ankaios.get_agent(agent_name)
+
+        mock_get_state.assert_called_once_with(
+            field_masks=[f"agents.{agent_name}"],
+            timeout=Ankaios.DEFAULT_TIMEOUT,
+        )
         mock_state_get_agents.assert_called_once()
 
 
