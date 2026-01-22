@@ -1,0 +1,28 @@
+name: "CI common setup"
+description: "Setup python and install the Python SDK"
+inputs:
+  python-version:
+    description: "Set the version of the python to be installed"
+    required: false
+    default: "3.10"
+  extras:
+    description: "Optional extras to install (e.g., 'dev', 'docs', or empty for none)"
+    required: false
+    default: "dev"
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        if [ -n "${{ inputs.extras }}" ]; then
+          pip install .[${{ inputs.extras }}]
+        else
+          pip install .
+        fi
+      shell: bash

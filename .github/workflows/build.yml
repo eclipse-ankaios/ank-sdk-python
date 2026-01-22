@@ -19,18 +19,10 @@ jobs:
         python: ['3.9', '3.10', '3.11', '3.12', '3.13']
         os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
         with:
           python-version: ${{ matrix.python }}
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
 
       - name: Print packages
         run: python3 -m pip list
@@ -42,18 +34,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
 
       - name: Run unit tests
         id: check
@@ -74,18 +56,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
 
       - name: Run coverage
         id: check
@@ -106,18 +78,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
 
       - name: Run lint
         id: check
@@ -138,18 +100,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
 
       - name: Run pep8 codestyle check
         id: check
@@ -170,18 +122,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[docs]
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ci-setup
 
       - name: Generate documentation
         run: |

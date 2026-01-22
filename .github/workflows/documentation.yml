@@ -11,21 +11,13 @@ jobs:
   build-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: ./.github/actions/ci-setup
         with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[docs]
+          extras: docs
 
       - name: Generate documentation
         run: |
