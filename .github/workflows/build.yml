@@ -124,6 +124,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ci-setup
+        with:
+          extras: docs
 
       - name: Generate documentation
         run: |
