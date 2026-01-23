@@ -32,7 +32,7 @@ usage() {
     echo "  --help             Display this help message and exit."
     echo ""
     echo "Example:"
-    echo "  $0 --sdk 0.1.0 --ank 0.1.0 --api v0.1"
+    echo "  $0 --sdk 0.1.0 --ank 0.1.0 --api v1"
     exit 1
 }
 

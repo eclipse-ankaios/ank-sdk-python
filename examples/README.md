@@ -78,6 +78,10 @@ This example has the Python SDK installed and allows to execute an interactive s
 
 The `get_logs` example workload starts another workload that prints 5 log lines and then it requests them and prints them.
 
+### `state_event`
+
+The `state_event` example workload registers on the events of a specific workload, and then it starts it, showcasing the basic functionality of the events and their format.
+
 ## Enter a container
 
 To `exec` into the example container, a convenience script is provided:

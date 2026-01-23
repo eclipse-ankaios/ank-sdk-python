@@ -19,6 +19,7 @@ import configparser
 PROJECT_DIR = "ankaios_sdk"
 ANKAIOS_RELEASE_LINK = "https://github.com/eclipse-ankaios/ankaios/releases/download/v{version}/{file}"
 ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/ankaios_api/proto/{file}"
+ANKAIOS_BRANCH_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/{branch}/ankaios_api/proto/{file}"
 PROTO_FILES = ["ank_base.proto", "control_api.proto"]
 
 config = configparser.ConfigParser()
@@ -26,16 +27,35 @@ config.read(os.path.join(os.path.dirname(__file__), "setup.cfg"))
 
 
 def extract_the_proto_files():
-    """Download the proto files from the ankaios release branch."""
+    """
+    Download the proto files from the ankaios repository.
+
+    The script supports three ways to fetch proto files:
+    1. Default functionality, fetch the protos from a release version of Ankaios.
+
+    2. If the `ankaios_version` ends with '-pre', the proto files
+       should be fetched from the main branch of Ankaios.
+
+    3. If the `ANKAIOS_PROTO_BRANCH` env variable is set, fetch the protos from tha specific Ankaios branch.
+       Example: ANKAIOS_PROTO_BRANCH=my-feature-branch pip install .
+
+    Priority: custom branch > main branch (for -pre) > release version
+    """
     import requests
 
     ankaios_version = config["metadata"]["ankaios_version"]
+    custom_branch = os.environ.get("ANKAIOS_PROTO_BRANCH")
 
     if not os.path.exists(f"{PROJECT_DIR}/_protos/{ankaios_version}"):
         os.makedirs(f"{PROJECT_DIR}/_protos/{ankaios_version}")
 
     for file in PROTO_FILES:
-        if ankaios_version.endswith("-pre"):
+        if custom_branch:
+            file_url = ANKAIOS_BRANCH_LINK.format(
+                branch=custom_branch, file=file
+            )
+            print(f"Using custom branch '{custom_branch}' for proto files.")
+        elif ankaios_version.endswith("-pre"):
             file_url = ANKAIOS_MAIN_LINK.format(file=file)
         else:
             file_url = ANKAIOS_RELEASE_LINK.format(

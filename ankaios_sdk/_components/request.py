@@ -31,6 +31,11 @@ Classes
 - LogsCancelRequest:
     Represents a request to stop the real-time log stream from the
     Ankaios system.
+- EventsRequest:
+    Represents a request to register for events from the Ankaios system.
+- EventsCancelRequest:
+    Represents a request to unregister from the event stream of a specific
+    event campaign in the Ankaios system.
 
 Usage
 -----
@@ -77,6 +82,8 @@ __all__ = [
     "UpdateStateRequest",
     "LogsRequest",
     "LogsCancelRequest",
+    "EventsRequest",
+    "EventsCancelRequest",
 ]
 
 import uuid
@@ -163,6 +170,7 @@ class GetStateRequest(Request):
         """
         super().__init__()
         self._request.completeStateRequest.fieldMask[:] = masks
+        self._request.completeStateRequest.subscribeForEvents = False
 
         self.logger.debug(
             "Created request of type GetState with id %s",
@@ -280,5 +288,54 @@ class LogsCancelRequest(Request):
 
         self.logger.debug(
             "Created request of type LogsCancelRequest with id %s",
+            self._request.requestId,
+        )
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class EventsRequest(Request):
+    """
+    Represents a request for registering on events configured by the
+    given masks.
+    """
+
+    def __init__(self, masks: list = []) -> None:
+        """
+        Initializes a EventsRequest instance.
+
+        Args:
+            masks (list): The masks to subscribe to for the event.
+        """
+        super().__init__()
+        self._request.completeStateRequest.fieldMask[:] = masks
+        self._request.completeStateRequest.subscribeForEvents = True
+
+        self.logger.debug(
+            "Created request of type EventsRequest with id %s",
+            self._request.requestId,
+        )
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class EventsCancelRequest(Request):
+    """
+    Represents a request for unregistering from the event stream
+    of a specific event campaign in the Ankaios system.
+    """
+
+    def __init__(self, request_id: str) -> None:
+        """
+        Initializes an EventsCancelRequest instance.
+
+        Args:
+            id (str): The request ID.
+        """
+        super().__init__(_id=request_id)
+        self._request.eventsCancelRequest.CopyFrom(
+            _ank_base.EventsCancelRequest()
+        )
+
+        self.logger.debug(
+            "Created request of type EventsCancelRequest with id %s",
             self._request.requestId,
         )
