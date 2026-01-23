@@ -25,7 +25,7 @@ Considering we have the following manifest file with a workload called ``nginx``
 .. code-block:: yaml
     :caption: my_manifest.yaml
 
-    apiVersion: v0.1
+    apiVersion: v1
     workloads:
         nginx:
             runtime: podman

@@ -29,13 +29,15 @@ Classes
 - LogsStopResponse:
     Represents a response for marking the end of the log stream from a
     workload instance.
+- EventEntry:
+    Represents an event.
 
 Enums
 -----
 
 - ResponseType:
-    Enumeration for the different types of response. It includes
-    ERROR, COMPLETE_STATE, and UPDATE_STATE_SUCCESS and CONNECTION_CLOSED.
+    Enumeration for the different types of response. It includes responses
+    like ERROR, CONNECTION_CLOSED, COMPLETE_STATE and so on.
 
 Union Types
 -----------
@@ -73,6 +75,7 @@ __all__ = [
     "LogEntry",
     "LogsStopResponse",
     "LogResponse",
+    "EventEntry",
 ]
 
 from dataclasses import dataclass
@@ -146,6 +149,7 @@ class Response:
             self.get_request_id(),
         )
 
+    # pylint: disable=too-many-branches
     def _from_proto(self) -> None:
         """
         Converts the parsed protobuf message to a Response object.
@@ -158,9 +162,17 @@ class Response:
         if self._response.HasField("error"):
             self.content_type = ResponseType.ERROR
             self.content = self._response.error.message
-        elif self._response.HasField("completeState"):
-            self.content_type = ResponseType.COMPLETE_STATE
-            self.content = CompleteState(_proto=self._response.completeState)
+        elif self._response.HasField("completeStateResponse"):
+            if self._response.completeStateResponse.HasField("alteredFields"):
+                self.content_type = ResponseType.EVENT_RESPONSE
+                self.content = EventEntry._from_response(
+                    self._response.completeStateResponse
+                )
+            else:
+                self.content_type = ResponseType.COMPLETE_STATE
+                self.content = CompleteState(
+                    _proto=self._response.completeStateResponse.completeState
+                )
         elif self._response.HasField("UpdateStateSuccess"):
             update_state_msg = self._response.UpdateStateSuccess
             self.content_type = ResponseType.UPDATE_STATE_SUCCESS
@@ -202,6 +214,9 @@ class Response:
             ]
         elif self._response.HasField("logsCancelAccepted"):
             self.content_type = ResponseType.LOGS_CANCEL_ACCEPTED
+            self.content = None
+        elif self._response.HasField("eventsCancelAccepted"):
+            self.content_type = ResponseType.EVENT_CANCEL_ACCEPTED
             self.content = None
         else:
             raise ResponseException("Invalid response type.")
@@ -254,7 +269,11 @@ class ResponseType(Enum):
     "(int): Got logs stop response."
     LOGS_CANCEL_ACCEPTED = 8
     "(int): Logs cancel request accepted."
-    CONNECTION_CLOSED = 9
+    EVENT_RESPONSE = 9
+    "(int): Got an event response."
+    EVENT_CANCEL_ACCEPTED = 10
+    "(int): Event cancel request accepted."
+    CONNECTION_CLOSED = 20
     "(int): Connection closed by the server."
 
     def __str__(self) -> str:
@@ -396,3 +415,46 @@ class LogsStopResponse:
 
 
 LogResponse = Union[LogEntry, LogsStopResponse]
+
+
+@dataclass
+class EventEntry:
+    """
+    Represents an event notification.
+    """
+
+    complete_state: CompleteState
+    """The complete state of the event indicating the state changes."""
+    added_fields: list[str]
+    """The list of added fields of the state."""
+    updated_fields: list[str]
+    """The list of updated fields of the state."""
+    removed_fields: list[str]
+    """The list of removed fields of the state."""
+
+    def __str__(self) -> str:
+        """
+        Converts the EventEntry to a string.
+
+        Returns:
+            str: The string representation of the EventEntry.
+        """
+        ret = "Event:\n"
+        if self.added_fields:
+            ret += f"  Added fields: {self.added_fields}\n"
+        if self.updated_fields:
+            ret += f"  Updated fields: {self.updated_fields}\n"
+        if self.removed_fields:
+            ret += f"  Deleted fields: {self.removed_fields}\n"
+        return ret
+
+    @staticmethod
+    def _from_response(
+        response: _ank_base.CompleteStateResponse,
+    ) -> "EventEntry":
+        return EventEntry(
+            CompleteState(_proto=response.completeState),
+            response.alteredFields.addedFields,
+            response.alteredFields.updatedFields,
+            response.alteredFields.removedFields,
+        )

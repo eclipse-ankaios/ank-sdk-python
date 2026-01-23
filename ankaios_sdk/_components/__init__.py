@@ -43,6 +43,7 @@ from .request import *
 from .response import *
 from .manifest import *
 from .log_campaign import *
+from .event_campaign import *
 from .control_interface import *
 from .file import *
 

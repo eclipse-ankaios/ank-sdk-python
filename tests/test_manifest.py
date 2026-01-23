@@ -23,7 +23,7 @@ from ankaios_sdk import Manifest, InvalidManifestException
 from ankaios_sdk.utils import WORKLOADS_PREFIX, CONFIGS_PREFIX
 
 
-MANIFEST_CONTENT = """apiVersion: v0.1
+MANIFEST_CONTENT = """apiVersion: v1
 workloads:
   nginx_test:
     runtime: podman
@@ -38,7 +38,7 @@ configs:
         port: \"8081\""""
 
 MANIFEST_DICT = {
-    "apiVersion": "v0.1",
+    "apiVersion": "v1",
     "workloads": {
         "nginx_test": {
             "runtime": "podman",
@@ -51,7 +51,7 @@ MANIFEST_DICT = {
     "configs": {"test_ports": {"port": "8081"}},
 }
 MANIFEST_PROTO = _ank_base.State(
-    apiVersion="v0.1",
+    apiVersion="v1",
     workloads=_ank_base.WorkloadMap(
         workloads={
             "nginx_test": _ank_base.Workload(
@@ -125,13 +125,13 @@ def test_from_dict():
 
     with pytest.raises(InvalidManifestException):
         _ = Manifest.from_dict(
-            {"apiVersion": "v0.1", "workloads": {"nginx_test": {}}}
+            {"apiVersion": "v1", "workloads": {"nginx_test": {}}}
         )
 
     with pytest.raises(InvalidManifestException):
         _ = Manifest.from_dict(
             {
-                "apiVersion": "v0.1",
+                "apiVersion": "v1",
                 "workloads": {"nginx_test": {"invalid_key": ""}},
             }
         )

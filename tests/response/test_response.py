@@ -26,7 +26,9 @@ from ankaios_sdk import (
     ResponseException,
     LogEntry,
     LogsStopResponse,
+    EventEntry,
 )
+from tests.test_complete_state import CONFIGS_PROTO
 from tests.response.test_log_response import generate_test_log_entry
 
 
@@ -42,13 +44,15 @@ MESSAGE_BUFFER_ERROR = _control_api.FromAnkaios(
 MESSAGE_BUFFER_COMPLETE_STATE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="2233",
-        completeState=_ank_base.CompleteState(
-            desiredState=_ank_base.State(
-                apiVersion="v0.1",
-                workloads=_ank_base.WorkloadMap(
-                    workloads={},
+        completeStateResponse=_ank_base.CompleteStateResponse(
+            completeState=_ank_base.CompleteState(
+                desiredState=_ank_base.State(
+                    apiVersion="v1",
+                    workloads=_ank_base.WorkloadMap(
+                        workloads={},
+                    ),
                 ),
-            )
+            ),
         ),
     )
 ).SerializeToString()
@@ -110,9 +114,48 @@ MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED = _control_api.FromAnkaios(
     )
 ).SerializeToString()
 
-MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
+MESSAGE_BUFFER_LOGS_CANCEL_ACCEPTED_RESPONSE = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="4455",
+        logsCancelAccepted=_ank_base.LogsCancelAccepted(),
+    )
+).SerializeToString()
+
+MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="5566",
+        completeStateResponse=_ank_base.CompleteStateResponse(
+            completeState=_ank_base.CompleteState(
+                desiredState=_ank_base.State(
+                    apiVersion="v1",
+                    workloads=_ank_base.WorkloadMap(
+                        workloads={},
+                    ),
+                    configs=CONFIGS_PROTO,
+                ),
+            ),
+            alteredFields=_ank_base.AlteredFields(
+                addedFields=[
+                    "desiredState.configs.config2",
+                    "desiredState.configs.config3",
+                ],
+                updatedFields=["desiredState.configs.config1"],
+                removedFields=["desiredState.configs.config4"],
+            ),
+        ),
+    )
+).SerializeToString()
+
+MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="5566",
+        eventsCancelAccepted=_ank_base.EventsCancelAccepted(),
+    )
+).SerializeToString()
+
+MESSAGE_BUFFER_INVALID_RESPONSE = _control_api.FromAnkaios(
+    response=_ank_base.Response(
+        requestId="6677",
     )
 ).SerializeToString()
 
@@ -178,6 +221,21 @@ def test_initialisation():
     assert isinstance(response.content, list)
     assert len(response.content) == 1
     assert isinstance(response.content[0], LogsStopResponse)
+
+    # Test logs cancel accepted response
+    response = Response(MESSAGE_BUFFER_LOGS_CANCEL_ACCEPTED_RESPONSE)
+    assert response.content_type == ResponseType.LOGS_CANCEL_ACCEPTED
+    assert response.content is None
+
+    # Test events entry response
+    response = Response(MESSAGE_BUFFER_EVENT_ENTRY_RESPONSE)
+    assert response.content_type == ResponseType.EVENT_RESPONSE
+    assert isinstance(response.content, EventEntry)
+
+    # Test events cancel accepted response
+    response = Response(MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE)
+    assert response.content_type == ResponseType.EVENT_CANCEL_ACCEPTED
+    assert response.content is None
 
     # Test connection closed
     response = Response(MESSAGE_BUFFER_CONNECTION_CLOSED)
