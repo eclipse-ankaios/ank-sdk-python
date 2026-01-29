@@ -25,5 +25,5 @@ If a version change is required in the PR, use the [update_version.sh](./tools/u
 ## Communication
 
 Please join our [developer mailing list](https://accounts.eclipse.org/mailing-list/ankaios-dev) for up to date information or use the Ankaios [discussion forum](https://github.com/eclipse-ankaios/ankaios/discussions).
-If you are looking for the main project, you can find it [here](https://github.com/eclipse-ankaios/ankaios/tree/main).
+If you are looking for the main project, you can find it [here](https://github.com/eclipse-ankaios/ankaios/tree/main).<!-- markdownlint-disable MD059 -->
 You can also join the conversion with the community in the [Ankaios Slack workspace](https://github.com/eclipse-ankaios/ankaios/wiki#slack).

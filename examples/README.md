@@ -9,7 +9,7 @@ In order to run the examples, Ankaios must be installed and available on the sys
 Alternatively you can compile from source and provide the path to the executables to the run scripts with the `ANK_BIN_DIR` environment variable.
 
 > **IMPORTANT**  
-> Make sure that no other Ankaios instance is running on the local machine. If there is an instance running, the example could change its configuration. The stop script would even stop all running instances and **delete all podman containers**. 
+> Make sure that no other Ankaios instance is running on the local machine. If there is an instance running, the example could change its configuration. The stop script would even stop all running instances and **delete all podman containers**.
 
 ## Building and running
 
@@ -42,13 +42,13 @@ To stop the example just call
 ```
 
 > **WARNING**  
-> The stop script terminates all running ankaios instances, both server and agents and **delete all podman containers** on the system. If you don't want this, you would need to clean up manually. 
+> The stop script terminates all running ankaios instances, both server and agents and **delete all podman containers** on the system. If you don't want this, you would need to clean up manually.
 
 ## Examples
 
 This folder currently contains three examples:
 
-### `hello_ankaios` 
+### `hello_ankaios`
 
 This example executes a workload that runs the example script from the main [README](../README.md#usage) of this repo.
 
@@ -60,13 +60,13 @@ To view the logs of an example like the `hello_ankaios` workload just use the co
  ./ank-logs.sh
 ```
 
-### `sleepy` 
+### `sleepy`
 
-`sleepy` is an "empty" workload that just executes an endless sleep. 
+`sleepy` is an "empty" workload that just executes an endless sleep.
 
 This example has the Python SDK installed and allows to execute an interactive shell in the container in order to manually trigger Python commands to interact with Ankaios.
 
-### `follow_state` 
+### `follow_state`
 
 `follow_state` executes indefinitely with a request to get the state being sent every 5 seconds.
 
