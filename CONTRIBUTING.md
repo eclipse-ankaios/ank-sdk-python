@@ -20,7 +20,7 @@ besides a technical review:
 - **Python coding guidelines**: Make sure to follow the coding schema of the project.
 - **Ankaios SDK API alignment**: Keep in mind how the APIs of the other Ankaios SDKs would look like as all SDKs shall target similar API semantics.
 
-If a version change is required in the PR, use the [update_version.sh](./tools/update_version.sh) script to update the version.
+For information about development tools, workflows, and project setup, see the [Development Guide](./DEVELOPMENT.md).
 
 ## Communication
 
