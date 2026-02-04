@@ -494,9 +494,9 @@ class WorkloadStateCollection:
             list[WorkloadState]: A list of workload states.
         """
         workload_states = []
-        for agent_name, workloads in self._workload_states.items():
-            for workload_name, workload_ids in workloads.items():
-                for workload_id, exec_state in workload_ids.items():
+        for agent_name, workloads in sorted(self._workload_states.items()):
+            for workload_name, workload_ids in sorted(workloads.items()):
+                for workload_id, exec_state in sorted(workload_ids.items()):
                     workload_states.append(
                         WorkloadState(
                             agent_name, workload_name, workload_id, exec_state
