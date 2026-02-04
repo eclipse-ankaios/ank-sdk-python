@@ -18,7 +18,7 @@ This module defines the Manifest class for handling ankaios manifests.
 Classes
 -------
 
-- Manifest:
+- :class:`Manifest`:
     Represents a workload manifest and provides methods \
     to validate and load it.
 
@@ -61,11 +61,10 @@ class Manifest:
         from_dict methods.
         The manifest data is validated upon initialization.
 
-        Args:
-            desired_state (_ank_base.State): The desired state proto.
+        :param desired_state: The desired state proto.
+        :type desired_state: _ank_base.State
 
-        Raises:
-            ValueError: If the manifest data is invalid.
+        :raises ValueError: If the manifest data is invalid.
         """
         self._desired_state: _ank_base.State = desired_state
 
@@ -74,15 +73,14 @@ class Manifest:
         """
         Loads a manifest from a file.
 
-        Args:
-            file_path (str): The path to the manifest file.
+        :param file_path: The path to the manifest file.
+        :type file_path: str
 
-        Returns:
-            Manifest: An instance of the Manifest class with the loaded data.
+        :returns: An instance of the Manifest class with the loaded data.
+        :rtype: Manifest
 
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            yaml.YAMLError: If there is an error parsing the YAML file.
+        :raises FileNotFoundError: If the file does not exist.
+        :raises yaml.YAMLError: If there is an error parsing the YAML file.
         """
         try:
             with open(file_path, "r", encoding="utf-8") as file:
@@ -95,14 +93,13 @@ class Manifest:
         """
         Creates a Manifest instance from a YAML string.
 
-        Args:
-            manifest (str): The YAML string representing the manifest.
+        :param manifest: The YAML string representing the manifest.
+        :type manifest: str
 
-        Returns:
-            Manifest: An instance of the Manifest class with the parsed data.
+        :returns: An instance of the Manifest class with the parsed data.
+        :rtype: Manifest
 
-        Raises:
-            ValueError: If there is an error parsing the YAML string.
+        :raises ValueError: If there is an error parsing the YAML string.
         """
         try:
             return Manifest.from_dict(yaml.safe_load(manifest))
@@ -114,11 +111,11 @@ class Manifest:
         """
         Creates a Manifest instance from a dictionary.
 
-        Args:
-            manifest (dict): The dictionary representing the manifest.
+        :param manifest: The dictionary representing the manifest.
+        :type manifest: dict
 
-        Returns:
-            Manifest: An instance of the Manifest class with the given data.
+        :returns: An instance of the Manifest class with the given data.
+        :rtype: Manifest
         """
         desired_state = _ank_base.State()
         if "apiVersion" not in manifest.keys():
@@ -149,8 +146,8 @@ class Manifest:
         Calculates the masks for the manifest. This includes
         the names of the workloads and of the configs.
 
-        Returns:
-            list[str]: A list of masks.
+        :returns: A list of masks.
+        :rtype: list[str]
         """
         masks = []
         if self._desired_state.workloads.workloads:
@@ -173,7 +170,7 @@ class Manifest:
         """
         Returns the desired state proto.
 
-        Returns:
-            _ank_base.State: The desired state proto.
+        :returns: The desired state proto.
+        :rtype: _ank_base.State
         """
         return self._desired_state

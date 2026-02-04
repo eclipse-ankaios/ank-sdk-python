@@ -21,21 +21,21 @@ representations and handling collections of workload states.
 Classes
 -------
 
-- WorkloadExecutionState
+- :class:`WorkloadExecutionState`:
     Represents the execution state and sub-state of a workload.
-- WorkloadInstanceName:
+- :class:`WorkloadInstanceName`:
     Represents the name of a workload instance.
-- WorkloadState:
+- :class:`WorkloadState`:
     Represents the state of a workload (execution state and name).
-- WorkloadStateCollection:
+- :class:`WorkloadStateCollection`:
     A collection of workload states.
 
 Enums
 -----
 
-- WorkloadStateEnum:
+- :class:`WorkloadStateEnum`:
     Enumeration for different states of a workload.
-- WorkloadSubStateEnum:
+- :class:`WorkloadSubStateEnum`:
     Enumeration for different sub-states of a workload.
 
 Usage
@@ -104,8 +104,8 @@ class WorkloadStateEnum(Enum):
         """
         Return the name of the enumeration member.
 
-        Returns:
-            str: The name of the enumeration member.
+        :returns: The name of the enumeration member.
+        :rtype: str
         """
         return self.name
 
@@ -114,16 +114,15 @@ class WorkloadStateEnum(Enum):
         """
         Get the enumeration member corresponding to the given field name.
 
-        Args:
-            field (str): The field name to look up.
+        :param field: The field name to look up.
+        :type field: str
 
-        Returns:
-            WorkloadStateEnum: The enumeration member corresponding
-                to the field name.
+        :returns: The enumeration member corresponding
+            to the field name.
+        :rtype: WorkloadStateEnum
 
-        Raises:
-            KeyError: If the field name does not correspond to
-                any enumeration member.
+        :raises KeyError: If the field name does not correspond to
+            any enumeration member.
         """
         # camelCase to SNAKE_CASE
         if field == "agentDisconnected":
@@ -173,8 +172,8 @@ class WorkloadSubStateEnum(Enum):
         """
         Return the name of the enumeration member.
 
-        Returns:
-            str: The name of the enumeration member.
+        :returns: The name of the enumeration member.
+        :rtype: str
         """
         return self.name
 
@@ -185,17 +184,17 @@ class WorkloadSubStateEnum(Enum):
         """
         Get the enumeration member corresponding to the given state and field.
 
-        Args:
-            state (WorkloadStateEnum): The state of the workload.
-            field (_ank_base): The field to look up.
+        :param state: The state of the workload.
+        :type state: WorkloadStateEnum
+        :param field: The field to look up.
+        :type field: _ank_base
 
-        Returns:
-            WorkloadSubStateEnum: The enumeration member corresponding
-                to the state and field.
+        :returns: The enumeration member corresponding
+            to the state and field.
+        :rtype: WorkloadSubStateEnum
 
-        Raises:
-            ValueError: If the field does not correspond to
-                any enumeration member.
+        :raises ValueError: If the field does not correspond to
+            any enumeration member.
         """
         # SNAKE_CASE to CamelCase
         state_name = "".join([elem.title() for elem in state.name.split("_")])
@@ -211,12 +210,11 @@ class WorkloadSubStateEnum(Enum):
         Convert the WorkloadSubStateEnum member to the corresponding
         _ank_base value.
 
-        Returns:
-            _ank_base: The corresponding _ank_base value.
+        :returns: The corresponding _ank_base value.
+        :rtype: _ank_base
 
-        Raises:
-            ValueError: If there is no corresponding _ank_base
-                value for the enumeration member.
+        :raises ValueError: If there is no corresponding _ank_base
+            value for the enumeration member.
         """
         try:
             return getattr(_ank_base, self.name)
@@ -231,18 +229,20 @@ class WorkloadExecutionState:
     """
     Represents the execution state of a workload.
 
-    Attributes:
-        state (WorkloadStateEnum): The state of the workload.
-        substate (WorkloadSubStateEnum): The sub-state of the workload.
-        additional_info (str): Additional information about the workload state.
+    :var WorkloadStateEnum state:
+        The state of the workload.
+    :var WorkloadSubStateEnum substate:
+        The sub-state of the workload.
+    :var str additional_info:
+        Additional information about the workload state.
     """
 
     def __init__(self, state: _ank_base.ExecutionState) -> None:
         """
         Initializes a WorkloadExecutionState instance.
 
-        Args:
-            state (_ank_base.ExecutionState): The execution state to interpret.
+        :param state: The execution state to interpret.
+        :type state: _ank_base.ExecutionState
         """
         self.state: WorkloadStateEnum = None
         self.substate: WorkloadSubStateEnum = None
@@ -254,8 +254,8 @@ class WorkloadExecutionState:
         """
         Returns the string representation of the workload execution state.
 
-        Returns:
-            str: The string representation of the workload execution state.
+        :returns: The string representation of the workload execution state.
+        :rtype: str
         """
         return (
             f"{self.state.name} ({self.substate.name}):"
@@ -267,12 +267,11 @@ class WorkloadExecutionState:
         Interprets the execution state and sets the state, substate,
         and info attributes.
 
-        Args:
-            exec_state (_ank_base.ExecutionState): The execution
-                state to interpret.
+        :param exec_state: The execution
+            state to interpret.
+        :type exec_state: _ank_base.ExecutionState
 
-        Raises:
-            ValueError: If the execution state is invalid.
+        :raises ValueError: If the execution state is invalid.
         """
         self.additional_info = str(exec_state.additionalInfo)
 
@@ -289,8 +288,8 @@ class WorkloadExecutionState:
         """
         Returns the execution state as a dictionary.
 
-        Returns:
-            dict: The execution state as a dictionary.
+        :returns: The execution state as a dictionary.
+        :rtype: dict
         """
         return {
             "state": str(self.state),
@@ -304,10 +303,12 @@ class WorkloadInstanceName:
     """
     Represents the name of a workload instance.
 
-    Attributes:
-        agent_name (str): The name of the agent.
-        workload_name (str): The name of the workload.
-        workload_id (str): The ID of the workload.
+    :var str agent_name:
+        The name of the agent.
+    :var str workload_name:
+        The name of the workload.
+    :var str workload_id:
+        The ID of the workload.
     """
 
     def __init__(
@@ -316,10 +317,12 @@ class WorkloadInstanceName:
         """
         Initializes a WorkloadInstanceName instance.
 
-        Args:
-            agent_name (str): The name of the agent.
-            workload_name (str): The name of the workload.
-            workload_id (str): The ID of the workload.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param workload_name: The name of the workload.
+        :type workload_name: str
+        :param workload_id: The ID of the workload.
+        :type workload_id: str
         """
         self.agent_name = agent_name
         self.workload_name = workload_name
@@ -329,12 +332,12 @@ class WorkloadInstanceName:
         """
         Checks if two workload instance names are equal.
 
-        Args:
-            other (WorkloadInstanceName): The instance name to compare with.
+        :param other: The instance name to compare with.
+        :type other: WorkloadInstanceName
 
-        Returns:
-            bool: True if the workload instance names are equal,
-                False otherwise.
+        :returns: True if the workload instance names are equal,
+            False otherwise.
+        :rtype: bool
         """
         if isinstance(other, WorkloadInstanceName):
             return (
@@ -348,8 +351,8 @@ class WorkloadInstanceName:
         """
         Returns the string representation of the workload instance name.
 
-        Returns:
-            str: The string representation of the workload instance name.
+        :returns: The string representation of the workload instance name.
+        :rtype: str
         """
         return f"{self.workload_name}.{self.workload_id}.{self.agent_name}"
 
@@ -357,8 +360,8 @@ class WorkloadInstanceName:
         """
         Returns the workload instance name as a dictionary.
 
-        Returns:
-            dict: The workload instance name as a dictionary.
+        :returns: The workload instance name as a dictionary.
+        :rtype: dict
         """
         return {
             "agent_name": self.agent_name,
@@ -370,8 +373,8 @@ class WorkloadInstanceName:
         """
         Returns the filter mask for the workload instance name.
 
-        Returns:
-            str: The filter mask for the workload instance name.
+        :returns: The filter mask for the workload instance name.
+        :rtype: str
         """
         return (
             f"workloadStates.{self.agent_name}."
@@ -382,9 +385,9 @@ class WorkloadInstanceName:
         """
         Converts the workload instance name to a proto message.
 
-        Returns:
-            _ank_base.WorkloadInstanceName: The protobuf message
-                representing the workload instance name.
+        :returns: The protobuf message
+            representing the workload instance name.
+        :rtype: _ank_base.WorkloadInstanceName
         """
         return _ank_base.WorkloadInstanceName(
             agentName=self.agent_name,
@@ -398,11 +401,10 @@ class WorkloadState:
     """
     Represents the state of a workload.
 
-    Attributes:
-        execution_state (WorkloadExecutionState): The execution state
-            of the workload.
-        workload_instance_name (WorkloadInstanceName): The name of the
-            workload instance.
+    :var WorkloadExecutionState execution_state:
+        The execution state of the workload.
+    :var WorkloadInstanceName workload_instance_name:
+        The name of the workload instance.
     """
 
     def __init__(
@@ -415,11 +417,14 @@ class WorkloadState:
         """
         Initializes a WorkloadState instance.
 
-        Args:
-            agent_name (str): The name of the agent.
-            workload_name (str): The name of the workload.
-            workload_id (str): The ID of the workload.
-            state (WorkloadExecutionState): The execution state.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param workload_name: The name of the workload.
+        :type workload_name: str
+        :param workload_id: The ID of the workload.
+        :type workload_id: str
+        :param state: The execution state.
+        :type state: WorkloadExecutionState
         """
         if isinstance(state, _ank_base.ExecutionState):
             self.execution_state = WorkloadExecutionState(state)
@@ -433,8 +438,8 @@ class WorkloadState:
         """
         Returns the string representation of the workload state.
 
-        Returns:
-            str: The string representation of the workload state.
+        :returns: The string representation of the workload state.
+        :rtype: str
         """
         return f"{self.workload_instance_name}: {self.execution_state}"
 
@@ -459,8 +464,8 @@ class WorkloadStateCollection:
         """
         Adds a workload state to the collection.
 
-        Args:
-            state (WorkloadState): The workload state to add.
+        :param state: The workload state to add.
+        :type state: WorkloadState
         """
         agent_name = state.workload_instance_name.agent_name
         workload_name = state.workload_instance_name.workload_name
@@ -481,8 +486,8 @@ class WorkloadStateCollection:
         """
         Returns the workload states as a dict.
 
-        Returns:
-            WorkloadStatesMap: A dict of workload states.
+        :returns: A dict of workload states.
+        :rtype: WorkloadStatesMap
         """
         return self._workload_states
 
@@ -490,8 +495,8 @@ class WorkloadStateCollection:
         """
         Returns the workload states as a list.
 
-        Returns:
-            list[WorkloadState]: A list of workload states.
+        :returns: A list of workload states.
+        :rtype: list[WorkloadState]
         """
         workload_states = []
         for agent_name, workloads in self._workload_states.items():
@@ -510,13 +515,13 @@ class WorkloadStateCollection:
         """
         Returns the workload state for the given workload instance name.
 
-        Args:
-            instance_name (WorkloadInstanceName): The workload instance name
-                to look up.
+        :param instance_name: The workload instance name
+            to look up.
+        :type instance_name: WorkloadInstanceName
 
-        Returns:
-            WorkloadState: The workload state for the given instance name.
-            None: If no workload state was found.
+        :returns: The workload state for the given instance name,
+            or None if no workload state was found.
+        :rtype: Optional[WorkloadState]
         """
         try:
             return WorkloadState(
@@ -534,9 +539,9 @@ class WorkloadStateCollection:
         """
         Populates the collection from a proto message.
 
-        Args:
-            state (_ank_base.WorkloadStatesMap): The proto message
-                to interpret.
+        :param state: The proto message
+            to interpret.
+        :type state: _ank_base.WorkloadStatesMap
         """
         for agent_name in state.agentStateMap:
             for workload_name in state.agentStateMap[

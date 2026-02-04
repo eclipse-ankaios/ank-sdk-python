@@ -19,13 +19,13 @@ and reading of data to and from the Ankaios control interface.
 Classes
 -------
 
-- ControlInterface:
+- :class:`ControlInterface`:
     Handles the interaction with the Ankaios control interface.
 
 Enums
 -----
 
-- ControlInterfaceState:
+- :class:`ControlInterfaceState`:
     Represents the state of the control interface.
 
 Usage
@@ -83,8 +83,8 @@ class ControlInterfaceState(Enum):
         """
         Returns the string representation of the state.
 
-        Returns:
-            str: The state as a string.
+        :returns: The state as a string.
+        :rtype: str
         """
         return self.name
 
@@ -110,11 +110,15 @@ class ControlInterface:
         Initialize the ControlInterface object. This is used
         to interact with the control interface.
 
-        Args:
-            add_response_callback (Callable): The callback function to add
-                a response to the Ankaios class.
-            add_log_callback (Callable): The callback function to add
-                a log to the Ankaios class.
+        :param add_response_callback: The callback function to add
+            a response to the Ankaios class.
+        :type add_response_callback: Callable
+        :param add_log_callback: The callback function to add
+            a log to the Ankaios class.
+        :type add_log_callback: Callable
+        :param add_event_callback: The callback function to add
+            an event to the Ankaios class.
+        :type add_event_callback: Callable
         """
         self._input_file = None
         self._output_file = None
@@ -136,8 +140,8 @@ class ControlInterface:
         """
         Get the current state of the control interface.
 
-        Returns:
-            ControlInterfaceState: The current state.
+        :returns: The current state.
+        :rtype: ControlInterfaceState
         """
         with self._state_lock:
             return self._state_value
@@ -147,8 +151,8 @@ class ControlInterface:
         """
         Set the current state of the control interface.
 
-        Args:
-            value (ControlInterfaceState): The new state to set.
+        :param value: The new state to set.
+        :type value: ControlInterfaceState
         """
         with self._state_lock:
             self._state_value = value
@@ -158,8 +162,8 @@ class ControlInterface:
         """
         Check if the control interface is connected.
 
-        Returns:
-            bool: True if connected, False otherwise.
+        :returns: True if connected, False otherwise.
+        :rtype: bool
         """
         return self._state == ControlInterfaceState.CONNECTED
 
@@ -168,8 +172,7 @@ class ControlInterface:
         Connect to the control interface by starting to read
         from the input fifo and opening the output fifo.
 
-        Raises:
-            ControlInterfaceException: If an error occurred.
+        :raises ControlInterfaceException: If an error occurred.
         """
         if self._state in [
             ControlInterfaceState.INITIALIZED,
@@ -251,9 +254,10 @@ class ControlInterface:
         """
         Change the state of the control interface.
 
-        Args:
-            state (ControlInterfaceState): The new state.
-            info (str): Additional information about the state change.
+        :param state: The new state.
+        :type state: ControlInterfaceState
+        :param info: Additional information about the state change.
+        :type info: str
         """
         if state == self._state:
             self._logger.debug("State is already %s.", state)
@@ -274,9 +278,8 @@ class ControlInterface:
         This is meant to be run in a separate thread.
         The responses are then sent to the Ankaios class to be handled.
 
-        Raises:
-            ControlInterfaceException: If an error occurs
-                while reading the fifo.
+        :raises ControlInterfaceException: If an error occurs
+            while reading the fifo.
         """
         # The pragma: no cover is used on small checks that are not expected
         # to fail. This method is difficult to test and testing each check
@@ -357,12 +360,12 @@ class ControlInterface:
         """
         Handle the response received from the control interface.
 
-        Args:
-            response (Response): The response object to handle.
+        :param response: The response object to handle.
+        :type response: Response
 
-        Raises:
-            ControlInterfaceException: If the response is not in a valid state.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException:
+            If the response is not in a valid state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Handle the initialized state
         if self._state == ControlInterfaceState.INITIALIZED:
@@ -458,11 +461,10 @@ class ControlInterface:
         Writes the ToAnkaios proto message to the control
         interface output fifo.
 
-        Args:
-            to_ankaios (_control_api.ToAnkaios): The ToAnkaios proto message.
+        :param to_ankaios: The ToAnkaios proto message.
+        :type to_ankaios: _control_api.ToAnkaios
 
-        Raises:
-            ControlInterfaceException: If the output pipe is None.
+        :raises ControlInterfaceException: If the output pipe is None.
         """
         if self._output_file is None:
             self._logger.error(
@@ -482,12 +484,11 @@ class ControlInterface:
         """
         Writes the request into the control interface output fifo.
 
-        Args:
-            request (Request): The request object to be written.
+        :param request: The request object to be written.
+        :type request: Request
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         if self._state == ControlInterfaceState.CONNECTION_CLOSED:
             raise ConnectionClosedException(
@@ -508,8 +509,7 @@ class ControlInterface:
         Send an initial hello message with the version
         to the control interface.
 
-        Raises:
-            ControlInterfaceException: If not connected.
+        :raises ControlInterfaceException: If not connected.
         """
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(protocolVersion=str(ANKAIOS_VERSION))

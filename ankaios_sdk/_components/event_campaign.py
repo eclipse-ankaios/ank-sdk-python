@@ -19,7 +19,7 @@ This module defines the EventQueue class for handling events.
 Classes
 -------
 
-- EventQueue:
+- :class:`EventQueue`:
     Represents a queue of events received from the Ankaios system.
     Inherits from the standard Queue class.
 
@@ -62,8 +62,8 @@ class EventQueue(Queue):
         """
         Initializes the EventQueue with the given parameters.
 
-        Args:
-            request_id (str): The request id of the event campaign.
+        :param request_id: The request id of the event campaign.
+        :type request_id: str
         """
         super().__init__()
         self.complete_state: CompleteState = None
@@ -73,8 +73,8 @@ class EventQueue(Queue):
         """
         Adds an event to the queue and updates the known complete state.
 
-        Args:
-            event (EventEntry): The event to be added to the queue.
+        :param event: The event to be added to the queue.
+        :type event: EventEntry
         """
         self.complete_state = event.complete_state
         self.put(event)

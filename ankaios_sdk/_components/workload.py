@@ -19,9 +19,9 @@ the AccessRightRule class for managing access rights.
 Classes
 --------
 
-- Workload:
+- :class:`Workload`:
     Represents a workload with various attributes and methods to update them.
-- AccessRightRule:
+- :class:`AccessRightRule`:
     Represents an access right rule for a workload. It can be either a
     state rule or a log rule.
 
@@ -88,8 +88,8 @@ class Workload:
     """
     A class to represent a workload.
 
-    Attributes:
-        name (str): The workload name.
+    :var str name:
+        The workload name.
     """
 
     def __init__(self, name: str) -> None:
@@ -99,20 +99,20 @@ class Workload:
         The Workload object should be created using the
         Workload.builder() method.
 
-        Args:
-            name (str): The workload name.
+        :param name: The workload name.
+        :type name: str
         """
         self._workload = _ank_base.Workload()
         self.name = name
         self._main_mask = f"{WORKLOADS_PREFIX}.{self.name}"
-        self.masks = [self._main_mask]
+        self._masks = [self._main_mask]
 
     def __str__(self) -> str:
         """
         Return a string representation of the Workload object.
 
-        Returns:
-            str: String representation of the Workload object.
+        :returns: String representation of the Workload object.
+        :rtype: str
         """
         return str(self._to_proto())
 
@@ -121,8 +121,8 @@ class Workload:
         """
         Return a WorkloadBuilder object.
 
-        Returns:
-            WorkloadBuilder: A builder object to create a Workload.
+        :returns: A builder object to create a Workload.
+        :rtype: WorkloadBuilder
         """
         # pylint: disable=import-outside-toplevel
         from .workload_builder import WorkloadBuilder
@@ -133,8 +133,8 @@ class Workload:
         """
         Set the workload name.
 
-        Args:
-            name (str): The workload name to update.
+        :param name: The workload name to update.
+        :type name: str
         """
         self.name = name
         self._add_mask(self._main_mask)
@@ -143,8 +143,8 @@ class Workload:
         """
         Set the agent name for the workload.
 
-        Args:
-            agent_name (str): The agent name to update.
+        :param agent_name: The agent name to update.
+        :type agent_name: str
         """
         self._workload.agent = agent_name
         self._add_mask(f"{self._main_mask}.agent")
@@ -153,8 +153,8 @@ class Workload:
         """
         Set the runtime for the workload.
 
-        Args:
-            runtime (str): The runtime to update.
+        :param runtime: The runtime to update.
+        :type runtime: str
         """
         self._workload.runtime = runtime
         self._add_mask(f"{self._main_mask}.runtime")
@@ -163,8 +163,8 @@ class Workload:
         """
         Set the runtime-specific configuration for the workload.
 
-        Args:
-            config (str): The runtime configuration to update.
+        :param config: The runtime configuration to update.
+        :type config: str
         """
         self._workload.runtimeConfig = config
         self._add_mask(f"{self._main_mask}.runtimeConfig")
@@ -173,8 +173,8 @@ class Workload:
         """
         Set the runtime-specific configuration for the workload from a file.
 
-        Args:
-            config_file (str): The path to the configuration file.
+        :param config_file: The path to the configuration file.
+        :type config_file: str
         """
         with open(config_file, "r", encoding="utf-8") as file:
             self.update_runtime_config(file.read())
@@ -184,11 +184,11 @@ class Workload:
         Set the restart policy for the workload.
         Supported values: `NEVER`, `ON_FAILURE`, `ALWAYS`.
 
-        Args:
-            policy (str): The restart policy to update.
+        :param policy: The restart policy to update.
+        :type policy: str
 
-        Raises:
-            WorkloadFieldException: If an invalid restart policy is provided.
+        :raises WorkloadFieldException:
+            If an invalid restart policy is provided.
         """
         if policy not in _ank_base.RestartPolicy.keys():
             logger.error("Invalid restart policy provided.")
@@ -202,9 +202,9 @@ class Workload:
         """
         Return the dependencies of the workload.
 
-        Returns:
-            dict: A dictionary of dependencies with workload names \
-                as keys and conditions as values.
+        :returns: A dictionary of dependencies with workload names
+            as keys and conditions as values.
+        :rtype: dict
         """
         deps = dict(self._workload.dependencies.dependencies)
         for dep in deps:
@@ -217,12 +217,11 @@ class Workload:
         Supported conditions: `ADD_COND_RUNNING`, `ADD_COND_SUCCEEDED`,
         `ADD_COND_FAILED`.
 
-        Args:
-            dependencies (dict): A dictionary of dependencies with
-                workload names and condition as values.
+        :param dependencies: A dictionary of dependencies with
+            workload names and condition as values.
+        :type dependencies: dict
 
-        Raises:
-            WorkloadFieldException: If an invalid condition is provided.
+        :raises WorkloadFieldException: If an invalid condition is provided.
         """
         self._workload.dependencies.dependencies.clear()
         for workload_name, condition in dependencies.items():
@@ -242,21 +241,22 @@ class Workload:
         """
         Add a tag to the workload.
 
-        Args:
-            key (str): The key of the tag.
-            value (str): The value of the tag.
+        :param key: The key of the tag.
+        :type key: str
+        :param value: The value of the tag.
+        :type value: str
         """
         tag = {key: value}
         self._workload.tags.tags.update(tag)
-        if f"{self._main_mask}.tags" not in self.masks:
+        if f"{self._main_mask}.tags" not in self._masks:
             self._add_mask(f"{self._main_mask}.tags.{key}")
 
     def get_tags(self) -> dict[str, str]:
         """
         Return the tags of the workload.
 
-        Returns:
-            dict: A dict containing tag keys and values.
+        :returns: A dict containing tag keys and values.
+        :rtype: dict
         """
         tags = {}
         for key, value in self._workload.tags.tags.items():
@@ -267,15 +267,15 @@ class Workload:
         """
         Update the tags of the workload.
 
-        Args:
-            tags (dict): A dict containing tag keys and values.
+        :param tags: A dict containing tag keys and values.
+        :type tags: dict
         """
         self._workload.tags.tags.clear()
         for key, value in tags.items():
             self._workload.tags.tags.update({key: value})
-        self.masks = [
+        self._masks = [
             mask
-            for mask in self.masks
+            for mask in self._masks
             if not mask.startswith(f"{self._main_mask}.tags")
         ]
         self._add_mask(f"{self._main_mask}.tags")
@@ -284,8 +284,8 @@ class Workload:
         """
         Return the allow rules of the workload.
 
-        Returns:
-            list: A list of AccessRightRules
+        :returns: A list of AccessRightRules
+        :rtype: list
         """
         rules = []
         for rule in self._workload.controlInterfaceAccess.allowRules:
@@ -296,8 +296,8 @@ class Workload:
         """
         Update the allow rules of the workload.
 
-        Args:
-            rules (list): A list of AccessRightRules.
+        :param rules: A list of AccessRightRules.
+        :type rules: list
         """
         del self._workload.controlInterfaceAccess.allowRules[:]
         for rule in rules:
@@ -310,8 +310,8 @@ class Workload:
         """
         Return the deny rules of the workload.
 
-        Returns:
-            list: A list of AccessRightRules
+        :returns: A list of AccessRightRules
+        :rtype: list
         """
         rules = []
         for rule in self._workload.controlInterfaceAccess.denyRules:
@@ -322,8 +322,8 @@ class Workload:
         """
         Update the deny rules of the workload.
 
-        Args:
-            rules (list): A list of AccessRightRules.
+        :param rules: A list of AccessRightRules.
+        :type rules: list
         """
         del self._workload.controlInterfaceAccess.denyRules[:]
         for rule in rules:
@@ -336,9 +336,10 @@ class Workload:
         """
         Link a configuration to the workload.
 
-        Args:
-            alias (str): The alias of the configuration.
-            name (str): The name of the configuration.
+        :param alias: The alias of the configuration.
+        :type alias: str
+        :param name: The name of the configuration.
+        :type name: str
         """
         self._workload.configs.configs[alias] = name
         self._add_mask(f"{self._main_mask}.configs")
@@ -347,9 +348,9 @@ class Workload:
         """
         Return the configurations linked to the workload.
 
-        Returns:
-            dict[str, str]: A dict containing the alias as key and name of the
-                configuration as value.
+        :returns: A dict containing the alias as key and name of the
+            configuration as value.
+        :rtype: dict[str, str]
         """
         config_mappings = {}
         for alias, name in self._workload.configs.configs.items():
@@ -360,9 +361,9 @@ class Workload:
         """
         Update the configurations linked to the workload.
 
-        Args:
-            configs (dict[str, str]): A tuple containing the alias and
-                name of the configurations.
+        :param configs: A tuple containing the alias and
+            name of the configurations.
+        :type configs: dict[str, str]
         """
         self._workload.configs.configs.clear()
         for alias, name in configs.items():
@@ -372,8 +373,8 @@ class Workload:
         """
         Link a workload file to the workload.
 
-        Args:
-           file (File): The File object to mount to the workload.
+        :param file: The File object to mount to the workload.
+        :type file: File
         """
         self._workload.files.files.append(file._to_proto())
         self._add_mask(f"{self._main_mask}.files")
@@ -382,8 +383,8 @@ class Workload:
         """
         Return the files linked to the workload.
 
-        Returns:
-        list[File]: A list of File objects mounted to the workload.
+        :returns: A list of File objects mounted to the workload.
+        :rtype: list[File]
         """
         return [File._from_proto(file) for file in self._workload.files.files]
 
@@ -391,8 +392,8 @@ class Workload:
         """
         Update the files linked to the workload.
 
-        Args:
-            files (list[File]): List of File objects mounted to the workload.
+        :param files: List of File objects mounted to the workload.
+        :type files: list[File]
         """
         del self._workload.files.files[:]
         for file in files:
@@ -402,19 +403,19 @@ class Workload:
         """
         Add a mask to the list of masks.
 
-        Args:
-            mask (str): The mask to add.
+        :param mask: The mask to add.
+        :type mask: str
         """
-        if self._main_mask not in self.masks and mask not in self.masks:
-            self.masks.append(mask)
+        if self._main_mask not in self._masks and mask not in self._masks:
+            self._masks.append(mask)
 
     # pylint: disable=too-many-branches
     def to_dict(self) -> dict:
         """
         Convert the Workload object to a dictionary.
 
-        Returns:
-            dict: The dictionary representation of the Workload object.
+        :returns: The dictionary representation of the Workload object.
+        :rtype: dict
         """
         workload_dict = {}
         if self._workload.agent:
@@ -467,12 +468,13 @@ class Workload:
         """
         Convert a dictionary to a Workload object.
 
-        Args:
-            workload_name (str): The name of the workload.
-            dict_workload (dict): The dictionary to convert.
+        :param workload_name: The name of the workload.
+        :type workload_name: str
+        :param dict_workload: The dictionary to convert.
+        :type dict_workload: dict
 
-        Returns:
-            Workload: The Workload object created from the dictionary.
+        :returns: The Workload object created from the dictionary.
+        :rtype: Workload
         """
         workload = Workload.builder().workload_name(workload_name)
         if "agent" in dict_workload:
@@ -517,9 +519,9 @@ class Workload:
         """
         Convert the Workload object to a proto message.
 
-        Returns:
-            _ank_base.Workload: The proto message representation
-                of the Workload object.
+        :returns: The proto message representation
+            of the Workload object.
+        :rtype: _ank_base.Workload
         """
         return self._workload
 
@@ -527,11 +529,11 @@ class Workload:
         """
         Convert the proto message to a Workload object.
 
-        Args:
-            proto (_ank_base.Workload): The proto message to convert.
+        :param proto: The proto message to convert.
+        :type proto: _ank_base.Workload
         """
         self._workload = proto
-        self.masks = []
+        self._masks = []
 
 
 class AccessRightRule:
@@ -546,8 +548,8 @@ class AccessRightRule:
         the static methods `state_rule` or `log_rule`, depending
         on the type of rule you want to create.
 
-        Args:
-            rule (_ank_base.AccessRightsRule): The access right rule.
+        :param rule: The access right rule.
+        :type rule: _ank_base.AccessRightsRule
         """
         self._rule = rule
 
@@ -555,8 +557,8 @@ class AccessRightRule:
         """
         Returns the string representation of the access right rule.
 
-        Returns:
-            str: The string representation of the access right rule.
+        :returns: The string representation of the access right rule.
+        :rtype: str
         """
         if self.type == "StateRule":
             operation, filter_masks = self._state_rule_to_str(
@@ -572,8 +574,8 @@ class AccessRightRule:
         """
         Returns the type of the access right rule.
 
-        Returns:
-            str: The type of the access right rule.
+        :returns: The type of the access right rule.
+        :rtype: str
         """
         if self._rule.HasField("stateRule"):
             return "StateRule"
@@ -589,15 +591,15 @@ class AccessRightRule:
         Create an access state rule for a workload.
         Supported operations: `Nothing`, `Write`, `Read`, `ReadWrite`.
 
-        Args:
-            operation (str): The operation the rule allows.
-            filter_masks (list): The list of filter masks.
+        :param operation: The operation the rule allows.
+        :type operation: str
+        :param filter_masks: The list of filter masks.
+        :type filter_masks: list
 
-        Returns:
-            AccessRightRule: The access right rule object.
+        :returns: The access right rule object.
+        :rtype: AccessRightRule
 
-        Raises:
-            WorkloadFieldException: If an invalid operation is provided.
+        :raises WorkloadFieldException: If an invalid operation is provided.
         """
         return AccessRightRule(
             _ank_base.AccessRightsRule(
@@ -612,11 +614,11 @@ class AccessRightRule:
         """
         Create an access log rule for a workload.
 
-        Args:
-            workload_names (list): The list of workload names.
+        :param workload_names: The list of workload names.
+        :type workload_names: list
 
-        Returns:
-            AccessRightRule: The access right rule object.
+        :returns: The access right rule object.
+        :rtype: AccessRightRule
         """
         return AccessRightRule(
             _ank_base.AccessRightsRule(
@@ -628,9 +630,9 @@ class AccessRightRule:
         """
         Convert the AccessRightRule object to a proto message.
 
-        Returns:
-            _ank_base.AccessRightsRule: The proto message representation
-                of the AccessRightRule object.
+        :returns: The proto message representation
+            of the AccessRightRule object.
+        :rtype: _ank_base.AccessRightsRule
         """
         return self._rule
 
@@ -638,8 +640,8 @@ class AccessRightRule:
         """
         Convert the AccessRightRule object to a dictionary.
 
-        Returns:
-            dict: The dictionary representation of the AccessRightRule object.
+        :returns: The dictionary representation of the AccessRightRule object.
+        :rtype: dict
         """
         if self.type == "StateRule":
             operation, filter_masks = self._state_rule_to_str(
@@ -666,15 +668,15 @@ class AccessRightRule:
         """
         Generate an access rights rule for the workload.
 
-        Args:
-            operation (str): The operation the rule allows.
-            filter_masks (list): The list of filter masks.
+        :param operation: The operation the rule allows.
+        :type operation: str
+        :param filter_masks: The list of filter masks.
+        :type filter_masks: list
 
-        Returns:
-            _ank_base.StateRule: The state rule generated.
+        :returns: The state rule generated.
+        :rtype: _ank_base.StateRule
 
-        Raises:
-            WorkloadFieldException: If an invalid operation is provided.
+        :raises WorkloadFieldException: If an invalid operation is provided.
         """
         enum_mapper = {
             "Nothing": _ank_base.ReadWriteEnum.RW_NOTHING,
@@ -696,11 +698,11 @@ class AccessRightRule:
         """
         Convert an access rights rule to a tuple.
 
-        Args:
-            rule (_ank_base.StateRule): The state rule to convert.
+        :param rule: The state rule to convert.
+        :type rule: _ank_base.StateRule
 
-        Returns:
-            tuple: A tuple containing operation and filter masks.
+        :returns: A tuple containing operation and filter masks.
+        :rtype: tuple
         """
         enum_mapper = {
             _ank_base.ReadWriteEnum.RW_NOTHING: "Nothing",

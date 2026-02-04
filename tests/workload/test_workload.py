@@ -154,7 +154,7 @@ def test_update_fields(
     Args:
         workload (Workload): The Workload fixture.
     """
-    assert workload.masks == [f"{WORKLOADS_PREFIX}.workload_test"]
+    assert workload._masks == [f"{WORKLOADS_PREFIX}.workload_test"]
 
     workload.update_workload_name("new_workload_test")
     assert workload.name == "new_workload_test"
@@ -434,12 +434,12 @@ def test_mask_generation(function_name: str, data: dict, mask: str):
         mask (str): The expected mask to be generated.
     """
     my_workload = Workload("workload_test")
-    my_workload.masks = []
+    my_workload._masks = []
 
     # Call function and assert the mask has been added
     getattr(my_workload, function_name)(**data)
-    assert my_workload.masks == [mask]
+    assert my_workload._masks == [mask]
 
     # Updating the mask again should not add a new mask
     getattr(my_workload, function_name)(**data)
-    assert len(my_workload.masks) == 1
+    assert len(my_workload._masks) == 1

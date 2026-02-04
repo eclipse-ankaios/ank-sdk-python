@@ -19,9 +19,9 @@ the state of the Ankaios cluster.
 Classes
 -------
 
-- CompleteState:
+- :class:`CompleteState`:
     Represents the complete state of the Ankaios cluster.
-- AgentAttributes:
+- :class:`AgentAttributes`:
     Represents the attributes of an agent in the Ankaios cluster.
 
 Usage
@@ -99,13 +99,14 @@ class CompleteState:
         """
         Initializes a CompleteState instance with the provided data.
 
-        Args:
-            manifest (Manifest): The manifest to initialize the complete state.
-            configs (dict): The configurations to set in the complete state.
-            workloads (list[Workload]): The workloads to set
-                in the complete state.
-            _proto (_ank_base.CompleteState): The proto message to initialize
-                the complete state.
+        :param manifest: The manifest to initialize the complete state.
+        :type manifest: Manifest
+        :param configs: The configurations to set in the complete state.
+        :type configs: dict
+        :param workloads: The workloads to set in the complete state.
+        :type workloads: list[Workload]
+        :param _proto: The proto message to initialize the complete state.
+        :type _proto: _ank_base.CompleteState
         """
         self._complete_state = _ank_base.CompleteState()
         self._complete_state.desiredState.workloads.workloads.clear()
@@ -137,8 +138,8 @@ class CompleteState:
         """
         Returns the string representation of the complete state.
 
-        Returns:
-            str: The string representation of the complete state.
+        :returns: The string representation of the complete state.
+        :rtype: str
         """
         return str(self._to_proto())
 
@@ -146,8 +147,8 @@ class CompleteState:
         """
         Sets the API version for the complete state.
 
-        Args:
-            version (str): The API version to set.
+        :param version: The API version to set.
+        :type version: str
         """
         self._complete_state.desiredState.apiVersion = version
 
@@ -155,8 +156,8 @@ class CompleteState:
         """
         Gets the API version of the complete state.
 
-        Returns:
-            str: The API version of the complete state.
+        :returns: The API version of the complete state.
+        :rtype: str
         """
         return str(self._complete_state.desiredState.apiVersion)
 
@@ -164,12 +165,11 @@ class CompleteState:
         """
         Gets a workload from the complete state by its name.
 
-        Args:
-            workload_name (str): The name of the workload to retrieve.
+        :param workload_name: The name of the workload to retrieve.
+        :type workload_name: str
 
-        Returns:
-            Workload: The workload with the specified name,
-                or None if not found.
+        :returns: The workload with the specified name, or None if not found.
+        :rtype: Workload
         """
         if (
             workload_name
@@ -189,8 +189,8 @@ class CompleteState:
         """
         Gets a list of workloads from the complete state.
 
-        Returns:
-            list[Workload]: A list of workloads in the complete state.
+        :returns: A list of workloads in the complete state.
+        :rtype: list[Workload]
         """
         workloads = []
         for (
@@ -206,8 +206,8 @@ class CompleteState:
         """
         Gets the workload states.
 
-        Returns:
-            WorkloadStateCollection: The collection of workload states.
+        :returns: The collection of workload states.
+        :rtype: WorkloadStateCollection
         """
         workload_state_collection = WorkloadStateCollection()
         workload_state_collection._from_proto(
@@ -219,9 +219,8 @@ class CompleteState:
         """
         Gets the connected agents and their attributes.
 
-        Returns:
-            dict[str, AgentAttributes]: A dict with the agents and
-                their attributes.
+        :returns: A dict with the agents and their attributes.
+        :rtype: dict[str, AgentAttributes]
         """
         agents = {}
         for name, attributes in self._complete_state.agents.agents.items():
@@ -232,9 +231,10 @@ class CompleteState:
         """
         Sets the tags for a specific agent.
 
-        Args:
-            agent_name (str): The name of the agent.
-            tags (dict[str, str]): The tags to set for the agent.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param tags: The tags to set for the agent.
+        :type tags: dict[str, str]
         """
         agent_attributes = self._complete_state.agents.agents[agent_name]
         agent_attributes.tags.tags.clear()
@@ -245,8 +245,8 @@ class CompleteState:
         """
         Sets the configurations in the complete state.
 
-        Args:
-            configs (dict): The configurations to set in the complete state.
+        :param configs: The configurations to set in the complete state.
+        :type configs: dict
         """
         self._complete_state.desiredState.configs.configs.clear()
         for key, value in configs.items():
@@ -258,8 +258,8 @@ class CompleteState:
         """
         Gets the configurations from the complete state.
 
-        Returns:
-            dict: The configurations from the complete state
+        :returns: The configurations from the complete state.
+        :rtype: dict
         """
 
         def _from_config_item(
@@ -288,10 +288,10 @@ class CompleteState:
 
     def to_dict(self) -> dict:
         """
-        Returns the CompleteState as a dictionary
+        Returns the CompleteState as a dictionary.
 
-        Returns:
-            dict: The CompleteState as a dictionary.
+        :returns: The CompleteState as a dictionary.
+        :rtype: dict
         """
         data = {
             "desired_state": {
@@ -324,9 +324,8 @@ class CompleteState:
         """
         Returns the CompleteState as a proto message.
 
-        Returns:
-            _ank_base.CompleteState: The protobuf message representing
-                the complete state.
+        :returns: The protobuf message representing the complete state.
+        :rtype: _ank_base.CompleteState
         """
         return self._complete_state
 
@@ -334,6 +333,9 @@ class CompleteState:
 class AgentAttributes:
     """
     A class to represent the attributes of an agent.
+
+    :var dict[str, str] tags:
+        The agent's tags
     """
 
     def __init__(self) -> None:
@@ -348,8 +350,8 @@ class AgentAttributes:
         """
         Gets the status of the agent.
 
-        Returns:
-            dict[str, str]: The status of the agent.
+        :returns: The status of the agent.
+        :rtype: dict[str, str]
         """
         status = {
             "cpu_usage": int(self._status.cpu_usage.cpu_usage),
@@ -357,12 +359,12 @@ class AgentAttributes:
         }
         return status
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Union[dict, str]]:
         """
         Returns the AgentAttributes as a dictionary.
 
-        Returns:
-            dict: The AgentAttributes as a dictionary.
+        :returns: The AgentAttributes as a dictionary.
+        :rtype: dict[str, Union[dict, str]]
         """
         data = {
             "tags": self.tags,
@@ -375,9 +377,8 @@ class AgentAttributes:
         """
         Initializes the AgentAttributes instance from a proto message.
 
-        Args:
-            proto (_ank_base.AgentAttributes): The proto message to
-                initialize the agent attributes.
+        :param proto: The proto message to initialize the agent attributes.
+        :type proto: _ank_base.AgentAttributes
         """
         obj = AgentAttributes()
         obj.tags = dict(proto.tags.tags)

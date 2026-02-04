@@ -19,7 +19,7 @@ Ankaios control interface.
 Classes
 -------
 
-- Ankaios:
+- :class:`Ankaios`:
     Handles the interaction with the Ankaios control interface.
 
 Usage
@@ -178,8 +178,8 @@ class Ankaios:
     The class automatically handles the session creation and the requests
     and responses sent and received over the Ankaios Control Interface.
 
-    Attributes:
-        logger (logging.Logger): The logger for the Ankaios class.
+    :var logging.Logger logger:
+        The logger for the Ankaios class.
     """
 
     DEFAULT_TIMEOUT = 5.0
@@ -192,12 +192,11 @@ class Ankaios:
         Initialize the Ankaios object. The logger will be created and
         the connection to the control interface will be established.
 
-        Args:
-            log_level (AnkaiosLogLevel): The log level to be set.
+        :param log_level: The log level to be set.
+        :type log_level: AnkaiosLogLevel
 
-        Raises:
-            ConnectionClosedException: If the connection is closed
-                at startup.
+        :raises ConnectionClosedException: If the connection is closed
+            at startup.
         """
         # Thread safe queue for responses and logs
         self._responses: Queue = Queue()
@@ -232,8 +231,8 @@ class Ankaios:
         """
         Used for context management.
 
-        Returns:
-            Ankaios: The current object.
+        :returns: The current object.
+        :rtype: Ankaios
         """
         return self
 
@@ -241,10 +240,12 @@ class Ankaios:
         """
         Used for context management. Disconnects from the control interface.
 
-        Args:
-            exc_type (type): The exception type.
-            exc_value (Exception): The exception instance.
-            traceback (traceback): The traceback object.
+        :param exc_type: The exception type.
+        :type exc_type: type
+        :param exc_value: The exception instance.
+        :type exc_value: Exception
+        :param traceback: The traceback object.
+        :type traceback: traceback
         """
         if exc_type is not None:  # pragma: no cover
             self.logger.error(
@@ -259,6 +260,9 @@ class Ankaios:
         """
         Method will be called automatically from the Control Interface
         when a response is received.
+
+        :param response: The received response.
+        :type response: Response
         """
         request_id = response.get_request_id()
         self.logger.debug("Received a response with the id %s", request_id)
@@ -268,6 +272,11 @@ class Ankaios:
         """
         Method will be called automatically from the Control Interface
         when a log is received.
+
+        :param request_id: The request id of the logs campaign.
+        :type request_id: str
+        :param logs: The received logs.
+        :type logs: list[`LogResponse`]
         """
         if request_id in self._logs_callbacks:
             for log in logs:
@@ -281,6 +290,11 @@ class Ankaios:
         """
         Method will be called automatically from the Control Interface
         when an event is received.
+
+        :param request_id: The request id of the event campaign.
+        :type request_id: str
+        :param event: The event entry.
+        :type event: EventEntry
         """
         if request_id in self._events_callbacks:
             self._events_callbacks[request_id](event)
@@ -295,17 +309,16 @@ class Ankaios:
         """
         Returns the response by the request id.
 
-        Args:
-            request_id (str): The ID of the request.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param request_id: The ID of the request.
+        :type request_id: str
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            Response: The response object.
+        :returns: The response object.
+        :rtype: Response
 
-        Raises:
-            TimeoutError: If response is not received within the timeout.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If response is not received within the timeout.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         response: Response = None
         response_id = None
@@ -337,18 +350,17 @@ class Ankaios:
         """
         Send a request and wait for the response.
 
-        Args:
-            request (Request): The request object to be sent.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param request: The request object to be sent.
+        :type request: Request
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            Response: The response object.
+        :returns: The response object.
+        :rtype: Response
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         self._control_interface.write_request(request)
         response = self._get_response_by_id(request.get_id(), timeout)
@@ -358,8 +370,8 @@ class Ankaios:
         """
         Set the log level of the logger.
 
-        Args:
-            level (AnkaiosLogLevel): The log level to be set.
+        :param level: The log level to be set.
+        :type level: AnkaiosLogLevel
         """
         self.logger.setLevel(level.value)
 
@@ -369,20 +381,20 @@ class Ankaios:
         """
         Send a request to apply a manifest.
 
-        Args:
-            manifest (Manifest): The manifest object to be applied.
-            timeout (float): The maximum time to wait for the response.
+        :param manifest: The manifest object to be applied.
+        :type manifest: Manifest
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Returns:
-            UpdateStateSuccess: The update state success object.
+        :returns: The update state success object.
+        :rtype: UpdateStateSuccess
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -419,20 +431,20 @@ class Ankaios:
         """
         Send a request to delete a manifest.
 
-        Args:
-            manifest (Manifest): The manifest object to be deleted.
-            timeout (float): The maximum time to wait for the response.
+        :param manifest: The manifest object to be deleted.
+        :type manifest: Manifest
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Returns:
-            UpdateStateSuccess: The update state success object.
+        :returns: The update state success object.
+        :rtype: UpdateStateSuccess
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -469,24 +481,24 @@ class Ankaios:
         """
         Send a request to run a workload.
 
-        Args:
-            workload (Workload): The workload object to be run.
-            timeout (float): The maximum time to wait for the response.
+        :param workload: The workload object to be run.
+        :type workload: Workload
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Returns:
-            UpdateStateSuccess: The update state success object.
+        :returns: The update state success object.
+        :rtype: UpdateStateSuccess
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
-            CompleteState(workloads=[workload]), workload.masks
+            CompleteState(workloads=[workload]), workload._masks
         )
 
         # Send request
@@ -520,21 +532,20 @@ class Ankaios:
         Get the workload with the provided name from the
         requested complete state.
 
-        Args:
-            workload_name (str): The name of the workload.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param workload_name: The name of the workload.
+        :type workload_name: str
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            list[Workload]: The workloads that match the name.
+        :returns: The workloads that match the name.
+        :rtype: list[Workload]
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(
             [f"{WORKLOADS_PREFIX}.{workload_name}"], timeout
@@ -546,20 +557,20 @@ class Ankaios:
         """
         Send a request to delete a workload.
 
-        Args:
-            workload_name (str): The name of the workload to be deleted.
-            timeout (float): The maximum time to wait for the response.
+        :param workload_name: The name of the workload to be deleted.
+        :type workload_name: str
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Returns:
-            UpdateStateSuccess: The update state success object.
+        :returns: The update state success object.
+        :rtype: UpdateStateSuccess
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -593,17 +604,17 @@ class Ankaios:
         """
         Update the configs. The names will be the keys of the dictionary.
 
-        Args:
-            configs (dict): The configs dictionary.
-            timeout (float): The maximum time to wait for the response.
+        :param configs: The configs dictionary.
+        :type configs: dict
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -638,18 +649,19 @@ class Ankaios:
         Adds the config with the provided name.
         If the config exists, it will be replaced.
 
-        Args:
-            name (str): The name of the config.
-            config (Union[dict, list, str]): The config dictionary.
-            timeout (float): The maximum time to wait for the response.
+        :param name: The name of the config.
+        :type name: str
+        :param config: The config dictionary.
+        :type config: Union[dict, list, str]
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -678,16 +690,18 @@ class Ankaios:
         """
         Get the configs. The keys will be the names.
 
-        Returns:
-            dict: The configs dictionary.
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :returns: The configs dictionary.
+        :rtype: dict
+
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         return (
             self.get_state(field_masks=[CONFIGS_PREFIX]).get_configs(),
@@ -698,19 +712,20 @@ class Ankaios:
         """
         Get the config with the provided name.
 
-        Args:
-            name (str): The name of the config.
+        :param name: The name of the config.
+        :type name: str
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Returns:
-            dict: The config in a dict format.
+        :returns: The config in a dict format.
+        :rtype: dict
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         return (
             self.get_state(
@@ -723,13 +738,15 @@ class Ankaios:
         """
         Delete all the configs.
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
+
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(CompleteState(), [CONFIGS_PREFIX])
@@ -756,17 +773,17 @@ class Ankaios:
         """
         Delete the config.
 
-        Args:
-            name (str): The name of the config.
-            timeout (float): The maximum time to wait for the response.
+        :param name: The name of the config.
+        :type name: str
+        :param timeout: The maximum time to wait for the response.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         request = UpdateStateRequest(
@@ -799,22 +816,20 @@ class Ankaios:
         """
         Send a request to get the complete state.
 
-        Args:
-            field_masks (list[str]): The list of field masks to filter
-                the state.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param field_masks: The list of field masks to filter the state.
+        :type field_masks: list[str]
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            CompleteState: The complete state object.
+        :returns: The complete state object.
+        :rtype: CompleteState
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         request = GetStateRequest(
             field_masks if field_masks is not None else []
@@ -843,19 +858,19 @@ class Ankaios:
         """
         Set the tags for a specific agent.
 
-        Args:
-            agent_name (str): The name of the agent.
-            tags (dict[str, str]): The tags to be set.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param tags: The tags to be set.
+        :type tags: dict[str, str]
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
         complete_state = CompleteState()
@@ -886,20 +901,18 @@ class Ankaios:
         """
         Get the agents and their attributes.
 
-        Args:
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            dict: The agents dictionary.
+        :returns: The agents dictionary.
+        :rtype: dict
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         return self.get_state([f"{AGENTS_PREFIX}"], timeout).get_agents()
 
@@ -909,20 +922,20 @@ class Ankaios:
         """
         Get the attributes of a specific agent.
 
-        Args:
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            AgentAttributes: The attributes of the agent.
+        :returns: The attributes of the agent.
+        :rtype: AgentAttributes
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state or the agent is not found.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state or the agent is not found.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         agents = self.get_state(
             field_masks=[f"{AGENTS_PREFIX}.{agent_name}"], timeout=timeout
@@ -939,20 +952,18 @@ class Ankaios:
         """
         Get the workload states from the requested complete state.
 
-        Args:
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            WorkloadStateCollection: The collection of workload states.
+        :returns: The collection of workload states.
+        :rtype: WorkloadStateCollection
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         return self.get_state(
             ["workloadStates"], timeout
@@ -967,22 +978,20 @@ class Ankaios:
         Get the workload states for a specific workload instance name from the
         requested complete state.
 
-        Args:
-            instance_name (WorkloadInstanceName): The instance name of the
-                workload.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param instance_name: The instance name of the workload.
+        :type instance_name: WorkloadInstanceName
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            WorkloadExecutionState: The specified workload's execution state.
+        :returns: The specified workload's execution state.
+        :rtype: WorkloadExecutionState
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state([instance_name.get_filter_mask()], timeout)
         workload_states = state.get_workload_states().get_as_list()
@@ -1006,21 +1015,20 @@ class Ankaios:
         Get the workload states on a specific agent from the requested
         complete state.
 
-        Args:
-            agent_name (str): The name of the agent.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param agent_name: The name of the agent.
+        :type agent_name: str
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            WorkloadStateCollection: The collection of workload states.
+        :returns: The collection of workload states.
+        :rtype: WorkloadStateCollection
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state(["workloadStates." + agent_name], timeout)
         return state.get_workload_states()
@@ -1032,21 +1040,20 @@ class Ankaios:
         Get the workload states for a specific workload name from the
         requested complete state.
 
-        Args:
-            workload_name (str): The name of the workload.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param workload_name: The name of the workload.
+        :type workload_name: str
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            WorkloadStateCollection: The collection of workload states.
+        :returns: The collection of workload states.
+        :rtype: WorkloadStateCollection
 
-        Raises:
-            TimeoutError: If the request timed out.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         state = self.get_state(["workloadStates"], timeout)
         workload_states = state.get_workload_states().get_as_list()
@@ -1068,21 +1075,20 @@ class Ankaios:
         """
         Waits for the workload to reach the specified state.
 
-        Args:
-            instance_name (WorkloadInstanceName): The instance name of the
-                workload.
-            state (WorkloadStateEnum): The state to wait for.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param instance_name: The instance name of the workload.
+        :type instance_name: WorkloadInstanceName
+        :param state: The state to wait for.
+        :type state: WorkloadStateEnum
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Raises:
-            TimeoutError: If the request timed out or if the workload
-                did not reach the state in time.
-            ControlInterfaceException: If not connected.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If an error occurred while getting
-                the state.
-            ConnectionClosedException: If the connection is closed.
+        :raises TimeoutError: If the request timed out or if the workload
+            did not reach the state in time.
+        :raises ControlInterfaceException: If not connected.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If an error occurred while getting
+            the state.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -1110,25 +1116,27 @@ class Ankaios:
         """
         Request logs for the specified workloads.
 
-        Args:
-            workload_names (list[WorkloadInstanceName]): The workload
-                instance names for which to get logs.
-            follow (bool): If true, the logs will be continuously streamed.
-            tail (int): The number of lines to display from
-                the end of the logs.
-            since (str / datetime): The start time for the logs. If string,
-                it must be in the RFC3339 format.
-            until (str / datetime): The end time for the logs. If string,
-                it must be in the RFC3339 format.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param workload_names: The workload instance names
+            for which to get logs.
+        :type workload_names: list[WorkloadInstanceName]
+        :param follow: If true, the logs will be continuously streamed.
+        :type follow: bool
+        :param tail: The number of lines to display from the end of the logs.
+        :type tail: int
+        :param since: The start time for the logs. If string, it must be in
+            the RFC3339 format.
+        :type since: Union[str, datetime]
+        :param until: The end time for the logs. If string, it must be in
+            the RFC3339 format.
+        :type until: Union[str, datetime]
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Returns:
-            LogCampaignResponse: The log campaign response object.
+        :returns: The log campaign response object.
+        :rtype: LogCampaignResponse
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionClosedException: If the connection is closed.
         """
 
         request = LogsRequest(
@@ -1171,14 +1179,13 @@ class Ankaios:
         """
         Stop receiving logs from the specified LogCampaignResponse.
 
-        Args:
-            log_campaign (LogCampaignResponse): The log campaign response.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param log_campaign: The log campaign response.
+        :type log_campaign: LogCampaignResponse
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         request = LogsCancelRequest(request_id=log_campaign.queue._request_id)
 
@@ -1207,18 +1214,20 @@ class Ankaios:
         """
         Register an event.
 
-        Args:
-            field_masks (list[str]): The masks to filter the state for events.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param field_masks: The masks to filter the state for events.
+        :type field_masks: list[str]
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :returns: The event queue.
+        :rtype: EventQueue
+
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         request = EventsRequest(masks=field_masks)
 
@@ -1250,18 +1259,17 @@ class Ankaios:
         """
         Unregister an event.
 
-        Args:
-            event_queue (EventQueue): The event queue to be unregistered.
-            timeout (float): The maximum time to wait for the response,
-                in seconds.
+        :param event_queue: The event queue to be unregistered.
+        :type event_queue: EventQueue
+        :param timeout: The maximum time to wait for the response, in seconds.
+        :type timeout: float
 
-        Raises:
-            ControlInterfaceException: If not connected.
-            TimeoutError: If the request timed out.
-            AnkaiosResponseError: If the response is an error.
-            AnkaiosProtocolException: If the response has unexpected
-                content type.
-            ConnectionClosedException: If the connection is closed.
+        :raises ControlInterfaceException: If not connected.
+        :raises TimeoutError: If the request timed out.
+        :raises AnkaiosResponseError: If the response is an error.
+        :raises AnkaiosProtocolException: If the response has unexpected
+            content type.
+        :raises ConnectionClosedException: If the connection is closed.
         """
         request = EventsCancelRequest(request_id=event_queue._request_id)
 
