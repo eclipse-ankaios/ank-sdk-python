@@ -136,14 +136,14 @@ def test_from_proto():
     workload_states = workload_state_collection.get_as_list()
     assert len(workload_states) == 3
 
-    assert workload_states[0].workload_instance_name.agent_name == "agent_B"
+    assert workload_states[0].workload_instance_name.agent_name == "agent_A"
     assert workload_states[0].workload_instance_name.workload_name == "nginx"
-    assert workload_states[0].workload_instance_name.workload_id == "5678"
+    assert workload_states[0].workload_instance_name.workload_id == "1234"
     assert (
-        workload_states[0].execution_state.state == WorkloadStateEnum.PENDING
+        workload_states[0].execution_state.state == WorkloadStateEnum.SUCCEEDED
     )
     assert (
         workload_states[0].execution_state.substate
-        == WorkloadSubStateEnum.PENDING_WAITING_TO_START
+        == WorkloadSubStateEnum.SUCCEEDED_OK
     )
     assert workload_states[0].execution_state.additional_info == "Random info"
