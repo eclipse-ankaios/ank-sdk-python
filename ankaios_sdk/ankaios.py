@@ -116,11 +116,12 @@ Field masks
 
 Some of the methods support field masks to filter the state.
 Some examples of field masks include:
-- "desiredState.workloads"  # All workloads in the desired state
-- "desiredState.workloads.<workload_name>"  # Workload with the specific name
-- "desiredState.configs"  # All configs in the desired state
-- "workloadStates"  # All workload states
-- "workloadStates.<agent_name>.<workload_name>"  # State of a specific workload
+
+- `"desiredState.workloads"` - All workloads in the desired state
+- `"desiredState.workloads.<workload_name>"` - Workload with the specific name
+- `"desiredState.configs"` - All configs in the desired state
+- `"workloadStates"` - All workload states
+- `"workloadStates.<agent_name>.<workload_name>"` - State of a specific workload
 """
 
 __all__ = ["Ankaios"]

@@ -62,13 +62,6 @@ Usage
     .. code-block:: python
 
         workload_states = complete_state.get_workload_states()
-
-- Get the tags and status of a specific agent:
-    .. code-block:: python
-
-        agent_attributes = AgentAttributes()
-        tags = agent_attributes.tags
-        status = agent_attributes.status
 """
 
 __all__ = ["CompleteState", "AgentAttributes"]

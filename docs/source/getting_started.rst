@@ -4,7 +4,7 @@ Getting started
 For installation of the Ankaios SDK, see the `Installation section <index.html#installation>`_.
 
 Once the SDK is installed, you can start using it by importing the module and creating an Ankaios object.
-The prefered method to use the Ankaios class is by using the context manager.
+The prefered method to use the `Ankaios <ankaios.html#ankaios_sdk.ankaios.Ankaios>`_ class is by using the context manager.
 This way, the connection to the control interface is automatically closed when the context is exited.
 
 .. code-block:: python
@@ -63,9 +63,10 @@ The manifest can now be applied using the following code:
         print(execution_state.substate)
         print(execution_state.additional_info)
 
-If the operation is successful, the result will be an UpdateStateSuccess object that contains the added and deleted workload instance names.
-The workload instance name contains the name of the workload, the agent it is running on and a unique identifier. Using it, we can request the current execution state of
-the workload. The state has 3 elements: the primary state, the substate and additional information (See `Workload States <workload_state.html>`_).
+If the operation is successful, the result will be an `UpdateStateSuccess <response.html#ankaios_sdk._components.response.UpdateStateSuccess>`_ object
+that contains the added and deleted workload instance names. The `workload instance name <workload_state.html#ankaios_sdk._components.workload_state.WorkloadInstanceName>`_
+contains the name of the workload, the agent it is running on and a unique identifier. Using it, we can request the current execution state of the workload.
+The state has 3 elements: the primary state, the substate and additional information (See `Workload States <workload_state.html>`_).
 
 **Get the complete state**
 --------------------------
@@ -85,8 +86,8 @@ The complete state of the Ankaios system can be retrieved using the ``get_state`
         # Output the state
         print(complete_state)
 
-The complete state contains information regarding the workloads running in the Ankaios cluster, configurations and agents. The state can be filtered using filter masks
-(See `get_state <ankaios.html#ankaios_sdk.ankaios.Ankaios.get_state>`_).
+The complete state contains information regarding the workloads running in the Ankaios cluster, configurations and agents. The state can be filtered
+using filter masks (See `get_state <ankaios.html#ankaios_sdk.ankaios.Ankaios.get_state>`_).
 
 **Update a workload**
 ---------------------
