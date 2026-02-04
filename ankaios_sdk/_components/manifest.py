@@ -157,14 +157,18 @@ class Manifest:
             masks.extend(
                 [
                     f"{WORKLOADS_PREFIX}.{key}"
-                    for key in sorted(self._desired_state.workloads.workloads.keys())
+                    for key in sorted(
+                        self._desired_state.workloads.workloads.keys()
+                    )
                 ]
             )
         if self._desired_state.configs.configs:
             masks.extend(
                 [
                     f"{CONFIGS_PREFIX}.{key}"
-                    for key in sorted(self._desired_state.configs.configs.keys())
+                    for key in sorted(
+                        self._desired_state.configs.configs.keys()
+                    )
                 ]
             )
         return masks
