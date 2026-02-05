@@ -121,7 +121,7 @@ Some examples of field masks include:
 - `"desiredState.workloads.<workload_name>"` - Workload with the specific name
 - `"desiredState.configs"` - All configs in the desired state
 - `"workloadStates"` - All workload states
-- `"workloadStates.<agent_name>.<workload_name>"` - State of a specific workload
+- `"workloadStates.<agent_name>.<workload_name>"` - State of specific workload
 """
 
 __all__ = ["Ankaios"]
