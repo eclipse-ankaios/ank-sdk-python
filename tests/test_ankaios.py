@@ -1071,7 +1071,7 @@ def test_register_events():
         # pylint: disable=comparison-with-callable
         assert (
             ankaios._events_callbacks[request.get_id()]
-            == events_queue.add_event
+            == events_queue.put
         )
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
