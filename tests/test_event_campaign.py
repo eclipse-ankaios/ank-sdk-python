@@ -48,15 +48,13 @@ def test_events_queue():
     Test the queue functionality.
     """
     events_queue = EventQueue(EventsRequest(masks=["field1"]))
-    complete_state = CompleteState(_proto=COMPLETE_STATE_PROTO)
 
-    event_entry = generate_test_event_entry(complete_state=complete_state)
-    events_queue.add_event(event_entry)
+    event_entry = generate_test_event_entry()
+    events_queue.put(event_entry)
     assert events_queue.empty() is False
     entry = events_queue.get()
     assert isinstance(entry, EventEntry)
     assert entry == event_entry
-    assert events_queue.complete_state == complete_state
 
     assert (
         str(entry) == "Event:\n  Added fields: ['field1']\n  "
