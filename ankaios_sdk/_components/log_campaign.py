@@ -76,7 +76,7 @@ class LogQueue(Queue):
     """
     Represents a queue of received messages through the log campaign.
     Inherits from the standard Queue class.
-    All objects in this queue are of type :py:type:`LogResponse`.
+    All objects in this queue are of type |LogResponse|.
     """
 
     def __init__(

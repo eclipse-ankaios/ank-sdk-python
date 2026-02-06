@@ -52,12 +52,12 @@ class EventQueue(Queue):
     """
     Represents a queue of updates through the event campaign.
     Inherits from the standard Queue class.
-    All objects in this queue are of type :py:type:`EventEntry`.
+    All objects in this queue are of type |EventEntry|.
     """
 
     def __init__(
         self,
-        request_id: EventsRequest,
+        request_id: str,
     ) -> None:
         """
         Initializes the EventQueue with the given parameters.

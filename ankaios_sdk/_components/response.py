@@ -29,7 +29,7 @@ Classes
 - :class:`LogsStopResponse`:
     Represents a response for marking the end of the log stream from a
     workload instance.
-- :class:`ReqEventEntryuest`:
+- :class:`EventEntry`:
     Represents an event.
 
 Enums

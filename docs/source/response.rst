@@ -39,7 +39,7 @@ LogEntry Class
 --------------
 
 .. autoclass:: ankaios_sdk._components.response.LogEntry
-    :special-members: __init__, __str__
+    :special-members: __str__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,7 +48,16 @@ LogsStopResponse Class
 ----------------------
 
 .. autoclass:: ankaios_sdk._components.response.LogsStopResponse
-    :special-members: __init__, __str__
+    :special-members: __str__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+EventEntry Class
+----------------
+
+.. autoclass:: ankaios_sdk._components.response.EventEntry
+    :special-members: __str__
     :members:
     :undoc-members:
     :show-inheritance:

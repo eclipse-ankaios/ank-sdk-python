@@ -50,6 +50,14 @@ autodoc_member_order = "bysource"
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
+# -- RST epilog for cross-reference substitutions -----------------------------
+# These substitutions allow using |ClassName| in docstrings for cleaner syntax,
+# if the class referenced is not in the same
+rst_epilog = """
+.. |EventEntry| replace:: :class:`~ankaios_sdk._components.response.EventEntry`
+.. |LogResponse| replace:: :obj:`~ankaios_sdk._components.response.LogResponse`
+"""
+
 # -- Ensure that the build dir exists -----------------------------------------
 if not os.path.exists(BUILD_DIR):
     os.makedirs(BUILD_DIR)
