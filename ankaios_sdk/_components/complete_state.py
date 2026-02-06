@@ -102,7 +102,6 @@ class CompleteState:
         :type _proto: _ank_base.CompleteState
         """
         self._complete_state = _ank_base.CompleteState()
-        self._complete_state.desiredState.workloads.workloads.clear()
         self._set_api_version(SUPPORTED_API_VERSION)
         if _proto:
             self._complete_state = _proto

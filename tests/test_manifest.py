@@ -152,8 +152,8 @@ def test_calculate_masks():
     manifest = Manifest.from_dict(manifest_dict)
     assert len(manifest._calculate_masks()) == 3
     assert manifest._calculate_masks() == [
-        f"{WORKLOADS_PREFIX}.nginx_test_other",
         f"{WORKLOADS_PREFIX}.nginx_test",
+        f"{WORKLOADS_PREFIX}.nginx_test_other",
         f"{CONFIGS_PREFIX}.test_ports",
     ]
 

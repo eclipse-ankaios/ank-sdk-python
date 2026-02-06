@@ -26,12 +26,6 @@ Classes
 Usage
 -----
 
-- Check current state of the followed fields:
-    .. code-block:: python
-
-        event_queue: EventQueue
-        current_state = event_queue.complete_state
-
 - Get the events out of the queue:
     .. code-block:: python
 
@@ -44,8 +38,6 @@ __all__ = ["EventQueue"]
 
 from queue import Queue
 from .request import EventsRequest
-from .response import EventEntry
-from .complete_state import CompleteState
 
 
 class EventQueue(Queue):
@@ -66,15 +58,4 @@ class EventQueue(Queue):
         :type request_id: str
         """
         super().__init__()
-        self.complete_state: CompleteState = None
         self._request_id = request_id
-
-    def add_event(self, event: EventEntry) -> None:
-        """
-        Adds an event to the queue and updates the known complete state.
-
-        :param event: The event to be added to the queue.
-        :type event: EventEntry
-        """
-        self.complete_state = event.complete_state
-        self.put(event)

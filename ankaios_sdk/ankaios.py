@@ -1250,7 +1250,9 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.COMPLETE_STATE:
             self.logger.info("Event registered successfully, state received.")
-            self._events_callbacks[request.get_id()] = event_queue.add_event
+            initial_entry = EventEntry(content, [], [], [])
+            event_queue.put(initial_entry)
+            self._events_callbacks[request.get_id()] = event_queue.put
             return event_queue
         raise AnkaiosProtocolException("Received unexpected content type.")
 
