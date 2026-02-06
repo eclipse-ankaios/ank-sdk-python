@@ -19,7 +19,7 @@ creating a Workload instance.
 Classes
 --------
 
-- WorkloadBuilder:
+- :class:`WorkloadBuilder`:
     A builder class to create a Workload object with a fluent interface.
 
 Usage
@@ -54,14 +54,28 @@ class WorkloadBuilder:
     """
     A builder class to create a Workload object.
 
-    Attributes:
-        wl_name (str): The workload name.
-        wl_agent_name (str): The agent name.
-        wl_runtime (str): The runtime.
-        wl_runtime_config (str): The runtime configuration.
-        wl_restart_policy (str): The restart policy.
-        dependencies (dict): The dependencies.
-        tags (dict): The tags.
+    :var str wl_name:
+        The workload name.
+    :var str wl_agent_name:
+        The agent name.
+    :var str wl_runtime:
+        The runtime.
+    :var str wl_runtime_config:
+        The runtime configuration.
+    :var str wl_restart_policy:
+        The restart policy.
+    :var dict dependencies:
+        The dependencies.
+    :var dict tags:
+        The tags.
+    :var list allow_rules:
+        The list of allowed rules.
+    :var list deny_rules:
+        The list of denied rules.
+    :var dict configs:
+        The configs.
+    :var list files:
+        The files.
     """
 
     def __init__(self) -> None:
@@ -84,11 +98,11 @@ class WorkloadBuilder:
         """
         Set the workload name.
 
-        Args:
-            workload_name (str): The workload name to set.
+        :param workload_name: The workload name to set.
+        :type workload_name: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.wl_name = workload_name
         return self
@@ -97,11 +111,11 @@ class WorkloadBuilder:
         """
         Set the agent name.
 
-        Args:
-            agent_name (str): The agent name to set.
+        :param agent_name: The agent name to set.
+        :type agent_name: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.wl_agent_name = agent_name
         return self
@@ -110,11 +124,11 @@ class WorkloadBuilder:
         """
         Set the runtime.
 
-        Args:
-            runtime (str): The runtime to set.
+        :param runtime: The runtime to set.
+        :type runtime: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.wl_runtime = runtime
         return self
@@ -123,11 +137,11 @@ class WorkloadBuilder:
         """
         Set the runtime configuration.
 
-        Args:
-            runtime_config (str): The runtime configuration to set.
+        :param runtime_config: The runtime configuration to set.
+        :type runtime_config: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.wl_runtime_config = runtime_config
         return self
@@ -138,11 +152,11 @@ class WorkloadBuilder:
         """
         Set the runtime configuration using a file.
 
-        Args:
-            runtime_config_path (str): The path to the configuration file.
+        :param runtime_config_path: The path to the configuration file.
+        :type runtime_config_path: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         with open(runtime_config_path, "r", encoding="utf-8") as file:
             self.wl_runtime_config = file.read()
@@ -152,11 +166,11 @@ class WorkloadBuilder:
         """
         Set the restart policy.
 
-        Args:
-            restart_policy (str): The restart policy to set.
+        :param restart_policy: The restart policy to set.
+        :type restart_policy: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.wl_restart_policy = restart_policy
         return self
@@ -167,12 +181,13 @@ class WorkloadBuilder:
         """
         Add a dependency.
 
-        Args:
-            workload_name (str): The name of the dependent workload.
-            condition (str): The condition for the dependency.
+        :param workload_name: The name of the dependent workload.
+        :type workload_name: str
+        :param condition: The condition for the dependency.
+        :type condition: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.dependencies[workload_name] = condition
         return self
@@ -181,12 +196,13 @@ class WorkloadBuilder:
         """
         Add a tag.
 
-        Args:
-            key (str): The key of the tag.
-            value (str): The value of the tag.
+        :param key: The key of the tag.
+        :type key: str
+        :param value: The value of the tag.
+        :type value: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.tags.update({key: value})
         return self
@@ -197,15 +213,15 @@ class WorkloadBuilder:
         """
         Add an allow state rule to the workload.
 
-        Args:
-            operation (str): The operation the rule allows.
-            filter_masks (list): The list of filter masks.
+        :param operation: The operation the rule allows.
+        :type operation: str
+        :param filter_masks: The list of filter masks.
+        :type filter_masks: list
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
 
-        Raises:
-            WorkloadFieldException: If the operation is invalid.
+        :raises WorkloadFieldException: If the operation is invalid.
         """
         self.allow_rules.append(
             AccessRightRule.state_rule(operation, filter_masks)
@@ -218,15 +234,15 @@ class WorkloadBuilder:
         """
         Add a deny state rule to the workload.
 
-        Args:
-            operation (str): The operation the rule denies.
-            filter_masks (list): The list of filter masks.
+        :param operation: The operation the rule denies.
+        :type operation: str
+        :param filter_masks: The list of filter masks.
+        :type filter_masks: list
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
 
-        Raises:
-            WorkloadFieldException: If the operation is invalid.
+        :raises WorkloadFieldException: If the operation is invalid.
         """
         self.deny_rules.append(
             AccessRightRule.state_rule(operation, filter_masks)
@@ -239,12 +255,12 @@ class WorkloadBuilder:
         """
         Add an allow log rule to the workload.
 
-        Args:
-            workload_names (list): The list of workload names the rule
-                applies to.
+        :param workload_names: The list of workload names the rule
+            applies to.
+        :type workload_names: list
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.allow_rules.append(AccessRightRule.log_rule(workload_names))
         return self
@@ -255,12 +271,12 @@ class WorkloadBuilder:
         """
         Add an deny log rule to the workload.
 
-        Args:
-            workload_names (list): The list of workload names the rule
-                applies to.
+        :param workload_names: The list of workload names the rule
+            applies to.
+        :type workload_names: list
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.deny_rules.append(AccessRightRule.log_rule(workload_names))
         return self
@@ -269,12 +285,13 @@ class WorkloadBuilder:
         """
         Link a configuration to the workload.
 
-        Args:
-            alias (str): The alias of the configuration.
-            name (str): The name of the configuration.
+        :param alias: The alias of the configuration.
+        :type alias: str
+        :param name: The name of the configuration.
+        :type name: str
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.configs[alias] = name
         return self
@@ -283,11 +300,11 @@ class WorkloadBuilder:
         """
         Link a workload file to the workload.
 
-        Args:
-            file (File): The file object to mount to the workload.
+        :param file: The file object to mount to the workload.
+        :type file: File
 
-        Returns:
-            WorkloadBuilder: The builder object.
+        :returns: The builder object.
+        :rtype: WorkloadBuilder
         """
         self.files.append(file)
         return self
@@ -298,11 +315,10 @@ class WorkloadBuilder:
         Required fields: workload name, agent name, runtime and
         runtime configuration.
 
-        Returns:
-            Workload: The built Workload object.
+        :returns: The built Workload object.
+        :rtype: Workload
 
-        Raises:
-            WorkloadBuilderException: If required fields are not set.
+        :raises WorkloadBuilderException: If required fields are not set.
         """
         if self.wl_name is None:
             raise WorkloadBuilderException(

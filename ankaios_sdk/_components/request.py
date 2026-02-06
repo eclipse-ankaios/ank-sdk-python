@@ -19,21 +19,21 @@ requests to the Ankaios system.
 Classes
 -------
 
-- Request:
+- :class:`Request`:
     Represents the base request to the Ankaios system. It is an abstract
     class that should be subclassed for specific request types.
-- GetStateRequest:
+- :class:`GetStateRequest`:
     Represents a request to get the state of the Ankaios system.
-- UpdateStateRequest:
+- :class:`UpdateStateRequest`:
     Represents a request to update the state of the Ankaios system.
-- LogsRequest:
+- :class:`LogsRequest`:
     Represents a request to get logs from the Ankaios system.
-- LogsCancelRequest:
+- :class:`LogsCancelRequest`:
     Represents a request to stop the real-time log stream from the
     Ankaios system.
-- EventsRequest:
+- :class:`EventsRequest`:
     Represents a request to register for events from the Ankaios system.
-- EventsCancelRequest:
+- :class:`EventsCancelRequest`:
     Represents a request to unregister from the event stream of a specific
     event campaign in the Ankaios system.
 
@@ -104,24 +104,23 @@ class Request:
         """
         Initializes a Request instance.
 
-        Args:
-            _id (str): The request ID. If None, a new UUID will be generated.
+        :param _id: The request ID. If None, a new UUID will be generated.
+        :type _id: str
 
-        Raises:
-            TypeError: If the Request class is instantiated directly.
+        :raises TypeError: If the Request class is instantiated directly.
         """
         if self.__class__ is Request:
             raise TypeError("Request cannot be instantiated directly.")
         self._request = _ank_base.Request()
         self._set_id(_id if _id else str(uuid.uuid4()))
-        self.logger = get_logger()
+        self._logger = get_logger()
 
     def __str__(self) -> str:
         """
         Returns the string representation of the request.
 
-        Returns:
-            str: The string representation of the request.
+        :returns: The string representation of the request.
+        :rtype: str
         """
         return str(self._to_proto())
 
@@ -129,8 +128,8 @@ class Request:
         """
         Gets the request ID.
 
-        Returns:
-            str: The request ID.
+        :returns: The request ID.
+        :rtype: str
         """
         return self._request.requestId
 
@@ -138,8 +137,8 @@ class Request:
         """
         Sets the request ID.
 
-        Args:
-            request_id (str): The request ID to set.
+        :param request_id: The request ID to set.
+        :type request_id: str
         """
         self._request.requestId = request_id
 
@@ -147,8 +146,8 @@ class Request:
         """
         Converts the Request object to a proto message.
 
-        Returns:
-            _ank_base.Request: The protobuf message representing the request.
+        :returns: The protobuf message representing the request.
+        :rtype: _ank_base.Request
         """
         return self._request
 
@@ -165,14 +164,14 @@ class GetStateRequest(Request):
         """
         Initializes a GetStateRequest instance.
 
-        Args:
-            masks (list): The masks to set for the request.
+        :param masks: The masks to set for the request.
+        :type masks: list
         """
         super().__init__()
         self._request.completeStateRequest.fieldMask[:] = masks
         self._request.completeStateRequest.subscribeForEvents = False
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type GetState with id %s",
             self._request.requestId,
         )
@@ -192,9 +191,10 @@ class UpdateStateRequest(Request):
         """
         Initializes an UpdateStateRequest instance.
 
-        Args:
-            complete_state (CompleteState): The new state to set.
-            masks (list): The masks to set for the request.
+        :param complete_state: The new state to set.
+        :type complete_state: CompleteState
+        :param masks: The masks to set for the request.
+        :type masks: list
         """
         super().__init__()
         self._request.updateStateRequest.updateMask[:] = masks
@@ -202,7 +202,7 @@ class UpdateStateRequest(Request):
             complete_state._to_proto()
         )
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type UpdateState with id %s",
             self._request.requestId,
         )
@@ -227,19 +227,22 @@ class LogsRequest(Request):
         """
         Initializes an LogsRequest instance.
 
-        Args:
-            workload_names (list[WorkloadInstanceName]): The workload instance
-                names for which to get logs.
-            follow (bool): If true, the logs will be continuously streamed.
-            tail (int): The number of lines to display from
-                the end of the logs.
-            since (str / datetime): The start time for the logs. If string,
-                it must be in the RFC3339 format.
-            until (str / datetime): The end time for the logs. If string,
-                it must be in the RFC3339 format.
+        :param workload_names: The workload instance
+            names for which to get logs.
+        :type workload_names: list[WorkloadInstanceName]
+        :param follow: If true, the logs will be continuously streamed.
+        :type follow: bool
+        :param tail: The number of lines to display from
+            the end of the logs.
+        :type tail: int
+        :param since: The start time for the logs. If string,
+            it must be in the RFC3339 format.
+        :type since: str / datetime
+        :param until: The end time for the logs. If string,
+            it must be in the RFC3339 format.
+        :type until: str / datetime
 
-        Raises:
-            ValueError: If no workload names are provided.
+        :raises ValueError: If no workload names are provided.
         """
         if len(workload_names) == 0:
             raise ValueError("At least one workload name must be provided.")
@@ -263,7 +266,7 @@ class LogsRequest(Request):
             else:
                 self._request.logsRequest.until = until.isoformat()
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type LogsRequest with id %s",
             self._request.requestId,
         )
@@ -280,13 +283,13 @@ class LogsCancelRequest(Request):
         """
         Initializes an LogsCancelRequest instance.
 
-        Args:
-            id (str): The request ID.
+        :param request_id: The request ID.
+        :type request_id: str
         """
         super().__init__(_id=request_id)
         self._request.logsCancelRequest.CopyFrom(_ank_base.LogsCancelRequest())
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type LogsCancelRequest with id %s",
             self._request.requestId,
         )
@@ -303,14 +306,14 @@ class EventsRequest(Request):
         """
         Initializes a EventsRequest instance.
 
-        Args:
-            masks (list): The masks to subscribe to for the event.
+        :param masks: The masks to subscribe to for the event.
+        :type masks: list
         """
         super().__init__()
         self._request.completeStateRequest.fieldMask[:] = masks
         self._request.completeStateRequest.subscribeForEvents = True
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type EventsRequest with id %s",
             self._request.requestId,
         )
@@ -327,15 +330,15 @@ class EventsCancelRequest(Request):
         """
         Initializes an EventsCancelRequest instance.
 
-        Args:
-            id (str): The request ID.
+        :param request_id: The request ID.
+        :type request_id: str
         """
         super().__init__(_id=request_id)
         self._request.eventsCancelRequest.CopyFrom(
             _ank_base.EventsCancelRequest()
         )
 
-        self.logger.debug(
+        self._logger.debug(
             "Created request of type EventsCancelRequest with id %s",
             self._request.requestId,
         )

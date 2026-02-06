@@ -20,30 +20,31 @@ received messages and converting them into appropriate Python objects.
 Classes
 --------
 
-- Response:
+- :class:`Response`:
     Represents a response from the control interface.
-- UpdateStateSuccess:
+- :class:`UpdateStateSuccess`:
     Represents a response for a successful update state request.
-- LogEntry:
+- :class:`LogEntry`:
     Represents a log entry from a workload instance.
-- LogsStopResponse:
+- :class:`LogsStopResponse`:
     Represents a response for marking the end of the log stream from a
     workload instance.
-- EventEntry:
+- :class:`EventEntry`:
     Represents an event.
 
 Enums
 -----
 
-- ResponseType:
+- :class:`ResponseType`:
     Enumeration for the different types of response. It includes responses
     like ERROR, CONNECTION_CLOSED, COMPLETE_STATE and so on.
 
 Union Types
 -----------
-- LogResponse:
-    Union type for log responses, which can be either :py:class:`LogEntry` or
-    :py:class:`LogsStopResponse`.
+
+- :class:`LogResponse`:
+    Union type for log responses, which can be either :class:`LogEntry` or
+    :class:`LogsStopResponse`.
 
 Usage
 -----
@@ -95,24 +96,25 @@ class Response:
     """
     Represents a response received from the Ankaios system.
 
-    Attributes:
-        buffer (bytes): The received message buffer.
-        content_type (str): The type of the response content
-            (e.g., "error", "complete_state", "update_state_success").
-        content: The content of the response, which can be a string,
-            CompleteState, or UpdateStateSuccess.
+    :var bytes buffer:
+        The received message buffer.
+    :var ResponseType content_type:
+        The type of the response content.
+    :var content:
+        The content of the response, which can store any
+        response type.
     """
 
     def __init__(self, message_buffer: bytes) -> None:
         """
         Initializes the Response object with the received message buffer.
 
-        Args:
-            message_buffer (bytes): The received message buffer.
+        :param message_buffer: The received message buffer.
+        :type message_buffer: bytes
         """
         self.buffer = message_buffer
         self._response = None
-        self.content_type = None
+        self.content_type: ResponseType = None
         self.content = None
 
         self._parse_response()
@@ -121,8 +123,8 @@ class Response:
         """
         Parses the received message buffer into a protobuf response message.
 
-        Raises:
-            ResponseException: If there is an error parsing the message buffer.
+        :raises ResponseException:
+            If there is an error parsing the message buffer.
         """
         from_ankaios = _control_api.FromAnkaios()
         try:
@@ -156,8 +158,7 @@ class Response:
         This can be either an error, a complete state,
         or an update state success.
 
-        Raises:
-            ResponseException: If the response type is invalid.
+        :raises ResponseException: If the response type is invalid.
         """
         if self._response.HasField("error"):
             self.content_type = ResponseType.ERROR
@@ -225,8 +226,8 @@ class Response:
         """
         Gets the request id of the response.
 
-        Returns:
-            str: The request id of the response.
+        :returns: The request id of the response.
+        :rtype: str
         """
         if self.content_type in [
             ResponseType.CONTROL_INTERFACE_ACCEPTED,
@@ -244,8 +245,8 @@ class Response:
           - a list of log entires
           - a log stop response
 
-        Returns:
-            tuple[ResponseType, any]: the content type and the content.
+        :returns: the content type and the content.
+        :rtype: tuple[ResponseType, any]
         """
         return (self.content_type, self.content)
 
@@ -280,8 +281,8 @@ class ResponseType(Enum):
         """
         Converts the ResponseType to a string.
 
-        Returns:
-            str: The string representation of the ResponseType.
+        :returns: The string representation of the ResponseType.
+        :rtype: str
         """
         return self.name.lower()
 
@@ -290,6 +291,11 @@ class UpdateStateSuccess:
     """
     Represents an object that holds the added and deleted workloads.
     This is automatically returned whenever a state update is successful.
+
+    :var list[`WorkloadInstanceName`] added_workloads:
+        The list of added workloads.
+    :var list[`WorkloadInstanceName`] deleted_workloads:
+        The list of deleted workloads.
     """
 
     def __init__(self) -> None:
@@ -303,8 +309,8 @@ class UpdateStateSuccess:
         """
         Converts the UpdateStateSuccess to a dictionary.
 
-        Returns:
-            dict: The dictionary representation.
+        :returns: The dictionary representation.
+        :rtype: dict
         """
         return {
             "added_workloads": [
@@ -321,8 +327,8 @@ class UpdateStateSuccess:
         """
         Converts the UpdateStateSuccess to a string.
 
-        Returns:
-            str: The string representation.
+        :returns: The string representation.
+        :rtype: str
         """
         added_workloads = [
             str(instance_name) for instance_name in self.added_workloads
@@ -353,8 +359,8 @@ class LogEntry:
         """
         Converts the LogEntry to a string.
 
-        Returns:
-            str: The string representation of the LogEntry.
+        :returns: The string representation of the LogEntry.
+        :rtype: str
         """
         return (
             f"Log from {self.workload_instance_name.workload_name}."
@@ -365,6 +371,15 @@ class LogEntry:
 
     @staticmethod
     def _from_entries(log: _ank_base.LogEntry) -> "LogEntry":
+        """
+        Creates a `LogEntry` from the proto alternative.
+
+        :param log: The proto `LogEntry` to be converted.
+        :type log: `_ank_base.LogEntry`
+
+        :returns: The converted `LogEntry`.
+        :rtype: `LogEntry`
+        """
         return LogEntry(
             WorkloadInstanceName(
                 log.workloadName.agentName,
@@ -391,8 +406,8 @@ class LogsStopResponse:
         """
         Converts the LogsStopResponse to a string.
 
-        Returns:
-            str: The string representation of the LogsStopResponse.
+        :returns: The string representation of the LogsStopResponse.
+        :rtype: str
         """
         return (
             f"Stopped receiving logs from "
@@ -405,6 +420,15 @@ class LogsStopResponse:
     def _from_stop_response(
         log: _ank_base.LogsStopResponse,
     ) -> "LogsStopResponse":
+        """
+        Creates a `LogsStopResponse` from the proto alternative.
+
+        :param log: The proto `LogsStopResponse` to be converted.
+        :type log: `_ank_base.LogsStopResponse`
+
+        :returns: The converted `LogsStopResponse`.
+        :rtype: `LogsStopResponse`
+        """
         return LogsStopResponse(
             WorkloadInstanceName(
                 log.workloadName.agentName,
@@ -436,8 +460,8 @@ class EventEntry:
         """
         Converts the EventEntry to a string.
 
-        Returns:
-            str: The string representation of the EventEntry.
+        :returns: The string representation of the EventEntry.
+        :rtype: str
         """
         ret = "Event:\n"
         if self.added_fields:
@@ -452,6 +476,15 @@ class EventEntry:
     def _from_response(
         response: _ank_base.CompleteStateResponse,
     ) -> "EventEntry":
+        """
+        Creates a `EventEntry` from the proto alternative.
+
+        :param response: The proto `EventEntry` to be converted.
+        :type response: `_ank_base.EventEntry`
+
+        :returns: The converted `EventEntry`.
+        :rtype: `EventEntry`
+        """
         return EventEntry(
             CompleteState(_proto=response.completeState),
             response.alteredFields.addedFields,

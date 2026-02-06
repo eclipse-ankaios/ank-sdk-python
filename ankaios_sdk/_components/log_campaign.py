@@ -19,10 +19,10 @@ log campaigns in the Ankaios system.
 Classes
 -------
 
-- LogCampaignResponse:
+- :class:`LogCampaignResponse`:
     Represents the response for a log campaign, containing the queue of
     received messages and the accepted workload names.
-- LogQueue:
+- :class:`LogQueue`:
     Represents a queue of received messages through the log campaign.
 
 Usage
@@ -62,10 +62,11 @@ class LogCampaignResponse:
         Initializes the LogCampaignResponse with the given queue and accepted
         workload names.
 
-        Args:
-            queue (LogQueue): The queue containing the log messages.
-            accepted_workload_names (list[WorkloadInstanceName]): The list of
-                workload instance names for which logs have been accepted.
+        :param queue: The queue containing the log messages.
+        :type queue: LogQueue
+        :param accepted_workload_names: The list of
+            workload instance names for which logs have been accepted.
+        :type accepted_workload_names: list[WorkloadInstanceName]
         """
         self.queue = queue
         self.accepted_workload_names = accepted_workload_names
@@ -75,7 +76,7 @@ class LogQueue(Queue):
     """
     Represents a queue of received messages through the log campaign.
     Inherits from the standard Queue class.
-    All objects in this queue are of type :py:type:`LogResponse`.
+    All objects in this queue are of type |LogResponse|.
     """
 
     def __init__(
@@ -85,8 +86,8 @@ class LogQueue(Queue):
         """
         Initializes the LogQueue with the given parameters.
 
-        Args:
-            request_id (str): The request id of the logs campaign.
+        :param request_id: The request id of the logs campaign.
+        :type request_id: str
         """
         super().__init__()
         self._request_id = request_id

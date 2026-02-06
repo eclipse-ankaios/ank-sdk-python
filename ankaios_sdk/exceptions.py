@@ -19,15 +19,25 @@ All the exceptions are derived from the AnkaiosException class.
 
 Exceptions
 ----------
-- AnkaiosException: Base exception.
-- WorkloadFieldException: Raised when the workload field is invalid.
-- WorkloadBuilderException: Raised when the workload builder is invalid.
-- InvalidManifestException: Raised when the manifest file is invalid.
-- ConnectionClosedException: Raised when the connection is closed.
-- ResponseException: Raised when the response is invalid.
-- ControlInterfaceException: Raised when an operation fails.
-- AnkaiosProtocolException: Raised when something unexpected is received.
-- AnkaiosResponseError: Raised when the response from Ankaios is an error.
+
+- :class:`AnkaiosException`:
+    Base exception.
+- :class:`WorkloadFieldException`:
+    Raised when the workload field is invalid.
+- :class:`WorkloadBuilderException`:
+    Raised when the workload builder is invalid.
+- :class:`InvalidManifestException`:
+    Raised when the manifest file is invalid.
+- :class:`ConnectionClosedException`:
+    Raised when the connection is closed.
+- :class:`ResponseException`:
+    Raised when the response is invalid.
+- :class:`ControlInterfaceException`:
+    Raised when an operation fails.
+- :class:`AnkaiosProtocolException`:
+    Raised when something unexpected is received.
+- :class:`AnkaiosResponseError`:
+    Raised when the response from Ankaios is an error.
 """
 
 import inspect

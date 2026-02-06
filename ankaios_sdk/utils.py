@@ -18,7 +18,7 @@ This script provides general functionality and constants for the ankaios_sdk.
 Enums
 -----
 
-- AnkaiosLogLevel:
+- :class:`AnkaiosLogLevel`:
     Represents the log levels for the Ankaios class.
 
 Functions
@@ -77,8 +77,8 @@ def get_logger(name="Ankaios logger"):
     """
     Returns a configured logger with a custom format.
 
-    Args:
-        name (str): The name of the logger.
+    :param name: The name of the logger.
+    :type name: str
     """
     logger = logging.getLogger(name)
 
@@ -101,8 +101,8 @@ def _to_config_item(item: Union[str, list, dict]) -> _ank_base.ConfigItem:
     """
     Returns an ank_base.ConfigItem from a base type.
 
-    Args:
-        item (str / list / dict): The item to convert.
+    :param item: The item to convert.
+    :type item: Union[str, list, dict]
     """
     config_item = _ank_base.ConfigItem()
     if isinstance(item, str):

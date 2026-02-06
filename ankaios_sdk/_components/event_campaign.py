@@ -19,7 +19,7 @@ This module defines the EventQueue class for handling events.
 Classes
 -------
 
-- EventQueue:
+- :class:`EventQueue`:
     Represents a queue of events received from the Ankaios system.
     Inherits from the standard Queue class.
 
@@ -37,25 +37,24 @@ __all__ = ["EventQueue"]
 
 
 from queue import Queue
-from .request import EventsRequest
 
 
 class EventQueue(Queue):
     """
     Represents a queue of updates through the event campaign.
     Inherits from the standard Queue class.
-    All objects in this queue are of type :py:type:`EventEntry`.
+    All objects in this queue are of type |EventEntry|.
     """
 
     def __init__(
         self,
-        request_id: EventsRequest,
+        request_id: str,
     ) -> None:
         """
         Initializes the EventQueue with the given parameters.
 
-        Args:
-            request_id (str): The request id of the event campaign.
+        :param request_id: The request id of the event campaign.
+        :type request_id: str
         """
         super().__init__()
         self._request_id = request_id

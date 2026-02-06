@@ -19,17 +19,17 @@ handling files mounted to Ankaios workloads.
 Classes
 -------
 
-- File:
+- :class:`File`:
     Represents a file that can be mounted to an Ankaios workload.
-- DataFileContent:
+- :class:`DataFileContent`:
     Represents text-based file content.
-- BinaryFileContent:
+- :class:`BinaryFileContent`:
     Represents binary file content.
 
 Union Types
 -----------
 
-- FileContent:
+- :class:`FileContent`:
     Union type for file content, which can be either
     :py:class:`DataFileContent` or :py:class:`BinaryFileContent`.
 
@@ -79,8 +79,8 @@ class DataFileContent:
     """
     This class is used to represent text-based file content.
 
-    Attributes:
-        value (str): The text content value.
+    :var str value:
+        The text content value.
     """
 
     value: str
@@ -91,10 +91,8 @@ class BinaryFileContent:
     """
     This class is used to represent binary file content.
 
-    Attributes:
-        value (str): The binary content value as a `Base64`_ encoded string.
-
-    .. _Base64: https://datatracker.ietf.org/doc/html/rfc4648
+    :var str value:
+        The binary content value as a `Base64` encoded string.
     """
 
     value: str
@@ -108,20 +106,22 @@ class File:
     This class represents a file able to be mounted to an Ankaios workload.
     It can hold either text-based or binary content.
 
-    Attributes:
-        mount_point (str): The mount point of the file.
-        content (FileContent): The content of the file,
-            which can be either text or binary.
+    :var str mount_point:
+        The mount point of the file.
+    :var FileContent content:
+        The content of the file,
+        which can be either text or binary.
     """
 
     def __init__(self, mount_point: str, content: FileContent) -> None:
         """
         Initialize a File instance.
 
-        Args:
-            mount_point (str): The mount point of the file.
-            content (FileContent): The content of the file,
-                which can be either text or binary.
+        :param mount_point: The mount point of the file.
+        :type mount_point: str
+        :param content: The content of the file,
+            which can be either text or binary.
+        :type content: FileContent
         """
         self.mount_point = mount_point
         self.content: FileContent = content
@@ -131,12 +131,13 @@ class File:
         """
         Create a File instance from text data.
 
-        Args:
-            mount_point (str): The mount point of the file.
-            data (str): The text content of the file.
+        :param mount_point: The mount point of the file.
+        :type mount_point: str
+        :param data: The text content of the file.
+        :type data: str
 
-        Returns:
-            File: A File instance with text-based content.
+        :returns: A File instance with text-based content.
+        :rtype: File
         """
         return cls(
             mount_point=mount_point, content=DataFileContent(value=data)
@@ -147,12 +148,13 @@ class File:
         """
         Create a File instance from binary data.
 
-        Args:
-            mount_point (str): The mount point of the file.
-            binary_data (str): The binary content of the file.
+        :param mount_point: The mount point of the file.
+        :type mount_point: str
+        :param binary_data: The binary content of the file.
+        :type binary_data: str
 
-        Returns:
-            File: A File instance with binary content.
+        :returns: A File instance with binary content.
+        :rtype: File
         """
         return cls(
             mount_point=mount_point,
@@ -163,8 +165,8 @@ class File:
         """
         Return a string representation of the File object.
 
-        Returns:
-            str: String representation of the File object.
+        :returns: String representation of the File object.
+        :rtype: str
         """
         return str(self._to_proto())
 
@@ -172,11 +174,10 @@ class File:
         """
         Convert the File instance to a dictionary representation.
 
-        Returns:
-            dict: The dictionary representation of the File instance.
+        :returns: The dictionary representation of the File instance.
+        :rtype: dict
 
-        Raises:
-            ValueError: If the file content type is unsupported.
+        :raises ValueError: If the file content type is unsupported.
         """
         dict_conv = {"mount_point": self.mount_point}
         if isinstance(self.content, DataFileContent):
@@ -195,14 +196,13 @@ class File:
         """
         Create a File instance from a dictionary representation.
 
-        Args:
-            file_dict (dict): The dictionary containing file information.
+        :param file_dict: The dictionary containing file information.
+        :type file_dict: dict
 
-        Returns:
-            File: A File instance created from the dictionary.
+        :returns: A File instance created from the dictionary.
+        :rtype: File
 
-        Raises:
-            ValueError: If the file dictionary format is invalid.
+        :raises ValueError: If the file dictionary format is invalid.
         """
         mount_point = file_dict.get("mount_point")
         content = file_dict.get("content")
@@ -231,11 +231,10 @@ class File:
         """
         Convert the File instance to a protobuf representation.
 
-        Returns:
-            _ank_base.File: The protobuf representation of the File instance.
+        :returns: The protobuf representation of the File instance.
+        :rtype: _ank_base.File
 
-        Raises:
-            ValueError: If the file content type is unsupported.
+        :raises ValueError: If the file content type is unsupported.
         """
         if isinstance(self.content, DataFileContent):
             return _ank_base.File(
@@ -256,14 +255,13 @@ class File:
         """
         Create a File instance from a protobuf representation.
 
-        Args:
-            proto_file (_ank_base.File): The protobuf file representation.
+        :param proto_file: The protobuf file representation.
+        :type proto_file: _ank_base.File
 
-        Returns:
-            File: A File instance created from the protobuf representation.
+        :returns: A File instance created from the protobuf representation.
+        :rtype: File
 
-        Raises:
-            ValueError: If the protobuf file format is invalid.
+        :raises ValueError: If the protobuf file format is invalid.
         """
         if proto_file.data:
             return File.from_data(
