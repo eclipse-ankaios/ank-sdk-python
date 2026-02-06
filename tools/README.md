@@ -1,6 +1,6 @@
 # Helper Scripts
 
-This directory contains utility scripts for specific tasks. Almost all scripts support the `--help` flag for detailed usage information.
+This directory contains utility scripts for specific tasks. All scripts support the `--help` flag for detailed usage information.
 
 ## fetch_protos.sh
 
