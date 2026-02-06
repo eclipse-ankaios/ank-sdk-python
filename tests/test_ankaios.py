@@ -1067,10 +1067,11 @@ def test_register_events():
         request = mock_send_request.call_args[0][0]
         assert isinstance(events_queue, EventQueue)
         assert len(ankaios._events_callbacks) == 1
+        assert events_queue.qsize() == 1  # Initial event
         # pylint: disable=comparison-with-callable
         assert (
             ankaios._events_callbacks[request.get_id()]
-            == events_queue.add_event
+            == events_queue.put
         )
         mock_send_request.assert_called_once()
         ankaios.logger.info.assert_called()
