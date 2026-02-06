@@ -56,12 +56,12 @@ pip install -e ".[dev]"
 Please make sure the Python SDK is compatible with the version of Ankaios you
 are using. For information regarding versioning, please refer to this table:
 
-| Ankaios    | Python SDK |
-| -------- | ------- |
+| Ankaios         | Python SDK                                      |
+| --------------- | ----------------------------------------------- |
 | 0.4.x and below | No Python SDK available. Please update Ankaios. |
-| 0.5.x | 0.5.x     |
-| 0.6.x | 0.6.x     |
-| 0.7.x | 0.7.x     |
+| 0.5.x           | 0.5.x                                           |
+| 0.6.x           | 0.6.x                                           |
+| 0.7.x           | 0.7.x                                           |
 
 ## Usage
 
@@ -134,6 +134,7 @@ with Ankaios() as ankaios:
 ```
 
 For more details, please visit:
+
 * [Ankaios documentation](https://eclipse-ankaios.github.io/ankaios/latest/)
 * [Python SDK documentation](https://eclipse-ankaios.github.io/ank-sdk-python/)
 

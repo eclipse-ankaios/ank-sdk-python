@@ -65,10 +65,13 @@ for i, line in enumerate(contrib):
         contrib[i] = line.replace(
             "./CODE_OF_CONDUCT.md", "./code_of_conduct.html"
         )
-        break
+    if "./DEVELOPMENT.md" in line:
+        contrib[i] = line.replace(
+            "./DEVELOPMENT.md",
+            "https://github.com/eclipse-ankaios/ank-sdk-python/blob/main/DEVELOPMENT.md",
+        )
 with open(contrib_out, "w") as f:
     f.writelines(contrib)
-
 
 # -- Prepare the Code of Conduct file - foot note warning -----------------------------------------
 coc_in = os.path.abspath(os.path.join(ROOT_DIR, "CODE_OF_CONDUCT.md"))

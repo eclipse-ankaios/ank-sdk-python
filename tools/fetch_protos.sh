@@ -1,14 +1,29 @@
 #!/bin/bash
 set -e
 
-# Script to fetch the proto files from the Ankaios repository
-# Usage: ./fetch_protos.sh <branch> [-v|--version <sdk_version>]
+usage() {
+    echo "Usage: $0 <branch> [-v|--version <sdk_version>] [--help]"
+    echo "Fetch the proto files from the Ankaios repository."
+    echo ""
+    echo "  <branch>                   The branch to fetch the proto files from."
+    echo "  -v / --version <version>   The SDK version to use for the proto directory."
+    echo "                             If not provided, the version is read from setup.cfg."
+    echo "  -h / --help                Display this help message and exit."
+    echo ""
+    echo "Example:"
+    echo "  $0 main"
+    echo "  $0 main --version 0.2.0"
+    exit 0
+}
 
 # Parse arguments
 if [ $# -lt 1 ]; then
     echo "Error: Missing required argument <branch>" >&2
-    echo "Usage: $0 <branch> [-v|--version <sdk_version>]" >&2
-    exit 1
+    usage
+fi
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
 fi
 
 BRANCH="$1"
@@ -26,10 +41,12 @@ while [ $# -gt 0 ]; do
             SDK_VERSION="$2"
             shift 2
             ;;
+        --help|-h)
+            usage
+            ;;
         *)
             echo "Error: Unknown argument: $1" >&2
-            echo "Usage: $0 <branch> [-v|--version <sdk_version>]" >&2
-            exit 1
+            usage
             ;;
     esac
 done
