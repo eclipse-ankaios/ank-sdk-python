@@ -37,7 +37,6 @@ __all__ = ["EventQueue"]
 
 
 from queue import Queue
-from .request import EventsRequest
 
 
 class EventQueue(Queue):
