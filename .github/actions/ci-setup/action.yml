@@ -2,7 +2,7 @@ name: "CI common setup"
 description: "Setup python and install the Python SDK"
 inputs:
   python-version:
-    description: "Set the version of the python to be installed"
+    description: "Set the Python version to be installed"
     required: false
     default: "3.10"
   extras:
