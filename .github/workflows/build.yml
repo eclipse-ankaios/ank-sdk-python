@@ -19,18 +19,10 @@ jobs:
         python: ['3.9', '3.10', '3.11', '3.12', '3.13']
         os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
         with:
           python-version: ${{ matrix.python }}
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
 
       - name: Print packages
         run: python3 -m pip list
@@ -42,18 +34,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
 
       - name: Run unit tests
         id: check
@@ -61,7 +43,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload unit test report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: unit-test-report
           path: reports/utest
@@ -74,18 +56,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
 
       - name: Run coverage
         id: check
@@ -93,7 +65,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: coverage-report
           path: reports/coverage
@@ -106,18 +78,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
 
       - name: Run lint
         id: check
@@ -125,7 +87,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload lint report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: pylint-report
           path: reports/pylint
@@ -138,18 +100,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[dev]
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
 
       - name: Run pep8 codestyle check
         id: check
@@ -157,7 +109,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload codestyle report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: codestyle-report
           path: reports/codestyle
@@ -170,18 +122,10 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/ci-setup
         with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install .[docs]
+          extras: docs
 
       - name: Generate documentation
         run: |
@@ -190,7 +134,7 @@ jobs:
           cd ..
 
       - name: Upload documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: docs_html
           path: docs/build/html

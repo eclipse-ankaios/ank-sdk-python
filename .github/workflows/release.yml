@@ -23,49 +23,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: ./.github/actions/ci-setup
 
-    - name: "Set up Python"
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-
-    - name: "Install dependencies"
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install .[dev]
-        python3 -m pip install --upgrade twine build
+    - name: "Upgrade dependencies"
+      run: python3 -m pip install --upgrade twine build
 
     - name: "Build package"
       run: |
         python3 -m build
 
     - name: "Upload dist as artifact"
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: dist-artifact
         path: dist/
 
     - name: "Download artifacts for unit tests"
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: unit-test-report
         path: reports/unit-test-report
 
     - name: "Download artifacts for coverage"
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: coverage-report
         path: reports/coverage-report
 
     - name: "Download artifacts for lint"
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: pylint-report
         path: reports/pylint-report
 
     - name: "Download artifacts for codestyle"
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: codestyle-report
         path: reports/codestyle-report
@@ -100,7 +93,7 @@ jobs:
 
     steps:
     - name: "Download dist artifact"
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: dist-artifact
         path: dist

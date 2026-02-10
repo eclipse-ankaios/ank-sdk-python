@@ -1,0 +1,36 @@
+name: Weekly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight UTC
+  workflow_dispatch:
+
+env:
+  LATEST_KNOWN_PYTHON: '3.13'
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  check-python-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Check for new Python versions
+        run: |
+          latest=$(curl -s https://endoflife.date/api/python.json | \
+            jq -r '[.[] | select(.cycle | test("^3\\.[0-9]+$"))] | .[0].cycle')
+
+          echo "Latest stable Python: $latest"
+          echo "Known latest: $LATEST_KNOWN_PYTHON"
+
+          if [ "$latest" != "$LATEST_KNOWN_PYTHON" ]; then
+            echo "::warning::New Python version $latest is available! Manual update is required."
+
+            echo "## :warning: New Python Version Available" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Python **$latest** has been released (currently testing up to $LATEST_KNOWN_PYTHON)." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Python version is up to date."
+          fi
