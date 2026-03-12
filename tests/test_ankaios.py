@@ -387,6 +387,20 @@ def test_apply_workload():
         mock_send_request.assert_called_once()
         ankaios.logger.error.assert_called()
 
+    # Test workload with no masks: main mask should be used as fallback
+    workload_no_masks = generate_test_workload()
+    workload_no_masks._masks = []
+    with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
+        mock_send_request.return_value = Response(
+            MESSAGE_BUFFER_UPDATE_SUCCESS
+        )
+        ankaios.apply_workload(workload_no_masks)
+        mock_send_request.assert_called_once()
+        request = mock_send_request.call_args[0][0]
+        assert list(request._request.updateStateRequest.updateMask) == [
+            workload_no_masks._main_mask
+        ]
+
 
 def test_get_workload():
     """

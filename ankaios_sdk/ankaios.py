@@ -498,8 +498,13 @@ class Ankaios:
         :raises ConnectionClosedException: If the connection is closed.
         """
         # Create the request
+        masks = (
+            workload._masks
+            if workload._masks
+            else [workload._main_mask]
+        )
         request = UpdateStateRequest(
-            CompleteState(workloads=[workload]), workload._masks
+            CompleteState(workloads=[workload]), masks
         )
 
         # Send request
