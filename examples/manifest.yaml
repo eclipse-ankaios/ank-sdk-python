@@ -7,7 +7,7 @@ workloads:
       allowRules:
         - type: StateRule
           operation: ReadWrite
-          filterMask:
+          filterMasks:
             - "*"
         - type: LogRule
           workloadNames:
