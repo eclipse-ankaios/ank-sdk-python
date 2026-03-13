@@ -7,6 +7,7 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
+V_BUILDDIR    = build_versioned
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -24,7 +25,13 @@ html-versioned:
 open:
 	python3 -m http.server -d build/html 8001
 
-.PHONY: help Makefile
+# Clean the builded doc, either normal or versioned
+clean:
+	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(V_BUILDDIR)" $(SPHINXOPTS) $(O)
+	rmdir build build_versioned
+
+.PHONY: help clean Makefile
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
