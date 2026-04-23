@@ -14,10 +14,14 @@ jobs:
 
   check-python-version:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Check for new Python versions
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           latest=$(curl -s https://endoflife.date/api/python.json | \
             jq -r '[.[] | select(.cycle | test("^3\\.[0-9]+$"))] | .[0].cycle')
@@ -25,12 +29,28 @@ jobs:
           echo "Latest stable Python: $latest"
           echo "Known latest: $LATEST_KNOWN_PYTHON"
 
-          if [ "$latest" != "$LATEST_KNOWN_PYTHON" ]; then
-            echo "::warning::New Python version $latest is available! Manual update is required."
-
-            echo "## :warning: New Python Version Available" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Python **$latest** has been released (currently testing up to $LATEST_KNOWN_PYTHON)." >> $GITHUB_STEP_SUMMARY
-          else
+          if [ "$latest" = "$LATEST_KNOWN_PYTHON" ]; then
             echo "Python version is up to date."
+            exit 0
           fi
+
+          # Check if an issue already exists
+          existing=$(gh issue list --label "python-version" --state open --json number -q '.[0].number')
+
+          if [ -n "$existing" ]; then
+            echo "Issue #$existing already exists, skipping."
+            exit 0
+          fi
+
+          gh issue create \
+            --title "Update Python support to $latest" \
+            --label "python-version" \
+            --body "$(cat <<EOF
+          Python **$latest** has been released (currently testing up to **$LATEST_KNOWN_PYTHON**).
+
+          ## Required changes
+          - [ ] Add \`$latest\` to the Python matrix in \`.github/workflows/build.yml\` (line 19)
+          - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (line 131)
+          - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (line 9)
+          EOF
+          )"
