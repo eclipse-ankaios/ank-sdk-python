@@ -49,8 +49,8 @@ jobs:
           Python **$latest** has been released (currently testing up to **$LATEST_KNOWN_PYTHON**).
 
           ## Required changes
-          - [ ] Add \`$latest\` to the Python matrix in \`.github/workflows/build.yml\` (line 19)
-          - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (line 131)
-          - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (line 9)
+          - [ ] Add \`$latest\` to the Python matrix in \`.github/workflows/build.yml\` (jobs/setup/strategy/matrix/python)
+          - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (in the `classifiers=[...]`)
+          - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (beggining of the file, env section)
           EOF
           )"
