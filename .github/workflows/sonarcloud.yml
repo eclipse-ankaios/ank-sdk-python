@@ -36,8 +36,17 @@ jobs:
 
       - uses: ./.github/actions/ci-setup
 
+      - name: Run unit tests
+        run: python3 run_checks.py --utest
+
       - name: Run coverage
         run: python3 run_checks.py --cov
+
+      - name: Run lint
+        run: python3 run_checks.py --lint
+
+      - name: Run pep8 codestyle check
+        run: python3 run_checks.py --pep8
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@59db25f34e16620e48ab4bb9e4a5dce155cb5432 # v8.0.0
