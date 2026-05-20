@@ -8,7 +8,7 @@
 
 ![Build](https://github.com/eclipse-ankaios/ank-sdk-python/actions/workflows/build.yml/badge.svg?job=build)
 ![PyPI - Version](https://img.shields.io/pypi/v/ankaios_sdk)
-![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
+![Python](https://img.shields.io/pypi/pyversions/ankaios_sdk)
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 [![Ankaios](https://img.shields.io/badge/main_project-repo-blue)](https://github.com/eclipse-ankaios/ankaios)
