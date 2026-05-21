@@ -17,12 +17,12 @@ usage() {
 }
 
 # Parse arguments
-if [ $# -lt 1 ]; then
+if [[ $# -lt 1 ]]; then
     echo "Error: Missing required argument <branch>" >&2
     usage
 fi
 
-if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+if [[ "$1" = "--help" ]] || [[ "$1" = "-h" ]]; then
     usage
 fi
 
@@ -31,10 +31,10 @@ shift
 
 # Parse optional version argument
 SDK_VERSION=""
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
     case "$1" in
         --version|-v)
-            if [ -z "$2" ]; then
+            if [[ -z "$2" ]]; then
                 echo "Error: version flag requires a value" >&2
                 exit 1
             fi
@@ -52,16 +52,16 @@ while [ $# -gt 0 ]; do
 done
 
 # Extract SDK version from setup.cfg if not provided
-if [ -z "$SDK_VERSION" ]; then
+if [[ -z "$SDK_VERSION" ]]; then
     SETUP_CFG="setup.cfg"
-    if [ ! -f "$SETUP_CFG" ]; then
+    if [[ ! -f "$SETUP_CFG" ]]; then
         echo "Error: setup.cfg not found in current directory" >&2
         exit 1
     fi
 
     SDK_VERSION=$(grep "^version = " "$SETUP_CFG" | sed 's/^version = //' | tr -d ' ')
 
-    if [ -z "$SDK_VERSION" ]; then
+    if [[ -z "$SDK_VERSION" ]]; then
         echo "Error: Could not extract version from $SETUP_CFG" >&2
         exit 1
     fi
@@ -75,16 +75,16 @@ BASE_URL="https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/$
 PROTO_FILES=("ank_base.proto" "control_api.proto")
 
 # Clean and create target directory
-if [ -d "$PROTO_DIR" ]; then
+if [[ -d "$PROTO_DIR" ]]; then
     rm -rf "$PROTO_DIR"
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         echo "Error: Failed to clean directory $PROTO_DIR" >&2
         exit 1
     fi
 fi
 
 mkdir -p "$PROTO_DIR"
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     echo "Error: Failed to create directory $PROTO_DIR" >&2
     exit 1
 fi
@@ -96,14 +96,14 @@ for PROTO_FILE in "${PROTO_FILES[@]}"; do
 
     HTTP_CODE=$(curl -s -w "%{http_code}" -o "$TARGET_PATH" "$URL")
 
-    if [ "$HTTP_CODE" -ne 200 ]; then
+    if [[ "$HTTP_CODE" -ne 200 ]]; then
         echo "Error: Failed to download $PROTO_FILE (HTTP $HTTP_CODE)" >&2
         echo "URL: $URL" >&2
         rm -f "$TARGET_PATH"
         exit 1
     fi
 
-    if [ ! -s "$TARGET_PATH" ]; then
+    if [[ ! -s "$TARGET_PATH" ]]; then
         echo "Error: Downloaded $PROTO_FILE is empty" >&2
         rm -f "$TARGET_PATH"
         exit 1

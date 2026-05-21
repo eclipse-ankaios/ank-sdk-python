@@ -171,6 +171,14 @@ from .utils import (
 )
 
 
+_UPDATE_SUCCESS_MSG = (
+    "Update successful: %s added workloads, %s deleted workloads."
+)
+_UNEXPECTED_CONTENT_TYPE_MSG = "Received unexpected content type."
+_SET_CONFIGS_ERROR_MSG = "Error while trying to set the configs: %s"
+_UPDATE_SUCCESSFUL_MSG = "Update successful"
+
+
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
 # pylint: disable=too-many-lines
 class Ankaios:
@@ -418,13 +426,12 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
-                "Update successful: %s added workloads, "
-                + "%s deleted workloads.",
+                _UPDATE_SUCCESS_MSG,
                 len(content.added_workloads),
                 len(content.deleted_workloads),
             )
             return content
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def delete_manifest(
         self, manifest: Manifest, timeout: float = DEFAULT_TIMEOUT
@@ -468,13 +475,12 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
-                "Update successful: %s added workloads, "
-                + "%s deleted workloads.",
+                _UPDATE_SUCCESS_MSG,
                 len(content.added_workloads),
                 len(content.deleted_workloads),
             )
             return content
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def apply_workload(
         self, workload: Workload, timeout: float = DEFAULT_TIMEOUT
@@ -523,13 +529,12 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
-                "Update successful: %s added workloads, "
-                + "%s deleted workloads.",
+                _UPDATE_SUCCESS_MSG,
                 len(content.added_workloads),
                 len(content.deleted_workloads),
             )
             return content
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def get_workload(
         self, workload_name: str, timeout: float = DEFAULT_TIMEOUT
@@ -598,13 +603,12 @@ class Ankaios:
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
             self.logger.info(
-                "Update successful: %s added workloads, "
-                + "%s deleted workloads.",
+                _UPDATE_SUCCESS_MSG,
                 len(content.added_workloads),
                 len(content.deleted_workloads),
             )
             return content
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def update_configs(self, configs: dict, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -637,13 +641,13 @@ class Ankaios:
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
             self.logger.error(
-                "Error while trying to set the configs: %s", content
+                _SET_CONFIGS_ERROR_MSG, content
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
-            self.logger.info("Update successful")
+            self.logger.info(_UPDATE_SUCCESSFUL_MSG)
             return
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def add_config(
         self,
@@ -688,9 +692,9 @@ class Ankaios:
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
-            self.logger.info("Update successful")
+            self.logger.info(_UPDATE_SUCCESSFUL_MSG)
             return
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def get_configs(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
@@ -709,10 +713,9 @@ class Ankaios:
             the state.
         :raises ConnectionClosedException: If the connection is closed.
         """
-        return (
-            self.get_state(field_masks=[CONFIGS_PREFIX]).get_configs(),
-            timeout,
-        )
+        return self.get_state(
+            field_masks=[CONFIGS_PREFIX], timeout=timeout
+        ).get_configs()
 
     def get_config(self, name: str, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
@@ -733,12 +736,9 @@ class Ankaios:
             the state.
         :raises ConnectionClosedException: If the connection is closed.
         """
-        return (
-            self.get_state(
-                field_masks=[f"{CONFIGS_PREFIX}.{name}"]
-            ).get_configs(),
-            timeout,
-        )
+        return self.get_state(
+            field_masks=[f"{CONFIGS_PREFIX}.{name}"], timeout=timeout
+        ).get_configs()
 
     def delete_all_configs(self, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -771,9 +771,9 @@ class Ankaios:
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
-            self.logger.info("Update successful")
+            self.logger.info(_UPDATE_SUCCESSFUL_MSG)
             return
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def delete_config(self, name: str, timeout: float = DEFAULT_TIMEOUT):
         """
@@ -810,9 +810,9 @@ class Ankaios:
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
-            self.logger.info("Update successful")
+            self.logger.info(_UPDATE_SUCCESSFUL_MSG)
             return
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def get_state(
         self,
@@ -853,7 +853,7 @@ class Ankaios:
             raise AnkaiosResponseError(content)
         if content_type == ResponseType.COMPLETE_STATE:
             return content
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def set_agent_tags(
         self,
@@ -899,9 +899,9 @@ class Ankaios:
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.UPDATE_STATE_SUCCESS:
-            self.logger.info("Update successful")
+            self.logger.info(_UPDATE_SUCCESSFUL_MSG)
             return
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def get_agents(self, timeout: float = DEFAULT_TIMEOUT) -> dict:
         """
@@ -1166,7 +1166,7 @@ class Ankaios:
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
             self.logger.error(
-                "Error while trying to set the configs: %s", content
+                _SET_CONFIGS_ERROR_MSG, content
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.LOGS_REQUEST_ACCEPTED:
@@ -1175,7 +1175,7 @@ class Ankaios:
             return LogCampaignResponse(
                 queue=log_queue, accepted_workload_names=content
             )
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def stop_receiving_logs(
         self,
@@ -1205,14 +1205,14 @@ class Ankaios:
         (content_type, content) = response.get_content()
         if content_type == ResponseType.ERROR:
             self.logger.error(
-                "Error while trying to set the configs: %s", content
+                _SET_CONFIGS_ERROR_MSG, content
             )
             raise AnkaiosResponseError(f"Received error: {content}")
         if content_type == ResponseType.LOGS_CANCEL_ACCEPTED:
             self.logger.info("Logs cancel request accepted.")
             self._logs_callbacks.pop(request.get_id(), None)
             return None
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def register_event(
         self, field_masks: list[str], timeout: float = DEFAULT_TIMEOUT
@@ -1259,7 +1259,7 @@ class Ankaios:
             event_queue.put(initial_entry)
             self._events_callbacks[request.get_id()] = event_queue.put
             return event_queue
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)
 
     def unregister_event(
         self, event_queue: "EventQueue", timeout: float = DEFAULT_TIMEOUT
@@ -1298,4 +1298,4 @@ class Ankaios:
             self.logger.info("Event unregister request accepted.")
             self._events_callbacks.pop(request.get_id(), None)
             return None
-        raise AnkaiosProtocolException("Received unexpected content type.")
+        raise AnkaiosProtocolException(_UNEXPECTED_CONTENT_TYPE_MSG)

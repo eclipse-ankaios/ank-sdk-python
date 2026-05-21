@@ -249,7 +249,7 @@ def test_initialisation():
 
     # Test invalid response type
     with pytest.raises(ResponseException, match="Invalid response type"):
-        response = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
+        _ = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
 
 
 def test_getters():

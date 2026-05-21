@@ -390,7 +390,6 @@ class ControlInterface:
                     "CONTROL_INTERFACE_ACCEPTED. Ignoring..",
                     response.content_type,
                 )
-                return
 
         # Handle the connected state
         elif self._state == ControlInterfaceState.CONNECTED:
@@ -494,7 +493,7 @@ class ControlInterface:
             raise ConnectionClosedException(
                 "Could not write to pipe, connection closed."
             )
-        if not self._state == ControlInterfaceState.CONNECTED:
+        if self._state != ControlInterfaceState.CONNECTED:
             raise ControlInterfaceException(
                 "Could not write to pipe, not connected."
             )

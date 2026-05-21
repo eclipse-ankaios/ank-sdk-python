@@ -409,6 +409,21 @@ class Workload:
         if self._main_mask not in self._masks and mask not in self._masks:
             self._masks.append(mask)
 
+    def _control_interface_access_to_dict(self) -> dict:
+        """
+        Convert the control interface access rules to a dictionary.
+
+        :returns: The dictionary representation of the control
+            interface access rules.
+        :rtype: dict
+        """
+        result = {"allowRules": [], "denyRules": []}
+        for rule in self._workload.controlInterfaceAccess.allowRules:
+            result["allowRules"].append(AccessRightRule(rule).to_dict())
+        for rule in self._workload.controlInterfaceAccess.denyRules:
+            result["denyRules"].append(AccessRightRule(rule).to_dict())
+        return result
+
     # pylint: disable=too-many-branches
     def to_dict(self) -> dict:
         """
@@ -440,20 +455,9 @@ class Workload:
         if self._workload.tags:
             for key, value in self._workload.tags.tags.items():
                 workload_dict["tags"].update({key: value})
-        workload_dict["controlInterfaceAccess"] = {}
-        if self._workload.controlInterfaceAccess:
-            workload_dict["controlInterfaceAccess"]["allowRules"] = []
-            for rule in self._workload.controlInterfaceAccess.allowRules:
-                access_rule = AccessRightRule(rule)
-                workload_dict["controlInterfaceAccess"]["allowRules"].append(
-                    access_rule.to_dict()
-                )
-            workload_dict["controlInterfaceAccess"]["denyRules"] = []
-            for rule in self._workload.controlInterfaceAccess.denyRules:
-                access_rule = AccessRightRule(rule)
-                workload_dict["controlInterfaceAccess"]["denyRules"].append(
-                    access_rule.to_dict()
-                )
+        workload_dict["controlInterfaceAccess"] = (
+            self._control_interface_access_to_dict()
+        )
         workload_dict["configs"] = {}
         for alias, name in self._workload.configs.configs.items():
             workload_dict["configs"][alias] = name
@@ -462,7 +466,30 @@ class Workload:
             workload_dict["files"].append(File._from_proto(file).to_dict())
         return workload_dict
 
-    # pylint: disable=too-many-branches
+    @staticmethod
+    def _apply_control_interface_access_from_dict(
+        workload, cia_dict: dict
+    ):
+        """
+        Apply control interface access rules from a dictionary
+        to a workload builder.
+
+        :param workload: The workload builder to apply rules to.
+        :param cia_dict: The control interface access dictionary.
+        :type cia_dict: dict
+
+        :returns: The updated workload builder.
+        """
+        for rule in cia_dict.get("allowRules", []):
+            workload = workload.add_allow_state_rule(
+                rule["operation"], rule["filterMask"]
+            )
+        for rule in cia_dict.get("denyRules", []):
+            workload = workload.add_deny_state_rule(
+                rule["operation"], rule["filterMask"]
+            )
+        return workload
+
     @staticmethod
     def _from_dict(workload_name: str, dict_workload: dict) -> "Workload":
         """
@@ -485,34 +512,19 @@ class Workload:
             workload = workload.runtime_config(dict_workload["runtimeConfig"])
         if "restartPolicy" in dict_workload:
             workload = workload.restart_policy(dict_workload["restartPolicy"])
-        if "dependencies" in dict_workload:
-            for dep_key, dep_value in dict_workload["dependencies"].items():
-                workload = workload.add_dependency(dep_key, dep_value)
-        if "tags" in dict_workload:
-            for key, value in dict_workload["tags"].items():
-                workload = workload.add_tag(key, value)
-        if "controlInterfaceAccess" in dict_workload:
-            if "allowRules" in dict_workload["controlInterfaceAccess"]:
-                for rule in dict_workload["controlInterfaceAccess"][
-                    "allowRules"
-                ]:
-                    workload = workload.add_allow_state_rule(
-                        rule["operation"], rule["filterMask"]
-                    )
-            if "denyRules" in dict_workload["controlInterfaceAccess"]:
-                for rule in dict_workload["controlInterfaceAccess"][
-                    "denyRules"
-                ]:
-                    workload = workload.add_deny_state_rule(
-                        rule["operation"], rule["filterMask"]
-                    )
-        if "configs" in dict_workload:
-            for alias, name in dict_workload["configs"].items():
-                workload = workload.add_config(alias, name)
-        if "files" in dict_workload:
-            for file in dict_workload["files"]:
-                workload = workload.add_file(File._from_dict(file))
-
+        for dep_key, dep_value in dict_workload.get(
+            "dependencies", {}
+        ).items():
+            workload = workload.add_dependency(dep_key, dep_value)
+        for key, value in dict_workload.get("tags", {}).items():
+            workload = workload.add_tag(key, value)
+        workload = Workload._apply_control_interface_access_from_dict(
+            workload, dict_workload.get("controlInterfaceAccess", {})
+        )
+        for alias, name in dict_workload.get("configs", {}).items():
+            workload = workload.add_config(alias, name)
+        for file in dict_workload.get("files", []):
+            workload = workload.add_file(File._from_dict(file))
         return workload.build()
 
     def _to_proto(self) -> _ank_base.Workload:

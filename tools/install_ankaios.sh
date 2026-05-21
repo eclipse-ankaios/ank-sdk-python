@@ -57,12 +57,14 @@ multiple_arguments_error() {
 }
 
 parse_arguments() {
-    while [ "$#" -gt 0 ]; do
-        case "$1" in
+    local arg
+    while [[ "$#" -gt 0 ]]; do
+        arg="$1"
+        case "$arg" in
             --branch|-b)
                 shift
                 branch_name="$1"
-                if [ -n "$mode" ]; then
+                if [[ -n "$mode" ]]; then
                     multiple_arguments_error
                 fi
                 mode="branch"
@@ -70,7 +72,7 @@ parse_arguments() {
             --action|-a)
                 shift
                 action_id="$1"
-                if [ -n "$mode" ]; then
+                if [[ -n "$mode" ]]; then
                     multiple_arguments_error
                 fi
                 mode="action"
@@ -78,14 +80,14 @@ parse_arguments() {
             --version|-v)
                 shift
                 version="$1"
-                if [ -n "$mode" ]; then
+                if [[ -n "$mode" ]]; then
                     multiple_arguments_error
                 fi
                 mode="version"
                 ;;
             --latest|-l)
                 version="latest"
-                if [ -n "$mode" ]; then
+                if [[ -n "$mode" ]]; then
                     multiple_arguments_error
                 fi
                 mode="version"
@@ -98,7 +100,7 @@ parse_arguments() {
                 usage
                 ;;
             *)
-                echo "Unknown argument: $1"
+                echo "Unknown argument: $arg"
                 usage
                 ;;
         esac
@@ -106,12 +108,12 @@ parse_arguments() {
     done
 }
 
-if [ "$#" -eq 0 ]; then
+if [[ "$#" -eq 0 ]]; then
     usage
 fi
 
 parse_arguments "$@"
-if [ -z "$mode" ]; then
+if [[ -z "$mode" ]]; then
     echo "Error: One of --branch, --action, --version, or --latest must be specified." >&2
     usage
 fi
@@ -132,14 +134,14 @@ target=$(get_target)
 # Install by version
 
 install_by_version() {
-    if [ "$version" = "latest" ]; then
+    if [[ "$version" = "latest" ]]; then
         curl -sfL "$INSTALL_LATEST_URL" | bash -
     else
         VERSION_URL=${INSTALL_VERSION_URL//<version>/$version}
         curl -sfL "$VERSION_URL" | bash -s -- -v "$version"
     fi
 }
-if [ "$mode" = "version" ]; then
+if [[ "$mode" = "version" ]]; then
     install_by_version
     exit 0
 fi
@@ -147,7 +149,8 @@ fi
 # Install by branch
 
 branch_exists() {
-    if curl -s "https://api.github.com/repos/$REPO/branches/$1" | grep -q '"name":'; then
+    local branch="$1"
+    if curl -s "https://api.github.com/repos/$REPO/branches/$branch" | grep -q '"name":'; then
         return 0
     else
         return 1
@@ -158,7 +161,7 @@ get_action_id_for_branch() {
     WORKFLOW_ID=$(curl -s "https://api.github.com/repos/$REPO/actions/workflows/$WORKFLOW_NAME" | \
         python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
 
-    if [ -z "$WORKFLOW_ID" ]; then
+    if [[ -z "$WORKFLOW_ID" ]]; then
         echo "Error: Workflow '$WORKFLOW_NAME' not found" >&2
         exit 1
     fi
@@ -180,14 +183,14 @@ for run in data.get('workflow_runs', []):
             sys.exit(0)
 ")
 
-    if [ -z "$RUN_ID" ]; then
+    if [[ -z "$RUN_ID" ]]; then
         echo "Error: No runs with successful '$job_name' job found on branch '$branch_name'" >&2
         exit 1
     fi
 
     echo "$RUN_ID"
 }
-if [ "$mode" = "branch" ]; then
+if [[ "$mode" = "branch" ]]; then
     if ! branch_exists "$branch_name"; then
         echo "Error: Branch '$branch_name' does not exist in repository '$REPO'" >&2
         exit 1
@@ -235,7 +238,7 @@ fi
 echo "Downloading artifact..."
 
 provide_token() {
-    if [ -n "$GITHUB_TOKEN" ]; then
+    if [[ -n "$GITHUB_TOKEN" ]]; then
         gh_token="$GITHUB_TOKEN"
     else
         echo -n "Enter GitHub token: "
@@ -249,7 +252,7 @@ check_token() {
     fi
 }
 
-if [ -z "$gh_token" ]; then
+if [[ -z "$gh_token" ]]; then
     provide_token
 fi
 check_token
@@ -261,7 +264,7 @@ HTTP_CODE=$(curl -L -w "%{http_code}" -o "$TEMP_DIR/artifact.zip" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip")
 
-if [ "$HTTP_CODE" != "200" ]; then
+if [[ "$HTTP_CODE" != "200" ]]; then
     echo "Error: Failed to download artifact (HTTP $HTTP_CODE)" >&2
     exit 1
 fi
@@ -271,7 +274,7 @@ cd "$TEMP_DIR"
 unzip -q artifact.zip
 
 # Verify binaries
-if [ ! -f "ank" ] || [ ! -f "ank-server" ] || [ ! -f "ank-agent" ]; then
+if [[ ! -f "ank" ]] || [[ ! -f "ank-server" ]] || [[ ! -f "ank-agent" ]]; then
     echo "Error: Expected binaries not found in artifact" >&2
     exit 1
 fi
@@ -279,7 +282,7 @@ fi
 # Install binaries
 echo "Installing binaries to $INSTALL_PATH..."
 
-if [ -w "$INSTALL_PATH" ]; then
+if [[ -w "$INSTALL_PATH" ]]; then
     SUDO=""
 else
     SUDO="sudo"

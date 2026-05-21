@@ -37,8 +37,10 @@ usage() {
 }
 
 parse_arguments() {
-    while [ "$#" -gt 0 ]; do
-        case "$1" in
+    local arg
+    while [[ "$#" -gt 0 ]]; do
+        arg="$1"
+        case "$arg" in
             --sdk)
                 shift
                 sdk_version="$1"
@@ -55,7 +57,7 @@ parse_arguments() {
                 usage
                 ;;
             *)
-                echo "Unknown argument: $1"
+                echo "Unknown argument: $arg"
                 usage
                 ;;
         esac
@@ -63,29 +65,29 @@ parse_arguments() {
     done
 }
 
-if [ "$#" -eq 0 ]; then
+if [[ "$#" -eq 0 ]]; then
     usage
 fi
 
 parse_arguments "$@"
 
-if [ -z "$sdk_version" ] && [ -z "$ankaios_version" ] && [ -z "$api_version" ]; then
+if [[ -z "$sdk_version" ]] && [[ -z "$ankaios_version" ]] && [[ -z "$api_version" ]]; then
     echo "You must specify at least one version to update."
     usage
 fi
 
-if [ -n "$sdk_version" ]; then
+if [[ -n "$sdk_version" ]]; then
     echo "Updating SDK version to $sdk_version"
     sed -i "s/^version = .*/version = $sdk_version/" "$base_dir"/setup.cfg
 fi
 
-if [ -n "$ankaios_version" ]; then
+if [[ -n "$ankaios_version" ]]; then
     echo "Updating Ankaios version to $ankaios_version"
     sed -i "s/^ankaios_version = .*/ankaios_version = $ankaios_version/" "$base_dir"/setup.cfg
     sed -i "s/^ANKAIOS_VERSION = .*/ANKAIOS_VERSION = \"$ankaios_version\"/" "$base_dir"/ankaios_sdk/utils.py
 fi
 
-if [ -n "$api_version" ]; then
+if [[ -n "$api_version" ]]; then
     echo "Updating API version to $api_version"
     sed -i "s/^SUPPORTED_API_VERSION = .*/SUPPORTED_API_VERSION = \"$api_version\"/" "$base_dir"/ankaios_sdk/utils.py
 fi

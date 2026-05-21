@@ -565,7 +565,7 @@ def test_get_configs():
         mock_get_state.return_value = CompleteState()
         ankaios.get_configs()
         mock_get_state.assert_called_once_with(
-            field_masks=["desiredState.configs"]
+            field_masks=["desiredState.configs"], timeout=5.0
         )
         mock_state_get_configs.assert_called_once()
 
@@ -582,7 +582,7 @@ def test_get_config():
         mock_get_state.return_value = CompleteState()
         ankaios.get_config("config_name")
         mock_get_state.assert_called_once_with(
-            field_masks=["desiredState.configs.config_name"]
+            field_masks=["desiredState.configs.config_name"], timeout=5.0
         )
         mock_state_get_configs.assert_called_once()
 

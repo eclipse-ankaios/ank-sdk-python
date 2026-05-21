@@ -18,10 +18,12 @@ runs:
         python-version: ${{ inputs.python-version }}
 
     - name: Install dependencies
+      env:
+        EXTRAS: ${{ inputs.extras }}
       run: |
         python3 -m pip install --upgrade pip
-        if [ -n "${{ inputs.extras }}" ]; then
-          pip install .[${{ inputs.extras }}]
+        if [ -n "$EXTRAS" ]; then
+          pip install ".[$EXTRAS]"
         else
           pip install .
         fi

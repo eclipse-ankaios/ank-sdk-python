@@ -220,7 +220,7 @@ def test_tags(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(workload.get_tags()) == 2
 
     tags = workload.get_tags()
-    _ = tags.pop(list(tags.keys())[0])
+    _ = tags.pop(next(iter(tags.keys())))
     workload.update_tags(tags)
 
     assert len(workload.get_tags()) == 1
@@ -354,6 +354,15 @@ def test_from_to_dict():
     )
 
     assert str(workload_new) == str(workload_other)
+
+
+def test_control_interface_access_to_dict_empty():
+    """Test _control_interface_access_to_dict returns empty dict
+    when no control interface access is set."""
+    empty_workload = Workload("test")
+    assert empty_workload._control_interface_access_to_dict() == {
+        "allowRules": [], "denyRules": []
+    }
 
 
 @pytest.mark.parametrize(

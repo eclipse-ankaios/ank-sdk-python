@@ -80,7 +80,7 @@ __all__ = [
 ]
 
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Optional, Union
 from enum import Enum
 from .._protos import _ank_base, _control_api
 from ..exceptions import ResponseException
@@ -114,7 +114,7 @@ class Response:
         """
         self.buffer = message_buffer
         self._response = None
-        self.content_type: ResponseType = None
+        self.content_type: Optional[ResponseType] = None
         self.content = None
 
         self._parse_response()
@@ -175,23 +175,7 @@ class Response:
                     _proto=self._response.completeStateResponse.completeState
                 )
         elif self._response.HasField("UpdateStateSuccess"):
-            update_state_msg = self._response.UpdateStateSuccess
-            self.content_type = ResponseType.UPDATE_STATE_SUCCESS
-            self.content = UpdateStateSuccess()
-            for workload in update_state_msg.addedWorkloads:
-                workload_name, workload_id, agent_name = workload.split(".")
-                self.content.added_workloads.append(
-                    WorkloadInstanceName(
-                        agent_name, workload_name, workload_id
-                    )
-                )
-            for workload in update_state_msg.deletedWorkloads:
-                workload_name, workload_id, agent_name = workload.split(".")
-                self.content.deleted_workloads.append(
-                    WorkloadInstanceName(
-                        agent_name, workload_name, workload_id
-                    )
-                )
+            self._parse_update_state_success()
         elif self._response.HasField("logEntriesResponse"):
             self.content_type = ResponseType.LOGS_ENTRY
             self.content = []
@@ -222,12 +206,31 @@ class Response:
         else:
             raise ResponseException("Invalid response type.")
 
-    def get_request_id(self) -> str:
+    def _parse_update_state_success(self) -> None:
+        """
+        Parses the UpdateStateSuccess response type and
+        populates content_type and content.
+        """
+        update_state_msg = self._response.UpdateStateSuccess
+        self.content_type = ResponseType.UPDATE_STATE_SUCCESS
+        self.content = UpdateStateSuccess()
+        for workload in update_state_msg.addedWorkloads:
+            workload_name, workload_id, agent_name = workload.split(".")
+            self.content.added_workloads.append(
+                WorkloadInstanceName(agent_name, workload_name, workload_id)
+            )
+        for workload in update_state_msg.deletedWorkloads:
+            workload_name, workload_id, agent_name = workload.split(".")
+            self.content.deleted_workloads.append(
+                WorkloadInstanceName(agent_name, workload_name, workload_id)
+            )
+
+    def get_request_id(self) -> Optional[str]:
         """
         Gets the request id of the response.
 
-        :returns: The request id of the response.
-        :rtype: str
+        :returns: The request id of the response, or None if not applicable.
+        :rtype: Optional[str]
         """
         if self.content_type in [
             ResponseType.CONTROL_INTERFACE_ACCEPTED,

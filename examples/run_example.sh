@@ -39,19 +39,19 @@ run_ankaios() {
   exit $?
 }
 
-if [ -z $1 ]; then
+if [[ -z $1 ]]; then
   display_usage
   exit 1
 fi
 
 # Check if app exists and copy it to the example directory
-if [ ! -f "apps/$1.py" ]; then
+if [[ ! -f "apps/$1.py" ]]; then
   echo "Python app '$1.py' not found!"
   exit 2
 fi
 cp -f apps/$1.py app/app.py
 
-if [ -z ${ANK_BIN_DIR} ]; then
+if [[ -z ${ANK_BIN_DIR} ]]; then
   ANK_BIN_DIR=${DEFAULT_ANKAIOS_BIN_PATH}
 fi
 

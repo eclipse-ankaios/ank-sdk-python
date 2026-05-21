@@ -244,9 +244,9 @@ class WorkloadExecutionState:
         :param state: The execution state to interpret.
         :type state: _ank_base.ExecutionState
         """
-        self.state: WorkloadStateEnum = None
-        self.substate: WorkloadSubStateEnum = None
-        self.additional_info: str = None
+        self.state: Optional[WorkloadStateEnum] = None
+        self.substate: Optional[WorkloadSubStateEnum] = None
+        self.additional_info: Optional[str] = None
 
         self._interpret_state(state)
 
