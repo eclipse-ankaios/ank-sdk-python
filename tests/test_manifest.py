@@ -121,7 +121,7 @@ def test_from_dict():
     with pytest.raises(
         InvalidManifestException, match="apiVersion is missing."
     ):
-        manifest = Manifest.from_dict({})
+        _ = Manifest.from_dict({})
 
     with pytest.raises(InvalidManifestException):
         _ = Manifest.from_dict(

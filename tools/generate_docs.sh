@@ -32,7 +32,7 @@ usage() {
     exit 0
 }
 
-if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+if [[ "$1" = "--help" ]] || [[ "$1" = "-h" ]]; then
     usage
 fi
 

@@ -66,7 +66,7 @@ Usage
 
 __all__ = ["CompleteState", "AgentAttributes"]
 
-from typing import Union
+from typing import Optional, Union
 from .._protos import _ank_base
 from .workload import Workload
 from .workload_state import WorkloadStateCollection
@@ -124,7 +124,6 @@ class CompleteState:
                     workload.name
                 ].CopyFrom(workload._to_proto())
             logger.debug("CompleteState initialized from workloads")
-            return
 
     def __str__(self) -> str:
         """
@@ -153,7 +152,7 @@ class CompleteState:
         """
         return str(self._complete_state.desiredState.apiVersion)
 
-    def get_workload(self, workload_name: str) -> Workload:
+    def get_workload(self, workload_name: str) -> Optional[Workload]:
         """
         Gets a workload from the complete state by its name.
 
@@ -256,7 +255,7 @@ class CompleteState:
 
         def _from_config_item(
             item: _ank_base.ConfigItem,
-        ) -> Union[str, list, dict]:
+        ) -> Optional[Union[str, list, dict]]:
             if item.HasField("String"):
                 return item.String
             if item.HasField("array"):

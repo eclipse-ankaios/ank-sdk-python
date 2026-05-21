@@ -19,7 +19,6 @@ still_sleepy = True
 
 
 def signal_handler(sig, frame):
-    still_sleepy = False
     sys.exit(0)
 
 

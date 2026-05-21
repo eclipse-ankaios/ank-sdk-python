@@ -84,7 +84,7 @@ def generate_protos():
     for proto_file in PROTO_FILES:
         proto_path = os.path.join(protos_dir, proto_file)
         if not os.path.exists(proto_path):
-            raise Exception(f"Error: {proto_file} not found.")
+            raise FileNotFoundError(f"Error: {proto_file} not found.")
         output_file = proto_path.replace(".proto", "_pb2.py")
 
         if not os.path.exists(output_file) or os.path.getmtime(
@@ -99,7 +99,7 @@ def generate_protos():
                 proto_path,
             ]
             if protoc.main(command) != 0:
-                raise Exception(f"Error: {proto_file} compilation failed")
+                raise RuntimeError(f"Error: {proto_file} compilation failed")
 
             # Fix the import path in the generated control_api_pb2
             # https://github.com/protocolbuffers/protobuf/issues/1491#issuecomment-261914766

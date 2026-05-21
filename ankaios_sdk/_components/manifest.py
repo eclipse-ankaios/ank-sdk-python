@@ -118,10 +118,10 @@ class Manifest:
         :rtype: Manifest
         """
         desired_state = _ank_base.State()
-        if "apiVersion" not in manifest.keys():
+        if "apiVersion" not in manifest:
             raise InvalidManifestException("apiVersion is missing.")
         desired_state.apiVersion = manifest["apiVersion"]
-        if "workloads" in manifest.keys():
+        if "workloads" in manifest:
             workloads = manifest["workloads"]
             for wl_name, wl_data in workloads.items():
                 try:
@@ -133,7 +133,7 @@ class Manifest:
                     raise InvalidManifestException(
                         f"Error building workload {wl_name}: {e}"
                     ) from e
-        if "configs" in manifest.keys():
+        if "configs" in manifest:
             configs = manifest["configs"]
             for key, value in configs.items():
                 desired_state.configs.configs[key].CopyFrom(

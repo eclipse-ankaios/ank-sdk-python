@@ -19,7 +19,8 @@ jobs:
 
   release:
     needs: build
-    permissions: write-all
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:

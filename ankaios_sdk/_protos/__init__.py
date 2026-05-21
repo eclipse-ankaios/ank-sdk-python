@@ -25,10 +25,7 @@ Imports
     Used for exchanging messages with the control interface.
 """
 
-try:
-    import ankaios_sdk._protos.ank_base_pb2 as _ank_base
-    import ankaios_sdk._protos.control_api_pb2 as _control_api
-except ImportError as r:
-    raise r
+import ankaios_sdk._protos.ank_base_pb2 as _ank_base
+import ankaios_sdk._protos.control_api_pb2 as _control_api
 
 __all__ = ["_ank_base", "_control_api"]
