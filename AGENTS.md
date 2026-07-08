@@ -2,11 +2,8 @@
 
 ## Purpose
 
-This project is the **Python SDK for Eclipse Ankaios** — a lightweight
-workload orchestrator for automotive embedded devices and HPCs. The SDK
-gives Python workloads running inside an Ankaios-managed container access
-to the Ankaios Control Interface to manage (start, stop, update) other
-workloads and read cluster state.
+Python SDK for Eclipse Ankaios — enables workloads inside an Ankaios cluster to start/stop/update
+workloads, read state, stream logs, subscribe to events, and manage configs.
 
 The SDK is published on PyPI as `ankaios-sdk`. Current version and
 compatible Ankaios version are in `setup.cfg` under `[metadata]`.
