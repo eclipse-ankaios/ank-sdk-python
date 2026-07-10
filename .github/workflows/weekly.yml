@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  LATEST_KNOWN_PYTHON: '3.13'
+  LATEST_KNOWN_PYTHON: '3.14'
 
 jobs:
   build:
