@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  LATEST_KNOWN_PYTHON: '3.13'
+  LATEST_KNOWN_PYTHON: '3.14'
 
 jobs:
   build:
@@ -50,7 +50,7 @@ jobs:
 
           ## Required changes
           - [ ] Add \`$latest\` to the Python matrix in \`.github/workflows/build.yml\` (jobs/setup/strategy/matrix/python)
-          - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (in the `classifiers=[...]`)
+          - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (in the \`classifiers=[...]\`)
           - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (beggining of the file, env section)
           EOF
           )"
