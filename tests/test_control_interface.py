@@ -395,30 +395,28 @@ def test_handle_response_connection_closed():
 
     # Got connection closed response as initial response
     response_callback = MagicMock()
+    ci = ControlInterface(
+        add_response_callback=response_callback,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._state = ControlInterfaceState.INITIALIZED
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
     ):
-        ci = ControlInterface(
-            add_response_callback=response_callback,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
-        ci._state = ControlInterfaceState.INITIALIZED
-
         ci._handle_response(conn_closed_response)
 
     # Got connection closed response while already connected
     response_callback = MagicMock()
+    ci = ControlInterface(
+        add_response_callback=response_callback,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._state = ControlInterfaceState.CONNECTED
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
     ):
-        ci = ControlInterface(
-            add_response_callback=response_callback,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
-        ci._state = ControlInterfaceState.CONNECTED
-
         ci._handle_response(conn_closed_response)
 
 
@@ -540,16 +538,17 @@ def test_write_request():
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
     )
+    test_request = generate_test_request()
 
     ci._state = ControlInterfaceState.TERMINATED
     with pytest.raises(
         ControlInterfaceException, match="Could not write to pipe"
     ):
-        ci.write_request(generate_test_request())
+        ci.write_request(test_request)
 
     ci._state = ControlInterfaceState.CONNECTED
     with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
-        ci.write_request(generate_test_request())
+        ci.write_request(test_request)
         mock_write.assert_called_once()
 
     ci._state = ControlInterfaceState.CONNECTION_CLOSED
@@ -557,7 +556,7 @@ def test_write_request():
         ConnectionClosedException,
         match="Could not write to pipe, connection closed.",
     ):
-        ci.write_request(generate_test_request())
+        ci.write_request(test_request)
 
 
 def test_send_initial_hello():

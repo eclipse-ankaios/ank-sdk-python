@@ -16,7 +16,8 @@
 This module contains unit tests for the AccessRightRule class.
 """
 
-from ankaios_sdk import AccessRightRule
+import pytest
+from ankaios_sdk import AccessRightRule, WorkloadFieldException
 from ankaios_sdk._protos import _ank_base
 
 
@@ -41,6 +42,9 @@ def test_state_rule():
         "operation": "Read",
         "filterMask": ["mask_1", "mask_2"],
     }
+
+    with pytest.raises(WorkloadFieldException):
+        _ = AccessRightRule.state_rule("Invalid", ["mask"])
 
 
 def test_log_rule():

@@ -239,15 +239,15 @@ def test_rules(workload: Workload):  # pylint: disable=redefined-outer-name
     assert len(allow_rules) == 1
     assert len(deny_rules) == 1
 
-    with pytest.raises(WorkloadFieldException):
-        workload.update_allow_rules(
-            [AccessRightRule.state_rule("Invalid", ["mask"])]
-        )
+    # with pytest.raises(WorkloadFieldException):
+    #     workload.update_allow_rules(
+    #         [AccessRightRule.state_rule("Invalid", ["mask"])]
+    #     )
 
-    with pytest.raises(WorkloadFieldException):
-        workload.update_deny_rules(
-            [AccessRightRule.state_rule("Invalid", ["mask"])]
-        )
+    # with pytest.raises(WorkloadFieldException):
+    #     workload.update_deny_rules(
+    #         [AccessRightRule.state_rule("Invalid", ["mask"])]
+    #     )
 
     allow_rules.append(
         AccessRightRule.state_rule(
