@@ -24,8 +24,10 @@ import pytest
 from ankaios_sdk import (
     ControlInterface,
     Response,
+    ResponseException,
+    ResponseType,
     ControlInterfaceState,
-    ControlInterfaceException,
+    ConnectionException,
     ConnectionClosedException,
 )
 from ankaios_sdk.utils import ANKAIOS_VERSION
@@ -80,14 +82,14 @@ def test_connection():
     assert ci.connected
 
     # Already connected
-    with pytest.raises(ControlInterfaceException, match="Already connected."):
+    with pytest.raises(ConnectionException, match="Already connected."):
         ci.connect()
 
     # Test input pipe does not exist
     ci._state = ControlInterfaceState.TERMINATED
     assert not ci.connected
     with patch("os.path.exists") as mock_exists, pytest.raises(
-        ControlInterfaceException, match="Control interface input fifo"
+        ConnectionException, match="Control interface input fifo"
     ):
         mock_exists.side_effect = (
             lambda path: path != "/run/ankaios/control_interface/input"
@@ -96,7 +98,7 @@ def test_connection():
 
     # Test output pipe does not exist
     with patch("os.path.exists") as mock_exists, pytest.raises(
-        ControlInterfaceException, match="Control interface output fifo"
+        ConnectionException, match="Control interface output fifo"
     ):
         mock_exists.side_effect = (
             lambda path: path != "/run/ankaios/control_interface/output"
@@ -107,7 +109,7 @@ def test_connection():
     with patch("os.path.exists") as mock_exists, patch(
         "builtins.open"
     ) as mock_open_file, pytest.raises(
-        ControlInterfaceException, match="Error while opening output fifo"
+        ConnectionException, match="Error while opening output fifo"
     ):
         mock_exists.return_value = True
         mock_open_file.side_effect = OSError
@@ -158,6 +160,31 @@ def test_connection():
     ci._logger.debug.assert_called_with("Already disconnected.")
 
 
+def test_decode_response():
+    """
+    Test the _decode_response static method of the ControlInterface
+    class, which owns the control interface's own envelope
+    (FromAnkaios) unwrapping, for all 3 possible variants plus the
+    parsing-error case.
+    """
+    response = ControlInterface._decode_response(MESSAGE_BUFFER_UPDATE_SUCCESS)
+    assert response.content_type == ResponseType.UPDATE_STATE_SUCCESS
+
+    response = ControlInterface._decode_response(
+        MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED
+    )
+    assert response.content_type == ResponseType.CONTROL_INTERFACE_ACCEPTED
+
+    response = ControlInterface._decode_response(
+        MESSAGE_BUFFER_CONNECTION_CLOSED
+    )
+    assert response.content_type == ResponseType.CONNECTION_CLOSED
+    assert response.content == "Connection closed reason"
+
+    with pytest.raises(ResponseException, match="Parsing error"):
+        ControlInterface._decode_response(b"invalid_buffer{")
+
+
 def test_read_thread_general():
     """
     Test the _read_from_control_interface method of the ControlInterface class.
@@ -177,7 +204,7 @@ def test_read_thread_general():
             add_event_callback=lambda _: None,
         )
         with pytest.raises(
-            ControlInterfaceException, match="Error while opening input fifo"
+            ConnectionException, match="Error while opening input fifo"
         ):
             ci._read_from_control_interface()
         mock_disconnect.assert_called_once()
@@ -518,7 +545,7 @@ def test_write_to_pipe():
 
     ci._output_file = None
     with pytest.raises(
-        ControlInterfaceException, match="Could not write to pipe"
+        ConnectionException, match="Could not write to pipe"
     ):
         ci._write_to_pipe(_control_api.FromAnkaios())
 
@@ -543,7 +570,7 @@ def test_write_request():
 
     ci._state = ControlInterfaceState.TERMINATED
     with pytest.raises(
-        ControlInterfaceException, match="Could not write to pipe"
+        ConnectionException, match="Could not write to pipe"
     ):
         ci.write_request(generate_test_request())
 
