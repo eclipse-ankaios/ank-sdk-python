@@ -69,6 +69,8 @@ are using. For information regarding versioning, please refer to this table:
 After installation, you can use the Ankaios SDK to configure and run workloads
 and request the state of the Ankaios system and the connected agents.
 
+### Connecting over The Control Interface
+
 The following example assumes that the code is running in a managed by
 Ankaios workload with configured control interface access:
 
@@ -133,6 +135,32 @@ with Ankaios() as ankaios:
               + str(workload_states_dict[agent_name] \
                     [workload_name][workload_id].state))
 ```
+
+### Connecting over gRPC
+
+To connect to an Ankaios server directly from outside a workload (e.g. from
+a CI job or a management tool), use a gRPC connection instead:
+
+```python
+from ankaios_sdk import Ankaios, ConnectionType
+
+with Ankaios(
+    connection_type=ConnectionType.GRPC,
+    server_url="http://127.0.0.1:25551",
+) as ankaios:
+    ...
+```
+
+This requires the `grpc` extra:
+
+```sh
+pip install ankaios-sdk[grpc]
+```
+
+For mTLS-secured connections, also pass `ca_pem`, `crt_pem` and `key_pem`
+(the PEM-encoded CA certificate, client certificate and client key content).
+
+### Resources
 
 For more details, please visit:
 

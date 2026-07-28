@@ -25,6 +25,12 @@ PROTO_FILES = [
     "ankaios_api/proto/control_api.proto",
 ]
 
+# gRPC client library and codegen tooling, needed both to actually run
+# the gRPC connection and to develop/test it (hence reused in "dev").
+GRPC_REQUIRES = [
+    "grpcio-tools==1.76.0",
+]
+
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(__file__), "setup.cfg"))
 
@@ -163,7 +169,8 @@ setup(
             "pytest-cov",  # Coverage plugin
             "pylint",  # Linter
             "pycodestyle",  # Style guide checker
-        ],
+        ]
+        + GRPC_REQUIRES,
         # Documentation dependencies
         "docs": [
             "sphinx",  # Documentation generator
@@ -173,6 +180,8 @@ setup(
             "sphinx-versioned-docs",  # Versioned docs support
             "google-api-python-client",  # Required for the Google API docstring extension
         ],
+        # gRPC connection dependencies
+        "grpc": GRPC_REQUIRES,
     },
 )
 

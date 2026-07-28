@@ -44,7 +44,7 @@ from .response import *
 from .manifest import *
 from .log_campaign import *
 from .event_campaign import *
-from .control_interface import *
+from .connection import *
 from .file import *
 
 __all__ = [name for name in globals() if not name.startswith("_")]
