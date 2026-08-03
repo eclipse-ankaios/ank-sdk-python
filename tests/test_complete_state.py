@@ -193,8 +193,8 @@ def test_to_dict():
 
     complete_state_dict = complete_state.to_dict()
     assert complete_state_dict == {
-        "desired_state": {
-            "api_version": "v1",
+        "desiredState": {
+            "apiVersion": "v1",
             "workloads": {
                 "dynamic_nginx": {
                     "agent": "agent_A",
@@ -247,7 +247,7 @@ def test_to_dict():
                 "config_3": {"key_1": "val_4", "key_2": "val_5"},
             },
         },
-        "workload_states": {
+        "workloadStates": {
             "agent_B": {
                 "nginx": {
                     "5678": {
