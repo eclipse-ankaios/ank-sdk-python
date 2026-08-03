@@ -1,21 +1,21 @@
 CommandInterface
 ================
 
-.. automodule:: ankaios_sdk._components.connection.grpc_interface
+.. automodule:: ankaios_sdk._components.connection.command_interface
 
-GrpcConnection Class
---------------------
+CommandInterfaceConnection Class
+--------------------------------
 
-.. autoclass:: ankaios_sdk._components.connection.grpc_interface.GrpcConnection
+.. autoclass:: ankaios_sdk._components.connection.command_interface.CommandInterfaceConnection
     :special-members: __init__
     :members:
     :undoc-members:
     :show-inheritance:
 
-GrpcConnectionState Enum
-------------------------
+CommandInterfaceState Enum
+--------------------------
 
-.. autoclass:: ankaios_sdk._components.connection.grpc_interface.GrpcConnectionState
+.. autoclass:: ankaios_sdk._components.connection.command_interface.CommandInterfaceState
     :special-members: __str__
     :members:
     :undoc-members:

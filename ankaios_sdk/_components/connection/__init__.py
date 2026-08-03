@@ -21,9 +21,9 @@ Imports
 
 - Connection component:
     the abstract base class for a connection to Ankaios.
-- ControlInterface component:
+- ControlInterfaceConnection component:
     the control interface (named pipes) implementation of Connection.
-- GrpcConnection component:
+- CommandInterfaceConnection component:
     the command interface (gRPC server interface) implementation of
     Connection. Only available if the 'grpc' extra is installed.
 """
@@ -32,10 +32,10 @@ from .connection import *
 from .control_interface import *
 
 try:
-    from .grpc_interface import *
+    from .command_interface import *
 except ImportError:
-    # The 'grpc' extra is not installed; GrpcConnection stays unavailable,
-    # but the rest of the SDK must still work.
+    # The 'grpc' extra is not installed; CommandInterfaceConnection
+    # stays unavailable, but the rest of the SDK must still work.
     pass
 
 __all__ = [name for name in globals() if not name.startswith("_")]

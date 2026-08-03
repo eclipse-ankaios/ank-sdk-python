@@ -43,7 +43,7 @@ Usage
         from ankaios_sdk import Ankaios, ConnectionType
 
         ankaios = Ankaios(
-            connection_type=ConnectionType.GRPC,
+            connection_type=ConnectionType.COMMAND_INTERFACE,
             server_url="http://127.0.0.1:25551",
         )
         ...
@@ -55,7 +55,7 @@ Usage
         from ankaios_sdk import Ankaios, ConnectionType
 
         ankaios = Ankaios(
-            connection_type=ConnectionType.GRPC,
+            connection_type=ConnectionType.COMMAND_INTERFACE,
             server_url="https://127.0.0.1:25551",
             ca_pem=ca_pem,
             crt_pem=crt_pem,
@@ -185,7 +185,7 @@ from ._components import (
     WorkloadExecutionState,
     Connection,
     ConnectionType,
-    ControlInterface,
+    ControlInterfaceConnection,
     LogCampaignResponse,
     LogQueue,
     LogResponse,
@@ -252,25 +252,27 @@ class Ankaios:
         :type log_level: AnkaiosLogLevel
         :param server_url: The URL of the Ankaios server, e.g.
             "http://127.0.0.1:25551". Required when connection_type
-            is ConnectionType.GRPC, ignored otherwise.
+            is ConnectionType.COMMAND_INTERFACE, ignored otherwise.
         :type server_url: Optional[str]
         :param ca_pem: The PEM-encoded CA certificate content, for a
             mTLS-secured gRPC connection. Ignored unless
-            connection_type is ConnectionType.GRPC.
+            connection_type is ConnectionType.COMMAND_INTERFACE.
         :type ca_pem: Optional[str]
         :param crt_pem: The PEM-encoded client certificate content,
             for a mTLS-secured gRPC connection. Ignored unless
-            connection_type is ConnectionType.GRPC.
+            connection_type is ConnectionType.COMMAND_INTERFACE.
         :type crt_pem: Optional[str]
         :param key_pem: The PEM-encoded client private key content,
             for a mTLS-secured gRPC connection. Ignored unless
-            connection_type is ConnectionType.GRPC.
+            connection_type is ConnectionType.COMMAND_INTERFACE.
         :type key_pem: Optional[str]
 
-        :raises ValueError: If connection_type is ConnectionType.GRPC
-            and server_url is not provided.
-        :raises ImportError: If connection_type is ConnectionType.GRPC
-            and the SDK was installed without the 'grpc' extra.
+        :raises ValueError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and server_url is not
+            provided.
+        :raises ImportError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and the SDK was
+            installed without the 'grpc' extra.
         :raises ConnectionClosedException: If the connection is closed
             at startup.
         """
@@ -314,28 +316,30 @@ class Ankaios:
         :returns: The constructed connection.
         :rtype: Connection
 
-        :raises ValueError: If connection_type is ConnectionType.GRPC
-            and server_url is not provided.
-        :raises ImportError: If connection_type is ConnectionType.GRPC
-            and the SDK was installed without the 'grpc' extra.
+        :raises ValueError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and server_url is not
+            provided.
+        :raises ImportError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and the SDK was
+            installed without the 'grpc' extra.
         """
-        if connection_type == ConnectionType.GRPC:
+        if connection_type == ConnectionType.COMMAND_INTERFACE:
             if server_url is None:
                 raise ValueError(
                     "server_url is required when connection_type is "
-                    "ConnectionType.GRPC."
+                    "ConnectionType.COMMAND_INTERFACE."
                 )
             try:
                 # pylint: disable=import-outside-toplevel
-                from ._components.connection.grpc_interface import (
-                    GrpcConnection,
+                from ._components.connection.command_interface import (
+                    CommandInterfaceConnection,
                 )
             except ImportError as e:
                 raise ImportError(
                     "gRPC support requires the 'grpc' extra: "
                     "pip install ankaios-sdk[grpc]"
                 ) from e
-            return GrpcConnection(
+            return CommandInterfaceConnection(
                 server_url,
                 add_response_callback=self._add_response,
                 add_log_callback=self._add_logs,
@@ -344,7 +348,7 @@ class Ankaios:
                 crt_pem=crt_pem,
                 key_pem=key_pem,
             )
-        return ControlInterface(
+        return ControlInterfaceConnection(
             add_response_callback=self._add_response,
             add_log_callback=self._add_logs,
             add_event_callback=self._add_events,

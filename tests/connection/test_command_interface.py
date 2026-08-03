@@ -13,7 +13,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the GrpcConnection class in the
+This module contains unit tests for the CommandInterfaceConnection class in the
 ankaios_sdk.
 """
 
@@ -25,9 +25,9 @@ import grpc
 import pytest
 
 from ankaios_sdk import ConnectionException
-from ankaios_sdk._components.connection.grpc_interface import (
-    GrpcConnection,
-    GrpcConnectionState,
+from ankaios_sdk._components.connection.command_interface import (
+    CommandInterfaceConnection,
+    CommandInterfaceState,
 )
 from ankaios_sdk._protos import grpc_api_pb2 as _grpc_api
 from ankaios_sdk._protos import _ank_base
@@ -94,8 +94,8 @@ def _mock_stub(call_factory):
     return stub_instance, sent_messages
 
 
-def _generate_test_connection(**kwargs) -> GrpcConnection:
-    return GrpcConnection(
+def _generate_test_connection(**kwargs) -> CommandInterfaceConnection:
+    return CommandInterfaceConnection(
         SERVER_URL,
         add_response_callback=MagicMock(),
         add_log_callback=MagicMock(),
@@ -106,10 +106,10 @@ def _generate_test_connection(**kwargs) -> GrpcConnection:
 
 def test_grpc_connection_state_str():
     """
-    Test the string representation of the GrpcConnectionState enum.
+    Test the string representation of the CommandInterfaceState enum.
     """
-    assert str(GrpcConnectionState.CONNECTED) == "CONNECTED"
-    assert str(GrpcConnectionState.TERMINATED) == "TERMINATED"
+    assert str(CommandInterfaceState.CONNECTED) == "CONNECTED"
+    assert str(CommandInterfaceState.TERMINATED) == "TERMINATED"
 
 
 def test_init_validation():
@@ -148,7 +148,7 @@ def test_connect_already_connected_raises():
     Test that connect() raises if already connected.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.CONNECTED
+    conn._state = CommandInterfaceState.CONNECTED
     with pytest.raises(ConnectionException, match="Already connected."):
         conn.connect()
 
@@ -163,12 +163,12 @@ def test_connect_fails_on_unreachable_server():
     conn._server_url = "127.0.0.1:0"
 
     with patch.object(
-        GrpcConnection, "CHANNEL_READY_TIMEOUT", 1.0
+        CommandInterfaceConnection, "CHANNEL_READY_TIMEOUT", 1.0
     ), pytest.raises(
         ConnectionException, match="Could not connect to the Ankaios server"
     ):
         conn.connect()
-    assert conn._state == GrpcConnectionState.TERMINATED
+    assert conn._state == CommandInterfaceState.TERMINATED
     assert conn.connected is False
 
 
@@ -202,7 +202,7 @@ def test_connect_write_and_disconnect_success():
     stub_instance, sent_messages = _mock_stub(lambda: fake_call)
 
     with patch(
-        "ankaios_sdk._components.connection.grpc_interface."
+        "ankaios_sdk._components.connection.command_interface."
         "_grpc_api_grpc.CommandConnectionStub"
     ) as mock_stub_cls, patch("grpc.insecure_channel") as mock_channel, patch(
         "grpc.channel_ready_future"
@@ -444,7 +444,7 @@ def test_read_from_grpc_stops_on_terminated_state():
     expected result of disconnect()'s own call.cancel().
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.TERMINATED
+    conn._state = CommandInterfaceState.TERMINATED
     conn._logger = MagicMock()
     fake_call = _FakeCall(error=grpc.RpcError("boom"))
 
@@ -465,13 +465,13 @@ def test_read_from_grpc_reconnects_on_lost_connection():
     resumes reading from the newly reconnected call.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.CONNECTED
+    conn._state = CommandInterfaceState.CONNECTED
     conn._logger = MagicMock()
     first_call = _FakeCall(error=grpc.RpcError("boom"))
     second_call = _FakeCall()
 
     with patch.object(
-        GrpcConnection, "RECONNECT_INTERVAL", 0.01
+        CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
     ), patch.object(conn, "_open_stream", return_value=second_call):
         reader_thread = threading.Thread(
             target=conn._read_from_grpc, args=(first_call,), daemon=True
@@ -479,7 +479,7 @@ def test_read_from_grpc_reconnects_on_lost_connection():
         reader_thread.start()
         reader_thread.join(timeout=1)
 
-    assert conn._state == GrpcConnectionState.CONNECTED
+    assert conn._state == CommandInterfaceState.CONNECTED
     conn._logger.warning.assert_any_call(
         "Error while reading from the gRPC connection: '%s'",
         first_call._error,
@@ -497,10 +497,10 @@ def test_reconnect_gives_up_when_terminated():
     reopen the stream.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.TERMINATED
+    conn._state = CommandInterfaceState.TERMINATED
 
     with patch.object(
-        GrpcConnection, "RECONNECT_INTERVAL", 0.01
+        CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
     ), patch.object(conn, "_open_stream") as mock_open_stream:
         result = conn._reconnect()
         assert result is None
@@ -513,7 +513,7 @@ def test_reconnect_retries_until_success():
     succeeds, and updates the state back to CONNECTED.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.RECONNECTING
+    conn._state = CommandInterfaceState.RECONNECTING
     fake_call = _FakeCall()
 
     attempts = [ConnectionException("still down"), fake_call]
@@ -525,12 +525,12 @@ def test_reconnect_retries_until_success():
         return attempt
 
     with patch.object(
-        GrpcConnection, "RECONNECT_INTERVAL", 0.01
+        CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
     ), patch.object(conn, "_open_stream", side_effect=_fake_open_stream):
         result = conn._reconnect()
 
     assert result is fake_call
-    assert conn._state == GrpcConnectionState.CONNECTED
+    assert conn._state == CommandInterfaceState.CONNECTED
 
 
 def test_read_from_grpc_dispatches_messages():
@@ -539,7 +539,7 @@ def test_read_from_grpc_dispatches_messages():
     _handle_from_server while the reader loop is running.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.CONNECTED
+    conn._state = CommandInterfaceState.CONNECTED
     fake_call = _FakeCall(
         messages=[_grpc_api.FromServer(serverHello=_grpc_api.ServerHello())]
     )
@@ -549,7 +549,7 @@ def test_read_from_grpc_dispatches_messages():
     reader_thread.start()
     time.sleep(0.05)
 
-    conn._state = GrpcConnectionState.TERMINATED
+    conn._state = CommandInterfaceState.TERMINATED
     fake_call.cancel()
     reader_thread.join(timeout=1)
     assert not reader_thread.is_alive()
@@ -561,7 +561,7 @@ def test_read_from_grpc_stops_when_reconnect_gives_up():
     (returns None), without looping forever.
     """
     conn = _generate_test_connection()
-    conn._state = GrpcConnectionState.CONNECTED
+    conn._state = CommandInterfaceState.CONNECTED
     fake_call = _FakeCall(error=grpc.RpcError("boom"))
 
     with patch.object(conn, "_reconnect", return_value=None):
@@ -577,7 +577,7 @@ def test_disconnect_logs_error_when_reader_thread_does_not_stop():
     stub_instance, _ = _mock_stub(lambda: fake_call)
 
     with patch(
-        "ankaios_sdk._components.connection.grpc_interface."
+        "ankaios_sdk._components.connection.command_interface."
         "_grpc_api_grpc.CommandConnectionStub"
     ) as mock_stub_cls, patch("grpc.insecure_channel") as mock_channel, patch(
         "grpc.channel_ready_future"

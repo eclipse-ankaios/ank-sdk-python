@@ -54,7 +54,7 @@ def test_connection_type_str():
     Test the string representation of the ConnectionType enum.
     """
     assert str(ConnectionType.CONTROL_INTERFACE) == "CONTROL_INTERFACE"
-    assert str(ConnectionType.GRPC) == "GRPC"
+    assert str(ConnectionType.COMMAND_INTERFACE) == "COMMAND_INTERFACE"
 
 
 def test_connection_cannot_be_instantiated_directly():

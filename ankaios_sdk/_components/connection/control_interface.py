@@ -13,40 +13,41 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the ControlInterface class that handles the writing
-and reading of data to and from the Ankaios control interface.
+This script defines the ControlInterfaceConnection class that handles
+the writing and reading of data to and from the Ankaios control
+interface.
 
 Classes
 -------
 
-- :class:`ControlInterface`:
+- :class:`ControlInterfaceConnection`:
     Handles the interaction with the Ankaios control interface.
 
 Enums
 -----
 
 - :class:`ControlInterfaceState`:
-    Represents the state of the control interface.
+    Represents the state of the control interface connection.
 
 Usage
 -----
 
-- Create a Control Interface instance, connect and disconnect.
+- Create a ControlInterfaceConnection instance, connect and disconnect.
     .. code-block:: python
 
-        ci = ControlInterface(<callbacks from Ankaios>)
+        ci = ControlInterfaceConnection(<callbacks from Ankaios>)
         ci.connect()
         ...
         ci.disconnect()
 
-- Change the state of the control interface.
+- Change the state of the control interface connection.
     .. code-block:: python
 
         ci.change_state(ControlInterfaceState.TERMINATED)
 """
 
 
-__all__ = ["ControlInterface", "ControlInterfaceState"]
+__all__ = ["ControlInterfaceConnection", "ControlInterfaceState"]
 
 
 import os
@@ -67,7 +68,7 @@ from .connection import Connection
 
 
 class ControlInterfaceState(Enum):
-    """The state of the control interface."""
+    """The state of the control interface connection."""
 
     INITIALIZED = 1
     "(int): Connection initialized state."
@@ -91,7 +92,7 @@ class ControlInterfaceState(Enum):
 
 
 # pylint: disable=too-many-instance-attributes
-class ControlInterface(Connection):
+class ControlInterfaceConnection(Connection):
     """
     This class handles the interaction with the Ankaios control interface.
     It provides methods to send and receive data to and from the control
@@ -108,7 +109,7 @@ class ControlInterface(Connection):
         add_event_callback: Callable,
     ) -> None:
         """
-        Initialize the ControlInterface object. This is used
+        Initialize the ControlInterfaceConnection object. This is used
         to interact with the control interface.
 
         :param add_response_callback: The callback function to add

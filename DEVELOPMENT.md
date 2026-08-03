@@ -56,8 +56,9 @@ from unittest.mock import patch, PropertyMock
 from ankaios_sdk import Ankaios, ControlInterfaceState
 
 def generate_test_ankaios() -> Ankaios:
-    with patch("ankaios_sdk.ControlInterface.connect"), patch(
-        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    with patch("ankaios_sdk.ControlInterfaceConnection.connect"), patch(
+        "ankaios_sdk.ControlInterfaceConnection.connected",
+        new_callable=PropertyMock,
     ) as mock_connected:
         mock_connected.return_value = True
         ankaios = Ankaios()
