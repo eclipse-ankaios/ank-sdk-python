@@ -3,10 +3,10 @@ ControlInterface
 
 .. automodule:: ankaios_sdk._components.connection.control_interface
 
-ControlInterface Class
-----------------------
+ControlInterfaceConnection Class
+--------------------------------
 
-.. autoclass:: ankaios_sdk._components.connection.control_interface.ControlInterface
+.. autoclass:: ankaios_sdk._components.connection.control_interface.ControlInterfaceConnection
     :special-members: __init__
     :members:
     :undoc-members:

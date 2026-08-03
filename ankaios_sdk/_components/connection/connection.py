@@ -49,8 +49,8 @@ class ConnectionType(Enum):
 
     CONTROL_INTERFACE = 1
     "(int): Connect via the control interface (named pipes)."
-    GRPC = 2
-    "(int): Connect directly to the Ankaios server over gRPC."
+    COMMAND_INTERFACE = 2
+    "(int): Connect via the command interface (direct gRPC)."
 
     def __str__(self) -> str:
         """

@@ -13,29 +13,29 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the GrpcConnection class, implementing the
+This script defines the CommandInterfaceConnection class, implementing the
 Connection abstraction over a direct gRPC connection to the Ankaios
 server, used to connect to Ankaios from outside a workload.
 
 Classes
 -------
 
-- :class:`GrpcConnection`:
+- :class:`CommandInterfaceConnection`:
     Handles the interaction with Ankaios over gRPC.
 
 Enums
 -----
 
-- :class:`GrpcConnectionState`:
+- :class:`CommandInterfaceState`:
     Represents the state of the gRPC connection.
 
 Usage
 -----
 
-- Create a GrpcConnection instance, connect and disconnect.
+- Create a CommandInterfaceConnection instance, connect and disconnect.
     .. code-block:: python
 
-        conn = GrpcConnection(
+        conn = CommandInterfaceConnection(
             "http://127.0.0.1:25551", <callbacks from Ankaios>
         )
         conn.connect()
@@ -44,7 +44,7 @@ Usage
 """
 
 
-__all__ = ["GrpcConnection", "GrpcConnectionState"]
+__all__ = ["CommandInterfaceConnection", "CommandInterfaceState"]
 
 
 import queue
@@ -64,7 +64,7 @@ from ..response import Response, ResponseType
 from .connection import Connection
 
 
-class GrpcConnectionState(Enum):
+class CommandInterfaceState(Enum):
     """The state of the gRPC connection."""
 
     INITIALIZED = 1
@@ -87,11 +87,11 @@ class GrpcConnectionState(Enum):
 
 
 # pylint: disable=too-many-instance-attributes
-class GrpcConnection(Connection):
+class CommandInterfaceConnection(Connection):
     """
-    This class handles the interaction with an Ankaios server over a
-    direct gRPC connection, playing the commander role via the
-    CommandConnection service.
+    This class handles the interaction with an Ankaios server over the
+    command interface: a direct gRPC connection to the server,
+    playing the commander role via the CommandConnection service.
 
     The initial :func:`connect` attempt is never retried. Once a
     connection has been established, losing it is treated as
@@ -119,8 +119,8 @@ class GrpcConnection(Connection):
         key_pem: Optional[str] = None,
     ) -> None:
         """
-        Initialize the GrpcConnection object. This is used to
-        interact with an Ankaios server directly over gRPC.
+        Initialize the CommandInterfaceConnection object. This is used to
+        interact with an Ankaios server directly over the command interface.
 
         If none of ca_pem, crt_pem and key_pem are provided, the
         connection is a plaintext (insecure) one. If all three are
@@ -170,7 +170,7 @@ class GrpcConnection(Connection):
         self._key_pem = key_pem
 
         # The state of the connection must not be changed directly.
-        self._state_value = GrpcConnectionState.TERMINATED
+        self._state_value = CommandInterfaceState.TERMINATED
         self._state_lock = threading.Lock()
         self._channel: Optional[grpc.Channel] = None
         self._call = None
@@ -178,23 +178,23 @@ class GrpcConnection(Connection):
         self._reader_thread: Optional[threading.Thread] = None
 
     @property
-    def _state(self) -> GrpcConnectionState:
+    def _state(self) -> CommandInterfaceState:
         """
         Get the current state of the connection.
 
         :returns: The current state.
-        :rtype: GrpcConnectionState
+        :rtype: CommandInterfaceState
         """
         with self._state_lock:
             return self._state_value
 
     @_state.setter
-    def _state(self, value: GrpcConnectionState) -> None:
+    def _state(self, value: CommandInterfaceState) -> None:
         """
         Set the current state of the connection.
 
         :param value: The new state to set.
-        :type value: GrpcConnectionState
+        :type value: CommandInterfaceState
         """
         with self._state_lock:
             self._state_value = value
@@ -207,7 +207,7 @@ class GrpcConnection(Connection):
         :returns: True if connected, False otherwise.
         :rtype: bool
         """
-        return self._state == GrpcConnectionState.CONNECTED
+        return self._state == CommandInterfaceState.CONNECTED
 
     def connect(self) -> None:
         """
@@ -221,9 +221,9 @@ class GrpcConnection(Connection):
             the connection could not be established.
         """
         if self._state in (
-            GrpcConnectionState.INITIALIZED,
-            GrpcConnectionState.CONNECTED,
-            GrpcConnectionState.RECONNECTING,
+            CommandInterfaceState.INITIALIZED,
+            CommandInterfaceState.CONNECTED,
+            CommandInterfaceState.RECONNECTING,
         ):
             raise ConnectionException("Already connected.")
 
@@ -231,25 +231,25 @@ class GrpcConnection(Connection):
         # can still fail, so a failed attempt leaves the connection
         # exactly as it was and free to retry via a plain connect().
         call = self._open_stream()
-        self._state = GrpcConnectionState.INITIALIZED
+        self._state = CommandInterfaceState.INITIALIZED
 
         self._reader_thread = threading.Thread(
             target=self._read_from_grpc, args=(call,), daemon=True
         )
         self._reader_thread.start()
-        self._state = GrpcConnectionState.CONNECTED
+        self._state = CommandInterfaceState.CONNECTED
         self._logger.debug("Connected to the Ankaios server over gRPC.")
 
     def disconnect(self) -> None:
         """
         Disconnect from the gRPC connection.
         """
-        if self._state == GrpcConnectionState.TERMINATED:
+        if self._state == CommandInterfaceState.TERMINATED:
             self._logger.debug("Already disconnected.")
             return
 
         self._logger.debug("Disconnecting..")
-        self._state = GrpcConnectionState.TERMINATED
+        self._state = CommandInterfaceState.TERMINATED
         if self._call is not None:
             self._call.cancel()
         if self._reader_thread is not None:
@@ -271,7 +271,7 @@ class GrpcConnection(Connection):
 
         :raises ConnectionException: If not connected.
         """
-        if self._state != GrpcConnectionState.CONNECTED:
+        if self._state != CommandInterfaceState.CONNECTED:
             self._logger.error(
                 "Could not write to the gRPC connection, not connected."
             )
@@ -384,7 +384,7 @@ class GrpcConnection(Connection):
                 for from_server in call:
                     self._handle_from_server(from_server)
             except grpc.RpcError as e:
-                if self._state == GrpcConnectionState.TERMINATED:
+                if self._state == CommandInterfaceState.TERMINATED:
                     # disconnect() already cancelled the call itself;
                     # this is the expected, self-inflicted result.
                     self._logger.debug(
@@ -397,10 +397,10 @@ class GrpcConnection(Connection):
                         e,
                     )
 
-            if self._state == GrpcConnectionState.TERMINATED:
+            if self._state == CommandInterfaceState.TERMINATED:
                 return
 
-            self._state = GrpcConnectionState.RECONNECTING
+            self._state = CommandInterfaceState.RECONNECTING
             self._logger.warning(
                 "Lost connection to the Ankaios server, attempting to "
                 "reconnect every %ss..",
@@ -421,14 +421,14 @@ class GrpcConnection(Connection):
         """
         while True:
             time.sleep(self.RECONNECT_INTERVAL)
-            if self._state == GrpcConnectionState.TERMINATED:
+            if self._state == CommandInterfaceState.TERMINATED:
                 return None
             try:
                 call = self._open_stream()
             except ConnectionException as e:
                 self._logger.debug("Reconnect attempt failed: '%s'", e)
                 continue
-            self._state = GrpcConnectionState.CONNECTED
+            self._state = CommandInterfaceState.CONNECTED
             self._logger.info("Reconnected to the Ankaios server.")
             return call
 

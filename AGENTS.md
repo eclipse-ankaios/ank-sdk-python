@@ -24,5 +24,5 @@ Read these only when they apply to the task at hand:
   before making any code or test change: API compatibility, coverage
   philosophy, lint/PEP 8 enforcement, generated proto file handling.
 - [.agents/ARCHITECTURE.md](.agents/ARCHITECTURE.md) — required before
-  touching `ControlInterface`, `Ankaios`, the protocol layer, or exception
-  handling.
+  touching `ControlInterfaceConnection`, `CommandInterfaceConnection`,
+  `Ankaios`, the protocol layer, or exception handling.

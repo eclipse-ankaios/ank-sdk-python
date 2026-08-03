@@ -145,7 +145,7 @@ a CI job or a management tool), use a gRPC connection instead:
 from ankaios_sdk import Ankaios, ConnectionType
 
 with Ankaios(
-    connection_type=ConnectionType.GRPC,
+    connection_type=ConnectionType.COMMAND_INTERFACE,
     server_url="http://127.0.0.1:25551",
 ) as ankaios:
     ...
