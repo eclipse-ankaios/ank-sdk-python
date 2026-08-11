@@ -285,25 +285,25 @@ class CompleteState:
         :rtype: dict
         """
         data = {
-            "desired_state": {
-                "api_version": self.get_api_version(),
+            "desiredState": {
+                "apiVersion": self.get_api_version(),
                 "workloads": {},
                 "configs": self.get_configs(),
             },
-            "workload_states": {},
+            "workloadStates": {},
             "agents": {},
         }
         for workload in self.get_workloads():
-            data["desired_state"]["workloads"][
+            data["desiredState"]["workloads"][
                 workload.name
             ] = workload.to_dict()
         wl_states = self.get_workload_states().get_as_dict()
         for agent_name, exec_states in wl_states.items():
-            data["workload_states"][agent_name] = {}
+            data["workloadStates"][agent_name] = {}
             for workload_name, exec_states_id in exec_states.items():
-                data["workload_states"][agent_name][workload_name] = {}
+                data["workloadStates"][agent_name][workload_name] = {}
                 for workload_id, exec_state in exec_states_id.items():
-                    data["workload_states"][agent_name][workload_name][
+                    data["workloadStates"][agent_name][workload_name][
                         workload_id
                     ] = exec_state.to_dict()
         data["agents"] = {}
