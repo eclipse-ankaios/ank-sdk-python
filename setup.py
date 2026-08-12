@@ -23,6 +23,7 @@ ANKAIOS_BRANCH_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios
 PROTO_FILES = [
     "ankaios_api/proto/ank_base.proto",
     "ankaios_api/proto/control_api.proto",
+    "grpc/proto/grpc_api.proto",
 ]
 
 # gRPC client library and codegen tooling, needed both to actually run
@@ -111,9 +112,9 @@ def generate_protos():
             if protoc.main(command) != 0:
                 raise RuntimeError(f"Error: {proto_file} compilation failed")
 
-            # Fix the import path in the generated control_api_pb2
+            # Fix the import path in the generated protobuf files to relative imports
             # https://github.com/protocolbuffers/protobuf/issues/1491#issuecomment-261914766
-            if "control_api" in proto_file:
+            if "control_api" in proto_file or "grpc_api" in proto_file:
                 with open(output_file, "r") as file:
                     filedata = file.read()
                     newdata = filedata.replace(
@@ -121,6 +122,16 @@ def generate_protos():
                         "from . import ank_base_pb2 as ank__base__pb2",
                     )
                 with open(output_file, "w") as file:
+                    file.write(newdata)
+            if "grpc_api" in proto_file:
+                grpc_output_file = proto_path.replace(".proto", "_pb2_grpc.py")
+                with open(grpc_output_file, "r") as file:
+                    filedata = file.read()
+                    newdata = filedata.replace(
+                        "import grpc_api_pb2 as grpc__api__pb2",
+                        "from . import grpc_api_pb2 as grpc__api__pb2",
+                    )
+                with open(grpc_output_file, "w") as file:
                     file.write(newdata)
 
     # Copy the generated files to the proto directory
