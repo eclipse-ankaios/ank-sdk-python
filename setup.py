@@ -17,10 +17,13 @@ from setuptools import setup, find_packages
 import configparser
 
 PROJECT_DIR = "ankaios_sdk"
-ANKAIOS_RELEASE_LINK = "https://github.com/eclipse-ankaios/ankaios/releases/download/v{version}/{file}"
-ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/ankaios_api/proto/{file}"
-ANKAIOS_BRANCH_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/{branch}/ankaios_api/proto/{file}"
-PROTO_FILES = ["ank_base.proto", "control_api.proto"]
+ANKAIOS_RELEASE_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/v{version}/{path}"
+ANKAIOS_MAIN_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/main/{path}"
+ANKAIOS_BRANCH_LINK = "https://raw.githubusercontent.com/eclipse-ankaios/ankaios/refs/heads/{branch}/{path}"
+PROTO_FILES = [
+    "ankaios_api/proto/ank_base.proto",
+    "ankaios_api/proto/control_api.proto",
+]
 
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(__file__), "setup.cfg"))
@@ -49,17 +52,18 @@ def extract_the_proto_files():
     if not os.path.exists(f"{PROJECT_DIR}/_protos/{ankaios_version}"):
         os.makedirs(f"{PROJECT_DIR}/_protos/{ankaios_version}")
 
-    for file in PROTO_FILES:
+    for proto_path in PROTO_FILES:
+        file = os.path.basename(proto_path)
         if custom_branch:
             file_url = ANKAIOS_BRANCH_LINK.format(
-                branch=custom_branch, file=file
+                branch=custom_branch, path=proto_path
             )
             print(f"Using custom branch '{custom_branch}' for proto files.")
         elif ankaios_version.endswith("-pre"):
-            file_url = ANKAIOS_MAIN_LINK.format(file=file)
+            file_url = ANKAIOS_MAIN_LINK.format(path=proto_path)
         else:
             file_url = ANKAIOS_RELEASE_LINK.format(
-                version=ankaios_version, file=file
+                version=ankaios_version, path=proto_path
             )
         file_path = f"{PROJECT_DIR}/_protos/{ankaios_version}/{file}"
         if os.path.exists(file_path):
@@ -82,7 +86,7 @@ def generate_protos():
     protos_dir = f"{PROJECT_DIR}/_protos/{ankaios_version}"
 
     for proto_file in PROTO_FILES:
-        proto_path = os.path.join(protos_dir, proto_file)
+        proto_path = os.path.join(protos_dir, os.path.basename(proto_file))
         if not os.path.exists(proto_path):
             raise FileNotFoundError(f"Error: {proto_file} not found.")
         output_file = proto_path.replace(".proto", "_pb2.py")
