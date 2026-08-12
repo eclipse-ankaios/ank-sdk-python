@@ -187,10 +187,11 @@ def test_write_request_not_connected_raises():
     Test that write_request() raises if not connected.
     """
     conn = _generate_test_connection()
+    request = generate_test_request()
     with pytest.raises(
         ConnectionException, match="Could not write to the gRPC connection"
     ):
-        conn.write_request(generate_test_request())
+        conn.write_request(request)
 
 
 def test_connect_write_and_disconnect_success():
