@@ -44,6 +44,11 @@ templates_path = ["_templates"]
 exclude_patterns = []
 autodoc_member_order = "bysource"
 
+# CommandInterfaceConnection depends on the optional 'grpc' extra, which
+# the docs build environment doesn't install; mock it so autodoc can
+# still document the class without needing it importable for real.
+autodoc_mock_imports = ["grpc"]
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
