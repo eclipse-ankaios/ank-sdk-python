@@ -91,6 +91,8 @@ from .workload_state import WorkloadInstanceName
 
 logger = get_logger()
 
+_LOG_RESPONSE_RECEIVED = "Got response of type '%s' with request id '%s'"
+
 
 class Response:
     """
@@ -145,7 +147,7 @@ class Response:
                 "Invalid response type."
             )
         logger.debug(
-            "Got response of type '%s' with request id '%s'",
+            _LOG_RESPONSE_RECEIVED,
             self.content_type,
             self.get_request_id(),
         )
@@ -187,7 +189,7 @@ class Response:
         response.content = None
         response._from_ank_base(ank_base_response)
         logger.debug(
-            "Got response of type '%s' with request id '%s'",
+            _LOG_RESPONSE_RECEIVED,
             response.content_type,
             response.get_request_id(),
         )
@@ -210,7 +212,7 @@ class Response:
         response.content_type = ResponseType.CONTROL_INTERFACE_ACCEPTED
         response.content = None
         logger.debug(
-            "Got response of type '%s' with request id '%s'",
+            _LOG_RESPONSE_RECEIVED,
             response.content_type,
             response.get_request_id(),
         )
@@ -236,7 +238,7 @@ class Response:
         response.content_type = ResponseType.CONNECTION_CLOSED
         response.content = reason
         logger.debug(
-            "Got response of type '%s' with request id '%s'",
+            _LOG_RESPONSE_RECEIVED,
             response.content_type,
             response.get_request_id(),
         )
