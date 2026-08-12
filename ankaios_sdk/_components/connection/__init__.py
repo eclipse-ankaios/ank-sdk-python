@@ -28,6 +28,8 @@ Imports
     Connection. Only available if the 'grpc' extra is installed.
 """
 
+import types
+
 from .connection import *
 from .control_interface import *
 
@@ -38,4 +40,11 @@ except ImportError:
     # stays unavailable, but the rest of the SDK must still work.
     pass
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+# A submodule sharing its name with this package (connection/connection.py)
+# gets bound as an attribute of the package itself by Python's import
+# system. This is not desired, so we remove it from the package's namespace.
+__all__ = [
+    name
+    for name, value in globals().items()
+    if not name.startswith("_") and not isinstance(value, types.ModuleType)
+]
