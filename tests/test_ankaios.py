@@ -165,15 +165,15 @@ def test_create_connection_grpc_missing_server_url_raises():
 
 def test_create_connection_grpc_missing_dependency_raises_import_error():
     """
-    Test that using ConnectionType.COMMAND_INTERFACE without the 'grpc' extra
-    installed raises a clear ImportError.
+    Test that using ConnectionType.COMMAND_INTERFACE without the 'command'
+    extra installed raises a clear ImportError.
     """
     with patch.dict(
         sys.modules,
         {"ankaios_sdk._components.connection.command_interface": None},
     ):
         with pytest.raises(
-            ImportError, match="pip install ankaios-sdk\\[grpc\\]"
+            ImportError, match="pip install ankaios-sdk\\[command\\]"
         ):
             Ankaios(
                 connection_type=ConnectionType.COMMAND_INTERFACE,

@@ -428,27 +428,8 @@ class ControlInterfaceConnection(Connection):
 
         # Handle the connected state
         elif self._state == ControlInterfaceState.CONNECTED:
-            # Filter out the logs responses
-            if response.content_type in [
-                ResponseType.LOGS_ENTRY,
-                ResponseType.LOGS_STOP_RESPONSE,
-            ]:
-                self._add_log_callback(
-                    response.get_request_id(), response.content
-                )
+            if self._dispatch_response(response):
                 return
-
-            # Filter out the events
-            if response.content_type in [
-                ResponseType.EVENT_RESPONSE,
-            ]:
-                self._add_event_callback(
-                    response.get_request_id(), response.content
-                )
-                return
-
-            # Send out the response to the Ankaios class
-            self._add_response_callback(response)
 
             # Check if the response is connection closed in order to
             # terminate the thread.

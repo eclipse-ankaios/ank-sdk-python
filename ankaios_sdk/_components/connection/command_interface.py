@@ -60,7 +60,7 @@ from ..._protos import grpc_api_pb2_grpc as _grpc_api_grpc
 from ...exceptions import ConnectionException
 from ...utils import ANKAIOS_VERSION
 from ..request import Request
-from ..response import Response, ResponseType
+from ..response import Response
 from .connection import Connection
 
 
@@ -390,15 +390,16 @@ class CommandInterfaceConnection(Connection):
                     self._logger.debug(
                         "gRPC connection cancelled by disconnect(): '%s'", e
                     )
-                else:
-                    self._logger.warning(
-                        "Error while reading from the gRPC connection: "
-                        "'%s'",
-                        e,
-                    )
-
-            if self._state == CommandInterfaceState.TERMINATED:
-                return
+                    return
+                self._logger.warning(
+                    "Error while reading from the gRPC connection: '%s'",
+                    e,
+                )
+            else:
+                # The stream ended without an error; still need to know
+                # whether that was disconnect()'s doing before retrying.
+                if self._state == CommandInterfaceState.TERMINATED:
+                    return
 
             self._state = CommandInterfaceState.RECONNECTING
             self._logger.warning(
@@ -439,26 +440,14 @@ class CommandInterfaceConnection(Connection):
 
         :param from_server: The decoded FromServer message.
         """
-        which = from_server.WhichOneof("FromServerEnum")
-        if which == "response":
+        response_type = from_server.WhichOneof("FromServerEnum")
+        if response_type == "response":
             response = Response._from_ank_base_response(from_server.response)
-            if response.content_type in (
-                ResponseType.LOGS_ENTRY,
-                ResponseType.LOGS_STOP_RESPONSE,
-            ):
-                self._add_log_callback(
-                    response.get_request_id(), response.content
-                )
-            elif response.content_type == ResponseType.EVENT_RESPONSE:
-                self._add_event_callback(
-                    response.get_request_id(), response.content
-                )
-            else:
-                self._add_response_callback(response)
-        elif which == "serverHello":
+            self._dispatch_response(response)
+        elif response_type == "serverHello":
             self._logger.debug("Received server hello.")
         else:
             self._logger.warning(
                 "Received unexpected message from the Ankaios server: '%s'",
-                which,
+                response_type,
             )
