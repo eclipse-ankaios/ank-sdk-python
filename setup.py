@@ -28,7 +28,7 @@ PROTO_FILES = [
 
 # gRPC client library and codegen tooling, needed both to actually run
 # the gRPC connection and to develop/test it (hence reused in "dev").
-GRPC_REQUIRES = [
+COMMAND_REQUIRES = [
     "grpcio-tools==1.76.0",
 ]
 
@@ -181,7 +181,7 @@ setup(
             "pylint",  # Linter
             "pycodestyle",  # Style guide checker
         ]
-        + GRPC_REQUIRES,
+        + COMMAND_REQUIRES,
         # Documentation dependencies
         "docs": [
             "sphinx",  # Documentation generator
@@ -191,8 +191,8 @@ setup(
             "sphinx-versioned-docs",  # Versioned docs support
             "google-api-python-client",  # Required for the Google API docstring extension
         ],
-        # gRPC connection dependencies
-        "grpc": GRPC_REQUIRES,
+        # Command Interface dependencies
+        "command": COMMAND_REQUIRES,
     },
 )
 

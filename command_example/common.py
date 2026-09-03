@@ -13,7 +13,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Shared helpers for the gRPC example scripts.
+Shared helpers for the Command Interface example scripts.
 """
 
 from ankaios_sdk import Ankaios

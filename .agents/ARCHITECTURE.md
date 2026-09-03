@@ -18,7 +18,7 @@ both implementing the `Connection` abstract base class
   `_ank_base`). Implemented by `ControlInterfaceConnection`.
 - **Command Interface** (`ConnectionType.COMMAND_INTERFACE`) — used from
   outside a workload, connecting directly to the Ankaios server over gRPC.
-  Only available if the SDK was installed with the `grpc` extra. Implemented
+  Only available if the SDK was installed with the `command` extra. Implemented
   by `CommandInterfaceConnection`.
 
 Both run a background reader thread that deserializes incoming messages and

@@ -336,8 +336,8 @@ class Ankaios:
                 )
             except ImportError as e:
                 raise ImportError(
-                    "gRPC support requires the 'grpc' extra: "
-                    "pip install ankaios-sdk[grpc]"
+                    "Command Interface support requires the 'command' extra: "
+                    "pip install ankaios-sdk[command]"
                 ) from e
             return CommandInterfaceConnection(
                 server_url,
