@@ -12,7 +12,7 @@ both implementing the `Connection` abstract base class
 `ConnectionType` at construction time:
 
 - **Control Interface** (`ConnectionType.CONTROL_INTERFACE`, default) — used
-  from inside an Ankaios-managed workload. Communicates via a Unix socket at
+  from inside an Ankaios-managed workload. Communicates via named pipes at
   `/run/ankaios/control_interface` (two FIFOs: `input` and `output`).
   Messages are length-delimited protobuf (`_control_api` wrapping
   `_ank_base`). Implemented by `ControlInterfaceConnection`.

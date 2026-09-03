@@ -42,6 +42,7 @@ from typing import Callable
 
 from ...utils import get_logger
 from ..request import Request
+from ..response import Response, ResponseType
 
 
 class ConnectionType(Enum):
@@ -93,6 +94,39 @@ class Connection(ABC):
         self._add_log_callback = add_log_callback
         self._add_event_callback = add_event_callback
         self._logger = get_logger()
+
+    def _dispatch_response(self, response: Response) -> bool:
+        """
+        Routes a decoded response to the callback matching its content
+        type: logs and events go to their own callbacks, every other
+        type goes to the generic response callback. Shared by every
+        connection implementation, since this routing has nothing to
+        do with how the response was received.
+
+        :param response: The decoded response to dispatch.
+        :type response: Response
+
+        :returns: False if the response went to the generic response
+            callback (some content types still need extra handling by
+            the caller, e.g. control interface handshake state);
+            True if it was already fully handled here.
+        :rtype: bool
+        """
+        if response.content_type in (
+            ResponseType.LOGS_ENTRY,
+            ResponseType.LOGS_STOP_RESPONSE,
+        ):
+            self._add_log_callback(
+                response.get_request_id(), response.content
+            )
+            return True
+        if response.content_type == ResponseType.EVENT_RESPONSE:
+            self._add_event_callback(
+                response.get_request_id(), response.content
+            )
+            return True
+        self._add_response_callback(response)
+        return False
 
     @property
     @abstractmethod
