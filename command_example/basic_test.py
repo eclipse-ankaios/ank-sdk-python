@@ -13,8 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Connects to an Ankaios server directly over gRPC (from outside a
-workload), applies a workload, updates it, then deletes it, printing
+Connects to an Ankaios server directly over the Command Interface,
+applies a workload, updates it, then deletes it, printing
 the workload states after every change.
 
 Usage:
@@ -39,7 +39,7 @@ from ankaios_sdk import (
 
 
 def main() -> None:
-    """Applies, updates and deletes a workload over gRPC."""
+    """Applies, updates and deletes a workload over the Command Interface."""
     server_url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SERVER_URL
     agent_name = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_AGENT_NAME
 

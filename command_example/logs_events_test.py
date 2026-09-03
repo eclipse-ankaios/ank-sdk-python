@@ -13,8 +13,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Connects to an Ankaios server directly over gRPC (from outside a
-workload), registers for events on a workload, applies it, streams its
+Connects to an Ankaios server directly over the Command Interface,
+registers for events on a workload, applies it, streams its
 logs until they stop while printing any events received along the
 way, then unregisters/deletes everything.
 
@@ -53,7 +53,7 @@ def _print_events(event_queue: Queue, stop_event: threading.Event) -> None:
 
 
 def main() -> None:
-    """Streams logs and events for a short-lived workload over gRPC."""
+    """Streams logs and events for a short-lived workload over the Command Interface."""
     server_url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SERVER_URL
     agent_name = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_AGENT_NAME
 

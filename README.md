@@ -136,10 +136,11 @@ with Ankaios() as ankaios:
                     [workload_name][workload_id].state))
 ```
 
-### Connecting over gRPC
+### Connecting over The Command Interface
 
 To connect to an Ankaios server directly from outside a workload (e.g. from
-a CI job or a management tool), use a gRPC connection instead:
+a CI job or a management tool), use the Command Interface instead, which
+uses a direct gRPC connection:
 
 ```python
 from ankaios_sdk import Ankaios, ConnectionType
@@ -151,10 +152,10 @@ with Ankaios(
     ...
 ```
 
-This requires the `grpc` extra:
+This requires the `command` extra:
 
 ```sh
-pip install ankaios-sdk[grpc]
+pip install ankaios-sdk[command]
 ```
 
 For mTLS-secured connections, also pass `ca_pem`, `crt_pem` and `key_pem`
