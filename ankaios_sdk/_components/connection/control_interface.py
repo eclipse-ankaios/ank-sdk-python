@@ -13,40 +13,41 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the ControlInterface class that handles the writing
-and reading of data to and from the Ankaios control interface.
+This script defines the ControlInterfaceConnection class that handles
+the writing and reading of data to and from the Ankaios control
+interface.
 
 Classes
 -------
 
-- :class:`ControlInterface`:
+- :class:`ControlInterfaceConnection`:
     Handles the interaction with the Ankaios control interface.
 
 Enums
 -----
 
 - :class:`ControlInterfaceState`:
-    Represents the state of the control interface.
+    Represents the state of the control interface connection.
 
 Usage
 -----
 
-- Create a Control Interface instance, connect and disconnect.
+- Create a ControlInterfaceConnection instance, connect and disconnect.
     .. code-block:: python
 
-        ci = ControlInterface(<callbacks from Ankaios>)
+        ci = ControlInterfaceConnection(<callbacks from Ankaios>)
         ci.connect()
         ...
         ci.disconnect()
 
-- Change the state of the control interface.
+- Change the state of the control interface connection.
     .. code-block:: python
 
         ci.change_state(ControlInterfaceState.TERMINATED)
 """
 
 
-__all__ = ["ControlInterface", "ControlInterfaceState"]
+__all__ = ["ControlInterfaceConnection", "ControlInterfaceState"]
 
 
 import os
@@ -58,15 +59,16 @@ from enum import Enum
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.internal.decoder import _DecodeVarint
 
-from .._protos import _control_api
-from .request import Request
-from .response import Response, ResponseException, ResponseType
-from ..exceptions import ControlInterfaceException, ConnectionClosedException
-from ..utils import DEFAULT_CONTROL_INTERFACE_PATH, get_logger, ANKAIOS_VERSION
+from ..._protos import _control_api
+from ..request import Request
+from ..response import Response, ResponseException, ResponseType
+from ...exceptions import ConnectionException, ConnectionClosedException
+from ...utils import DEFAULT_CONTROL_INTERFACE_PATH, ANKAIOS_VERSION
+from .connection import Connection
 
 
 class ControlInterfaceState(Enum):
-    """The state of the control interface."""
+    """The state of the control interface connection."""
 
     INITIALIZED = 1
     "(int): Connection initialized state."
@@ -90,7 +92,7 @@ class ControlInterfaceState(Enum):
 
 
 # pylint: disable=too-many-instance-attributes
-class ControlInterface:
+class ControlInterfaceConnection(Connection):
     """
     This class handles the interaction with the Ankaios control interface.
     It provides methods to send and receive data to and from the control
@@ -107,7 +109,7 @@ class ControlInterface:
         add_event_callback: Callable,
     ) -> None:
         """
-        Initialize the ControlInterface object. This is used
+        Initialize the ControlInterfaceConnection object. This is used
         to interact with the control interface.
 
         :param add_response_callback: The callback function to add
@@ -120,6 +122,9 @@ class ControlInterface:
             an event to the Ankaios class.
         :type add_event_callback: Callable
         """
+        super().__init__(
+            add_response_callback, add_log_callback, add_event_callback
+        )
         self._input_file = None
         self._output_file = None
         # The state of the control interface must not be changed directly.
@@ -128,12 +133,6 @@ class ControlInterface:
         self._state_lock = threading.Lock()
         self._read_thread = None
         self._disconnect_event = threading.Event()
-
-        self._add_response_callback = add_response_callback
-        self._add_log_callback = add_log_callback
-        self._add_event_callback = add_event_callback
-
-        self._logger = get_logger()
 
     @property
     def _state(self) -> ControlInterfaceState:
@@ -172,25 +171,25 @@ class ControlInterface:
         Connect to the control interface by starting to read
         from the input fifo and opening the output fifo.
 
-        :raises ControlInterfaceException: If an error occurred.
+        :raises ConnectionException: If an error occurred.
         """
         if self._state in [
             ControlInterfaceState.INITIALIZED,
             ControlInterfaceState.CONNECTED,
         ]:
-            raise ControlInterfaceException("Already connected.")
+            raise ConnectionException("Already connected.")
 
         if not os.path.exists(
             f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"
         ):
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Control interface input fifo does not exist."
             )
 
         if not os.path.exists(
             f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/output"
         ):
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Control interface output fifo does not exist."
             )
 
@@ -201,7 +200,7 @@ class ControlInterface:
             )
         except Exception as e:
             self._logger.error("Error while opening output fifo: %s", e)
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Error while opening output fifo."
             ) from e
 
@@ -278,7 +277,7 @@ class ControlInterface:
         This is meant to be run in a separate thread.
         The responses are then sent to the Ankaios class to be handled.
 
-        :raises ControlInterfaceException: If an error occurs
+        :raises ConnectionException: If an error occurs
             while reading the fifo.
         """
         # The pragma: no cover is used on small checks that are not expected
@@ -296,7 +295,7 @@ class ControlInterface:
         except Exception as e:
             self._logger.error("Error while opening input fifo: %s", e)
             self.disconnect()
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Error while opening input fifo."
             ) from e
         os.set_blocking(self._input_file.fileno(), False)
@@ -342,7 +341,7 @@ class ControlInterface:
                     msg_buf += next_byte
 
                 try:
-                    response = Response(bytes(msg_buf))
+                    response = self._decode_response(bytes(msg_buf))
                 except ResponseException as e:  # pragma: no cover
                     self._logger.error("Error while reading: %s", e)
                     continue
@@ -356,6 +355,42 @@ class ControlInterface:
             self._input_file = None
             self._cleanup()
 
+    @staticmethod
+    def _decode_response(message_buffer: bytes) -> Response:
+        """
+        Decodes a message read from the control interface's own
+        envelope (a length-delimited `_control_api.FromAnkaios`
+        message) into a Response, owning the control-interface-
+        specific envelope unwrapping so that Response itself only
+        needs to know about the shared ank_base.Response payload.
+
+        :param message_buffer: The received message buffer.
+        :type message_buffer: bytes
+
+        :returns: The decoded Response object.
+        :rtype: Response
+
+        :raises ResponseException: If there is an error parsing the
+            message buffer, or if it contains none of the expected
+            variants.
+        """
+        from_ankaios = _control_api.FromAnkaios()
+        try:
+            from_ankaios.ParseFromString(message_buffer)
+        except Exception as e:
+            raise ResponseException(f"Parsing error: '{e}'") from e
+        if from_ankaios.HasField("response"):
+            return Response._from_ank_base_response(from_ankaios.response)
+        if from_ankaios.HasField("controlInterfaceAccepted"):
+            return Response._control_interface_accepted()
+        if from_ankaios.HasField("connectionClosed"):
+            return Response._connection_closed(
+                from_ankaios.connectionClosed.reason
+            )
+        raise ResponseException(  # pragma: no cover
+            "Invalid response type."
+        )
+
     def _handle_response(self, response: Response) -> None:
         """
         Handle the response received from the control interface.
@@ -363,7 +398,7 @@ class ControlInterface:
         :param response: The response object to handle.
         :type response: Response
 
-        :raises ControlInterfaceException:
+        :raises ConnectionException:
             If the response is not in a valid state.
         :raises ConnectionClosedException: If the connection is closed.
         """
@@ -393,27 +428,8 @@ class ControlInterface:
 
         # Handle the connected state
         elif self._state == ControlInterfaceState.CONNECTED:
-            # Filter out the logs responses
-            if response.content_type in [
-                ResponseType.LOGS_ENTRY,
-                ResponseType.LOGS_STOP_RESPONSE,
-            ]:
-                self._add_log_callback(
-                    response.get_request_id(), response.content
-                )
+            if self._dispatch_response(response):
                 return
-
-            # Filter out the events
-            if response.content_type in [
-                ResponseType.EVENT_RESPONSE,
-            ]:
-                self._add_event_callback(
-                    response.get_request_id(), response.content
-                )
-                return
-
-            # Send out the response to the Ankaios class
-            self._add_response_callback(response)
 
             # Check if the response is connection closed in order to
             # terminate the thread.
@@ -463,13 +479,13 @@ class ControlInterface:
         :param to_ankaios: The ToAnkaios proto message.
         :type to_ankaios: _control_api.ToAnkaios
 
-        :raises ControlInterfaceException: If the output pipe is None.
+        :raises ConnectionException: If the output pipe is None.
         """
         if self._output_file is None:
             self._logger.error(
                 "Could not write to pipe, output file handler is None."
             )
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Could not write to pipe, output file handler is None."
             )
 
@@ -486,7 +502,7 @@ class ControlInterface:
         :param request: The request object to be written.
         :type request: Request
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
         if self._state == ControlInterfaceState.CONNECTION_CLOSED:
@@ -494,7 +510,7 @@ class ControlInterface:
                 "Could not write to pipe, connection closed."
             )
         if self._state != ControlInterfaceState.CONNECTED:
-            raise ControlInterfaceException(
+            raise ConnectionException(
                 "Could not write to pipe, not connected."
             )
 
@@ -508,7 +524,7 @@ class ControlInterface:
         Send an initial hello message with the version
         to the control interface.
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         """
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(protocolVersion=str(ANKAIOS_VERSION))

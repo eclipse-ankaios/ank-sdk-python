@@ -32,7 +32,7 @@ Exceptions
     Raised when the connection is closed.
 - :class:`ResponseException`:
     Raised when the response is invalid.
-- :class:`ControlInterfaceException`:
+- :class:`ConnectionException`:
     Raised when an operation fails.
 - :class:`AnkaiosProtocolException`:
     Raised when something unexpected is received.
@@ -49,7 +49,7 @@ __all__ = [
     "InvalidManifestException",
     "ConnectionClosedException",
     "ResponseException",
-    "ControlInterfaceException",
+    "ConnectionException",
     "AnkaiosProtocolException",
     "AnkaiosResponseError",
 ]
@@ -84,8 +84,8 @@ class ResponseException(AnkaiosException):
     """Raised when the response is invalid."""
 
 
-class ControlInterfaceException(AnkaiosException):
-    """Raised when an operation on the Control Interface fails"""
+class ConnectionException(AnkaiosException):
+    """Raised when an operation on a connection to Ankaios fails."""
 
 
 class AnkaiosProtocolException(AnkaiosException):

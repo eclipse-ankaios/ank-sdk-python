@@ -40,7 +40,7 @@ from ._protos import _ank_base
 SUPPORTED_API_VERSION = "v1"
 "(str): The supported API version of the Ankaios SDK."
 
-ANKAIOS_VERSION = "1.0.0"
+ANKAIOS_VERSION = "1.1.0-pre"
 "(str): The version of the compatible Ankaios."
 
 WORKLOADS_PREFIX = "desiredState.workloads"

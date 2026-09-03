@@ -13,7 +13,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This module contains unit tests for the ControlInterface class
+This module contains unit tests for the ControlInterfaceConnection class
 in the ankaios_sdk.
 """
 
@@ -22,10 +22,12 @@ import time
 from unittest.mock import patch, mock_open, MagicMock
 import pytest
 from ankaios_sdk import (
-    ControlInterface,
+    ControlInterfaceConnection,
     Response,
+    ResponseException,
+    ResponseType,
     ControlInterfaceState,
-    ControlInterfaceException,
+    ConnectionException,
     ConnectionClosedException,
 )
 from ankaios_sdk.utils import ANKAIOS_VERSION
@@ -46,7 +48,7 @@ def test_state():
     """
     Test the state enum and the changing of the state.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -71,7 +73,7 @@ def test_connection():
     """
     Test the connect / disconnect functionality.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -80,14 +82,14 @@ def test_connection():
     assert ci.connected
 
     # Already connected
-    with pytest.raises(ControlInterfaceException, match="Already connected."):
+    with pytest.raises(ConnectionException, match="Already connected."):
         ci.connect()
 
     # Test input pipe does not exist
     ci._state = ControlInterfaceState.TERMINATED
     assert not ci.connected
     with patch("os.path.exists") as mock_exists, pytest.raises(
-        ControlInterfaceException, match="Control interface input fifo"
+        ConnectionException, match="Control interface input fifo"
     ):
         mock_exists.side_effect = (
             lambda path: path != "/run/ankaios/control_interface/input"
@@ -96,7 +98,7 @@ def test_connection():
 
     # Test output pipe does not exist
     with patch("os.path.exists") as mock_exists, pytest.raises(
-        ControlInterfaceException, match="Control interface output fifo"
+        ConnectionException, match="Control interface output fifo"
     ):
         mock_exists.side_effect = (
             lambda path: path != "/run/ankaios/control_interface/output"
@@ -107,7 +109,7 @@ def test_connection():
     with patch("os.path.exists") as mock_exists, patch(
         "builtins.open"
     ) as mock_open_file, pytest.raises(
-        ControlInterfaceException, match="Error while opening output fifo"
+        ConnectionException, match="Error while opening output fifo"
     ):
         mock_exists.return_value = True
         mock_open_file.side_effect = OSError
@@ -117,7 +119,7 @@ def test_connection():
     with patch("os.path.exists") as mock_exists, patch(
         "threading.Thread"
     ) as mock_thread, patch("builtins.open") as mock_open_file, patch(
-        "ankaios_sdk.ControlInterface._send_initial_hello"
+        "ankaios_sdk.ControlInterfaceConnection._send_initial_hello"
     ) as mock_initial_hello:
         mock_exists.return_value = True
         mock_thread_instance = MagicMock()
@@ -158,10 +160,38 @@ def test_connection():
     ci._logger.debug.assert_called_with("Already disconnected.")
 
 
+def test_decode_response():
+    """
+    Test the _decode_response static method of the ControlInterfaceConnection
+    class, which owns the control interface's own envelope
+    (FromAnkaios) unwrapping, for all 3 possible variants plus the
+    parsing-error case.
+    """
+    response = ControlInterfaceConnection._decode_response(
+        MESSAGE_BUFFER_UPDATE_SUCCESS
+    )
+    assert response.content_type == ResponseType.UPDATE_STATE_SUCCESS
+
+    response = ControlInterfaceConnection._decode_response(
+        MESSAGE_BUFFER_CONTROL_INTERFACE_ACCEPTED
+    )
+    assert response.content_type == ResponseType.CONTROL_INTERFACE_ACCEPTED
+
+    response = ControlInterfaceConnection._decode_response(
+        MESSAGE_BUFFER_CONNECTION_CLOSED
+    )
+    assert response.content_type == ResponseType.CONNECTION_CLOSED
+    assert response.content == "Connection closed reason"
+
+    with pytest.raises(ResponseException, match="Parsing error"):
+        ControlInterfaceConnection._decode_response(b"invalid_buffer{")
+
+
 def test_read_thread_general():
     """
-    Test the _read_from_control_interface method of the ControlInterface class.
-    Test success and error with the input file.
+    Test the _read_from_control_interface method of the
+    ControlInterfaceConnection class. Test success and error with
+    the input file.
     """
     update_success_content = (
         MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + MESSAGE_BUFFER_UPDATE_SUCCESS
@@ -169,22 +199,22 @@ def test_read_thread_general():
 
     # Test error while opening input pipe
     with patch("builtins.open", side_effect=OSError), patch(
-        "ankaios_sdk.ControlInterface.disconnect"
+        "ankaios_sdk.ControlInterfaceConnection.disconnect"
     ) as mock_disconnect:
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=lambda _: None,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
         )
         with pytest.raises(
-            ControlInterfaceException, match="Error while opening input fifo"
+            ConnectionException, match="Error while opening input fifo"
         ):
             ci._read_from_control_interface()
         mock_disconnect.assert_called_once()
 
     # Test success
     with patch("builtins.open", mock_open()) as mock_file, patch(
-        "ankaios_sdk.ControlInterface._handle_response"
+        "ankaios_sdk.ControlInterfaceConnection._handle_response"
     ) as mock_handle_response, patch("os.set_blocking") as _, patch(
         "select.select"
     ) as mock_select:
@@ -194,7 +224,7 @@ def test_read_thread_general():
             bytes([b]) for b in update_success_content
         ]
 
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=lambda _: None,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
@@ -227,7 +257,7 @@ def test_read_thread_agent_disconnected():
     with patch("builtins.open", mock_open()) as mock_file, patch(
         "os.set_blocking"
     ) as _, patch("select.select") as mock_select, patch(
-        "ankaios_sdk.ControlInterface._agent_gone_routine"
+        "ankaios_sdk.ControlInterfaceConnection._agent_gone_routine"
     ) as mock_agent_gone:
 
         # Data is available, but read returns empty
@@ -235,7 +265,7 @@ def test_read_thread_agent_disconnected():
         mock_file_handle = mock_file.return_value.__enter__.return_value
         mock_file_handle.read.return_value = b""
 
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=lambda _: None,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
@@ -273,7 +303,7 @@ def test_read_thread_connection_closed():
     )
 
     with patch("builtins.open", mock_open()) as mock_file, patch(
-        "ankaios_sdk.ControlInterface._handle_response",
+        "ankaios_sdk.ControlInterfaceConnection._handle_response",
         side_effect=ConnectionClosedException,
     ), patch("os.set_blocking") as _, patch("select.select") as mock_select:
         mock_select.return_value = ([True], [], [])
@@ -282,7 +312,7 @@ def test_read_thread_connection_closed():
             bytes([b]) for b in connection_closed_content
         ]
 
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=lambda _: None,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
@@ -312,7 +342,7 @@ def test_handle_response():
     """
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
     response_callback = MagicMock()
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=response_callback,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -358,7 +388,7 @@ def test_handle_response_control_interface_accepted():
 
     # Got control interface accepted response as initial response
     response_callback = MagicMock()
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=response_callback,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -371,7 +401,7 @@ def test_handle_response_control_interface_accepted():
 
     # Got control interface accepted response while already connected
     response_callback = MagicMock()
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=response_callback,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -398,7 +428,7 @@ def test_handle_response_connection_closed():
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
     ):
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=response_callback,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
@@ -412,7 +442,7 @@ def test_handle_response_connection_closed():
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
     ):
-        ci = ControlInterface(
+        ci = ControlInterfaceConnection(
             add_response_callback=response_callback,
             add_log_callback=lambda _: None,
             add_event_callback=lambda _: None,
@@ -431,7 +461,7 @@ def test_handle_response_logs():
     response_callback = MagicMock()
     logs_callback = MagicMock()
 
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=response_callback,
         add_log_callback=logs_callback,
         add_event_callback=lambda _: None,
@@ -453,7 +483,7 @@ def test_handle_response_events():
     response_callback = MagicMock()
     events_callback = MagicMock()
 
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=response_callback,
         add_log_callback=lambda _: None,
         add_event_callback=events_callback,
@@ -468,16 +498,17 @@ def test_handle_response_events():
 
 def test_agent_gone_routine():
     """
-    Test the _agent_gone_routine method of the ControlInterface class.
+    Test the _agent_gone_routine method of the
+    ControlInterfaceConnection class.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
     )
     ci._state = ControlInterfaceState.CONNECTED
     with patch(
-        "ankaios_sdk.ControlInterface._send_initial_hello"
+        "ankaios_sdk.ControlInterfaceConnection._send_initial_hello"
     ) as mock_initial_hello:
         ci._agent_gone_routine()
         mock_initial_hello.assert_not_called()
@@ -488,7 +519,7 @@ def test_agent_gone_routine():
         "time.sleep",
         new=lambda x: original_sleep(x) if x != 1 else original_sleep(0.01),
     ) as _, patch(
-        "ankaios_sdk.ControlInterface._send_initial_hello"
+        "ankaios_sdk.ControlInterfaceConnection._send_initial_hello"
     ) as mock_initial_hello:
 
         mock_initial_hello.side_effect = BrokenPipeError
@@ -508,9 +539,9 @@ def test_agent_gone_routine():
 
 def test_write_to_pipe():
     """
-    Test the _write_to_pipe method of the ControlInterface class.
+    Test the _write_to_pipe method of the ControlInterfaceConnection class.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -518,7 +549,7 @@ def test_write_to_pipe():
 
     ci._output_file = None
     with pytest.raises(
-        ControlInterfaceException, match="Could not write to pipe"
+        ConnectionException, match="Could not write to pipe"
     ):
         ci._write_to_pipe(_control_api.FromAnkaios())
 
@@ -533,9 +564,9 @@ def test_write_to_pipe():
 
 def test_write_request():
     """
-    Test the write_request method of the ControlInterface class.
+    Test the write_request method of the ControlInterfaceConnection class.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
@@ -543,12 +574,14 @@ def test_write_request():
 
     ci._state = ControlInterfaceState.TERMINATED
     with pytest.raises(
-        ControlInterfaceException, match="Could not write to pipe"
+        ConnectionException, match="Could not write to pipe"
     ):
         ci.write_request(generate_test_request())
 
     ci._state = ControlInterfaceState.CONNECTED
-    with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
+    with patch(
+        "ankaios_sdk.ControlInterfaceConnection._write_to_pipe"
+    ) as mock_write:
         ci.write_request(generate_test_request())
         mock_write.assert_called_once()
 
@@ -564,12 +597,14 @@ def test_send_initial_hello():
     """
     Test the _send_initial_hello method of the Ankaios class.
     """
-    ci = ControlInterface(
+    ci = ControlInterfaceConnection(
         add_response_callback=lambda _: None,
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
     )
-    with patch("ankaios_sdk.ControlInterface._write_to_pipe") as mock_write:
+    with patch(
+        "ankaios_sdk.ControlInterfaceConnection._write_to_pipe"
+    ) as mock_write:
         initial_hello = _control_api.ToAnkaios(
             hello=_control_api.Hello(protocolVersion=str(ANKAIOS_VERSION))
         )

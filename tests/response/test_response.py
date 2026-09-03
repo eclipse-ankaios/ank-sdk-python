@@ -107,13 +107,6 @@ MESSAGE_BUFFER_LOGS_STOP_RESPONSE = (
     MESSAGE_LOGS_STOP_RESPONSE.SerializeToString()
 )
 
-
-MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED = _control_api.FromAnkaios(
-    response=_ank_base.Response(
-        requestId="4455", logsCancelAccepted=_ank_base.LogsCancelAccepted()
-    )
-).SerializeToString()
-
 MESSAGE_BUFFER_LOGS_CANCEL_ACCEPTED_RESPONSE = _control_api.FromAnkaios(
     response=_ank_base.Response(
         requestId="4455",
@@ -250,6 +243,50 @@ def test_initialisation():
     # Test invalid response type
     with pytest.raises(ResponseException, match="Invalid response type"):
         _ = Response(MESSAGE_BUFFER_INVALID_RESPONSE)
+
+
+def test_from_ank_base_response():
+    """
+    Test that Response._from_ank_base_response builds the same
+    content as the byte-parsing path, given an already decoded
+    ank_base.Response (as handed over by any connection once it has
+    unwrapped its own envelope).
+    """
+    ank_base_response = _ank_base.Response(
+        requestId="5566",
+        error=_ank_base.Error(message="unwrapped error message"),
+    )
+    response = Response._from_ank_base_response(ank_base_response)
+    assert response.buffer is None
+    assert response.content_type == ResponseType.ERROR
+    assert response.content == "unwrapped error message"
+    assert response.get_request_id() == "5566"
+
+
+def test_control_interface_accepted():
+    """
+    Test that Response._control_interface_accepted builds a Response
+    with no ank_base payload, matching the byte-parsing path's
+    handling of the same envelope variant.
+    """
+    response = Response._control_interface_accepted()
+    assert response.buffer is None
+    assert response.content_type == ResponseType.CONTROL_INTERFACE_ACCEPTED
+    assert response.content is None
+    assert response.get_request_id() is None
+
+
+def test_connection_closed():
+    """
+    Test that Response._connection_closed builds a Response with no
+    ank_base payload but the given reason, matching the byte-parsing
+    path's handling of the same envelope variant.
+    """
+    response = Response._connection_closed("Connection closed reason")
+    assert response.buffer is None
+    assert response.content_type == ResponseType.CONNECTION_CLOSED
+    assert response.content == "Connection closed reason"
+    assert response.get_request_id() is None
 
 
 def test_getters():
