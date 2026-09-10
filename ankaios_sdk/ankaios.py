@@ -287,9 +287,10 @@ class Ankaios:
         :param logs: The received logs.
         :type logs: list[`LogResponse`]
         """
-        if request_id in self._logs_callbacks:
+        callback = self._logs_callbacks.get(request_id)
+        if callback is not None:
             for log in logs:
-                self._logs_callbacks[request_id](log)
+                callback(log)
         else:
             self.logger.warning(
                 "Received logs for unknown request id %s", request_id
@@ -305,8 +306,9 @@ class Ankaios:
         :param event: The event entry.
         :type event: EventEntry
         """
-        if request_id in self._events_callbacks:
-            self._events_callbacks[request_id](event)
+        callback = self._events_callbacks.get(request_id)
+        if callback is not None:
+            callback(event)
         else:
             self.logger.warning(
                 "Received event with unknown request id %s", request_id

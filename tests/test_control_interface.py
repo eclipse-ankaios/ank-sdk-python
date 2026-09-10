@@ -158,6 +158,55 @@ def test_connection():
     ci._logger.debug.assert_called_with("Already disconnected.")
 
 
+def test_connect_clears_disconnect_event():
+    """
+    connect() must clear a disconnect_event left set by a prior disconnect,
+    otherwise the freshly started reader thread would stop immediately.
+    """
+    ci = ControlInterface(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._disconnect_event.set()
+    with patch("os.path.exists", return_value=True), patch(
+        "threading.Thread"
+    ) as mock_thread, patch("builtins.open"), patch(
+        "ankaios_sdk.ControlInterface._send_initial_hello"
+    ):
+        mock_thread.return_value = MagicMock()
+        ci.connect()
+
+        assert not ci._disconnect_event.is_set()
+        assert ci._state == ControlInterfaceState.INITIALIZED
+
+
+def test_cleanup_is_idempotent():
+    """
+    _cleanup() may be reached by both the reader thread and a caller;
+    a repeat call must not raise or double-close the handles.
+    """
+    ci = ControlInterface(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._state = ControlInterfaceState.CONNECTED
+    output_file_mock = MagicMock()
+    input_file_mock = MagicMock()
+    ci._output_file = output_file_mock
+    ci._input_file = input_file_mock
+
+    ci._cleanup()
+    ci._cleanup()
+
+    output_file_mock.close.assert_called_once()
+    input_file_mock.close.assert_called_once()
+    assert ci._output_file is None
+    assert ci._input_file is None
+    assert ci._state == ControlInterfaceState.TERMINATED
+
+
 def test_read_thread_general():
     """
     Test the _read_from_control_interface method of the ControlInterface class.
@@ -169,8 +218,8 @@ def test_read_thread_general():
 
     # Test error while opening input pipe
     with patch("builtins.open", side_effect=OSError), patch(
-        "ankaios_sdk.ControlInterface.disconnect"
-    ) as mock_disconnect:
+        "ankaios_sdk.ControlInterface._cleanup"
+    ) as mock_cleanup:
         ci = ControlInterface(
             add_response_callback=lambda _: None,
             add_log_callback=lambda _: None,
@@ -180,7 +229,10 @@ def test_read_thread_general():
             ControlInterfaceException, match="Error while opening input fifo"
         ):
             ci._read_from_control_interface()
-        mock_disconnect.assert_called_once()
+        # The reader thread tears down directly instead of calling
+        # disconnect() (which would join the current thread).
+        mock_cleanup.assert_called_once()
+        assert ci._disconnect_event.is_set()
 
     # Test success
     with patch("builtins.open", mock_open()) as mock_file, patch(
@@ -483,11 +535,9 @@ def test_agent_gone_routine():
         mock_initial_hello.assert_not_called()
 
     ci._state = ControlInterfaceState.AGENT_DISCONNECTED
-    original_sleep = time.sleep
-    with patch(
-        "time.sleep",
-        new=lambda x: original_sleep(x) if x != 1 else original_sleep(0.01),
-    ) as _, patch(
+    with patch.object(
+        ControlInterface, "AGENT_RECONNECT_INTERVAL_SEC", 0.01
+    ), patch(
         "ankaios_sdk.ControlInterface._send_initial_hello"
     ) as mock_initial_hello:
 
@@ -497,13 +547,40 @@ def test_agent_gone_routine():
             target=ci._agent_gone_routine, daemon=True
         )
         agent_gone_thread.start()
-        time.sleep(0.01)
+        time.sleep(0.05)
         mock_initial_hello.side_effect = None
-        time.sleep(0.01)
-        agent_gone_thread.join()
+        time.sleep(0.05)
+        agent_gone_thread.join(timeout=2)
 
+        assert not agent_gone_thread.is_alive()
         mock_initial_hello.assert_called()
         assert ci._state == ControlInterfaceState.INITIALIZED
+
+
+def test_agent_gone_routine_stops_on_disconnect():
+    """
+    _agent_gone_routine must exit promptly when a disconnect is requested,
+    even while the agent stays gone.
+    """
+    ci = ControlInterface(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._state = ControlInterfaceState.AGENT_DISCONNECTED
+    with patch(
+        "ankaios_sdk.ControlInterface._send_initial_hello",
+        side_effect=BrokenPipeError,
+    ):
+        agent_gone_thread = threading.Thread(
+            target=ci._agent_gone_routine, daemon=True
+        )
+        agent_gone_thread.start()
+        ci._disconnect_event.set()
+        agent_gone_thread.join(timeout=2)
+
+        assert not agent_gone_thread.is_alive()
+        assert ci._state == ControlInterfaceState.AGENT_DISCONNECTED
 
 
 def test_write_to_pipe():
