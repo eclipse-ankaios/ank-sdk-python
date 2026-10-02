@@ -47,7 +47,7 @@ The [tools/](tools/) folder contains helper scripts for specific tasks — see [
 - Tests mirror the `ankaios_sdk/_components/` structure
 - Use `unittest.mock.patch` / `MagicMock` for all external dependencies
 - Each test module exports a `generate_test_<thing>()` helper for fixtures
-- Accessing private members in tests (e.g. `ankaios._control_interface`) is normal
+- Accessing private members in tests (e.g. `ankaios._connection`) is normal
 
 **Typical test setup pattern:**
 
@@ -56,12 +56,13 @@ from unittest.mock import patch, PropertyMock
 from ankaios_sdk import Ankaios, ControlInterfaceState
 
 def generate_test_ankaios() -> Ankaios:
-    with patch("ankaios_sdk.ControlInterface.connect"), patch(
-        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    with patch("ankaios_sdk.ControlInterfaceConnection.connect"), patch(
+        "ankaios_sdk.ControlInterfaceConnection.connected",
+        new_callable=PropertyMock,
     ) as mock_connected:
         mock_connected.return_value = True
         ankaios = Ankaios()
-    ankaios._control_interface._state = ControlInterfaceState.CONNECTED
+    ankaios._connection._state = ControlInterfaceState.CONNECTED
     return ankaios
 ```
 

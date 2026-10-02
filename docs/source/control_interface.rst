@@ -1,12 +1,12 @@
 ControlInterface
 ================
 
-.. automodule:: ankaios_sdk._components.control_interface
+.. automodule:: ankaios_sdk._components.connection.control_interface
 
-ControlInterface Class
-----------------------
+ControlInterfaceConnection Class
+--------------------------------
 
-.. autoclass:: ankaios_sdk._components.control_interface.ControlInterface
+.. autoclass:: ankaios_sdk._components.connection.control_interface.ControlInterfaceConnection
     :special-members: __init__
     :members:
     :undoc-members:
@@ -15,7 +15,7 @@ ControlInterface Class
 ControlInterfaceState Enum
 --------------------------
 
-.. autoclass:: ankaios_sdk._components.control_interface.ControlInterfaceState
+.. autoclass:: ankaios_sdk._components.connection.control_interface.ControlInterfaceState
     :special-members: __str__
     :members:
     :undoc-members:

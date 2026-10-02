@@ -13,14 +13,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-This script defines the Ankaios class for interacting with the
-Ankaios control interface.
+This script defines the Ankaios class for interacting with Ankaios,
+either via the control interface (default, used from inside a
+workload) or directly over gRPC (used from outside a workload).
 
 Classes
 -------
 
 - :class:`Ankaios`:
-    Handles the interaction with the Ankaios control interface.
+    Handles the interaction with the Ankaios cluster.
 
 Usage
 -----
@@ -28,7 +29,38 @@ Usage
 - Create an Ankaios object, connect and disconnect from the control interface:
     .. code-block:: python
 
+        from ankaios_sdk import Ankaios
+
         ankaios = Ankaios()
+        ...
+        del ankaios
+
+- Create an Ankaios object, connect and disconnect from the gRPC server
+  interface:
+
+    .. code-block:: python
+
+        from ankaios_sdk import Ankaios, ConnectionType
+
+        ankaios = Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="http://127.0.0.1:25551",
+        )
+        ...
+        del ankaios
+
+- Create an Ankaios object using a mTLS-secured gRPC connection:
+    .. code-block:: python
+
+        from ankaios_sdk import Ankaios, ConnectionType
+
+        ankaios = Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="https://127.0.0.1:25551",
+            ca_pem=ca_pem,
+            crt_pem=crt_pem,
+            key_pem=key_pem,
+        )
         ...
         del ankaios
 
@@ -127,7 +159,7 @@ Some examples of field masks include:
 __all__ = ["Ankaios"]
 
 import time
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 from datetime import datetime
 from queue import Queue, Empty
 
@@ -151,7 +183,9 @@ from ._components import (
     WorkloadInstanceName,
     WorkloadStateEnum,
     WorkloadExecutionState,
-    ControlInterface,
+    Connection,
+    ConnectionType,
+    ControlInterfaceConnection,
     LogCampaignResponse,
     LogQueue,
     LogResponse,
@@ -185,7 +219,7 @@ class Ankaios:
     """
     This class is used to interact with the Ankaios using an intuitive API.
     The class automatically handles the session creation and the requests
-    and responses sent and received over the Ankaios Control Interface.
+    and responses sent and received over the underlying connection.
 
     :var logging.Logger logger:
         The logger for the Ankaios class.
@@ -194,16 +228,51 @@ class Ankaios:
     DEFAULT_TIMEOUT = 5.0
     "(float): The default timeout, if not manually provided."
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
-        self, log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO
+        self,
+        connection_type: ConnectionType = ConnectionType.CONTROL_INTERFACE,
+        log_level: AnkaiosLogLevel = AnkaiosLogLevel.INFO,
+        *,
+        server_url: Optional[str] = None,
+        ca_pem: Optional[str] = None,
+        crt_pem: Optional[str] = None,
+        key_pem: Optional[str] = None,
     ) -> None:
         """
         Initialize the Ankaios object. The logger will be created and
-        the connection to the control interface will be established.
+        the connection will be established, either via the control
+        interface (default, used from inside a workload) or directly
+        over gRPC to the Ankaios server (used from outside a
+        workload).
 
+        :param connection_type: Which connection to use.
+        :type connection_type: ConnectionType
         :param log_level: The log level to be set.
         :type log_level: AnkaiosLogLevel
+        :param server_url: The URL of the Ankaios server, e.g.
+            "http://127.0.0.1:25551". Required when connection_type
+            is ConnectionType.COMMAND_INTERFACE, ignored otherwise.
+        :type server_url: Optional[str]
+        :param ca_pem: The PEM-encoded CA certificate content, for a
+            mTLS-secured gRPC connection. Ignored unless
+            connection_type is ConnectionType.COMMAND_INTERFACE.
+        :type ca_pem: Optional[str]
+        :param crt_pem: The PEM-encoded client certificate content,
+            for a mTLS-secured gRPC connection. Ignored unless
+            connection_type is ConnectionType.COMMAND_INTERFACE.
+        :type crt_pem: Optional[str]
+        :param key_pem: The PEM-encoded client private key content,
+            for a mTLS-secured gRPC connection. Ignored unless
+            connection_type is ConnectionType.COMMAND_INTERFACE.
+        :type key_pem: Optional[str]
 
+        :raises ValueError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and server_url is not
+            provided.
+        :raises ImportError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and the SDK was
+            installed without the 'grpc' extra.
         :raises ConnectionClosedException: If the connection is closed
             at startup.
         """
@@ -215,26 +284,75 @@ class Ankaios:
         self.logger = get_logger()
         self.set_logger_level(log_level)
 
-        # Connect to the control interface
-        self._control_interface = ControlInterface(
+        self._connection = self._create_connection(
+            connection_type, server_url, ca_pem, crt_pem, key_pem
+        )
+        self._connection.connect()
+
+        # Wait for the connection to be established
+        start_time = time.time()
+        while not self._connection.connected:
+            if time.time() - start_time > self.DEFAULT_TIMEOUT:
+                self.logger.error("Connection to Ankaios timed out.")
+                self._connection.disconnect()
+                raise ConnectionClosedException(
+                    "Connection to Ankaios timed out."
+                )
+            time.sleep(0.1)
+
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
+    def _create_connection(
+        self,
+        connection_type: ConnectionType,
+        server_url: Optional[str],
+        ca_pem: Optional[str],
+        crt_pem: Optional[str],
+        key_pem: Optional[str],
+    ) -> Connection:
+        """
+        Builds the connection matching connection_type, wiring in
+        this object's response/log/event callbacks.
+
+        :returns: The constructed connection.
+        :rtype: Connection
+
+        :raises ValueError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and server_url is not
+            provided.
+        :raises ImportError: If connection_type is
+            ConnectionType.COMMAND_INTERFACE and the SDK was
+            installed without the 'grpc' extra.
+        """
+        if connection_type == ConnectionType.COMMAND_INTERFACE:
+            if server_url is None:
+                raise ValueError(
+                    "server_url is required when connection_type is "
+                    "ConnectionType.COMMAND_INTERFACE."
+                )
+            try:
+                # pylint: disable=import-outside-toplevel
+                from ._components.connection.command_interface import (
+                    CommandInterfaceConnection,
+                )
+            except ImportError as e:
+                raise ImportError(
+                    "Command Interface support requires the 'command' extra: "
+                    "pip install ankaios-sdk[command]"
+                ) from e
+            return CommandInterfaceConnection(
+                server_url,
+                add_response_callback=self._add_response,
+                add_log_callback=self._add_logs,
+                add_event_callback=self._add_events,
+                ca_pem=ca_pem,
+                crt_pem=crt_pem,
+                key_pem=key_pem,
+            )
+        return ControlInterfaceConnection(
             add_response_callback=self._add_response,
             add_log_callback=self._add_logs,
             add_event_callback=self._add_events,
         )
-        self._control_interface.connect()
-
-        # Wait for the connection to be established
-        start_time = time.time()
-        while not self._control_interface.connected:
-            if time.time() - start_time > self.DEFAULT_TIMEOUT:
-                self.logger.error(
-                    "Connection to the control interface timed out."
-                )
-                self._control_interface.disconnect()
-                raise ConnectionClosedException(
-                    "Connection to the control interface timed out."
-                )
-            time.sleep(0.1)
 
     def __enter__(self) -> "Ankaios":
         """
@@ -247,7 +365,7 @@ class Ankaios:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         """
-        Used for context management. Disconnects from the control interface.
+        Used for context management. Disconnects from Ankaios.
 
         :param exc_type: The exception type.
         :type exc_type: type
@@ -263,11 +381,11 @@ class Ankaios:
                 exc_value,
                 traceback,
             )
-        self._control_interface.disconnect()
+        self._connection.disconnect()
 
     def _add_response(self, response: Response) -> None:
         """
-        Method will be called automatically from the Control Interface
+        Method will be called automatically from the connection
         when a response is received.
 
         :param response: The received response.
@@ -279,7 +397,7 @@ class Ankaios:
 
     def _add_logs(self, request_id: str, logs: list[LogResponse]) -> None:
         """
-        Method will be called automatically from the Control Interface
+        Method will be called automatically from the connection
         when a log is received.
 
         :param request_id: The request id of the logs campaign.
@@ -298,7 +416,7 @@ class Ankaios:
 
     def _add_events(self, request_id: str, event: EventEntry) -> None:
         """
-        Method will be called automatically from the Control Interface
+        Method will be called automatically from the connection
         when an event is received.
 
         :param request_id: The request id of the event campaign.
@@ -370,10 +488,10 @@ class Ankaios:
         :rtype: Response
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
-        self._control_interface.write_request(request)
+        self._connection.write_request(request)
         response = self._get_response_by_id(request.get_id(), timeout)
         return response
 
@@ -400,7 +518,7 @@ class Ankaios:
         :returns: The update state success object.
         :rtype: UpdateStateSuccess
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -449,7 +567,7 @@ class Ankaios:
         :returns: The update state success object.
         :rtype: UpdateStateSuccess
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -498,7 +616,7 @@ class Ankaios:
         :returns: The update state success object.
         :rtype: UpdateStateSuccess
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -554,7 +672,7 @@ class Ankaios:
         :rtype: list[Workload]
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -578,7 +696,7 @@ class Ankaios:
         :returns: The update state success object.
         :rtype: UpdateStateSuccess
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -621,7 +739,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -668,7 +786,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -709,7 +827,7 @@ class Ankaios:
         :rtype: dict
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -732,7 +850,7 @@ class Ankaios:
         :rtype: dict
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -749,7 +867,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -786,7 +904,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -833,7 +951,7 @@ class Ankaios:
         :rtype: CompleteState
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -873,7 +991,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response, in seconds.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -916,7 +1034,7 @@ class Ankaios:
         :rtype: dict
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -939,7 +1057,7 @@ class Ankaios:
         :rtype: AgentAttributes
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state or the agent is not found.
@@ -967,7 +1085,7 @@ class Ankaios:
         :rtype: WorkloadStateCollection
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -995,7 +1113,7 @@ class Ankaios:
         :rtype: WorkloadExecutionState
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -1032,7 +1150,7 @@ class Ankaios:
         :rtype: WorkloadStateCollection
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -1057,7 +1175,7 @@ class Ankaios:
         :rtype: WorkloadStateCollection
 
         :raises TimeoutError: If the request timed out.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -1092,7 +1210,7 @@ class Ankaios:
 
         :raises TimeoutError: If the request timed out or if the workload
             did not reach the state in time.
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If an error occurred while getting
             the state.
@@ -1143,7 +1261,7 @@ class Ankaios:
         :returns: The log campaign response object.
         :rtype: LogCampaignResponse
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
 
@@ -1192,7 +1310,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response, in seconds.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
         request = LogsCancelRequest(request_id=log_campaign.queue._request_id)
@@ -1230,7 +1348,7 @@ class Ankaios:
         :returns: The event queue.
         :rtype: EventQueue
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected
@@ -1274,7 +1392,7 @@ class Ankaios:
         :param timeout: The maximum time to wait for the response, in seconds.
         :type timeout: float
 
-        :raises ControlInterfaceException: If not connected.
+        :raises ConnectionException: If not connected.
         :raises TimeoutError: If the request timed out.
         :raises AnkaiosResponseError: If the response is an error.
         :raises AnkaiosProtocolException: If the response has unexpected

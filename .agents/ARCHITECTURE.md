@@ -1,17 +1,29 @@
 # Architecture (Agent Reference)
 
-Read this before making changes to `ControlInterface`, `Ankaios`, the
-protocol layer, or exception handling.
+Read this before making changes to `ControlInterfaceConnection`,
+`CommandInterfaceConnection`, `Ankaios`, the protocol layer, or exception
+handling.
 
-## Control Interface
+## Connections
 
-The SDK communicates with the Ankaios agent via a Unix socket at
-`/run/ankaios/control_interface` (two FIFOs: `input` and `output`). Messages
-are length-delimited protobuf (`_control_api` wrapping `_ank_base`).
+`Ankaios` talks to Ankaios through one of two interchangeable connections,
+both implementing the `Connection` abstract base class
+(`ankaios_sdk/_components/connection/connection.py`), picked via
+`ConnectionType` at construction time:
 
-`ControlInterface` runs a background reader thread that deserializes
-incoming messages and dispatches them to `Ankaios` via callbacks. `Ankaios`
-routes responses to the correct caller using a request-ID queue.
+- **Control Interface** (`ConnectionType.CONTROL_INTERFACE`, default) — used
+  from inside an Ankaios-managed workload. Communicates via named pipes at
+  `/run/ankaios/control_interface` (two FIFOs: `input` and `output`).
+  Messages are length-delimited protobuf (`_control_api` wrapping
+  `_ank_base`). Implemented by `ControlInterfaceConnection`.
+- **Command Interface** (`ConnectionType.COMMAND_INTERFACE`) — used from
+  outside a workload, connecting directly to the Ankaios server over gRPC.
+  Only available if the SDK was installed with the `command` extra. Implemented
+  by `CommandInterfaceConnection`.
+
+Both run a background reader thread that deserializes incoming messages and
+dispatches them to `Ankaios` via callbacks. `Ankaios` routes responses to the
+correct caller using a request-ID queue.
 
 `Ankaios` is the primary entry point, typically used as a context manager:
 
