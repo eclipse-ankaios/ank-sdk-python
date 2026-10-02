@@ -215,12 +215,12 @@ def test_get_reponse_by_id():
     assert ankaios._get_response_by_id("3344") == response
     assert ankaios._responses.empty()
 
+    ankaios._responses.put(Response(MESSAGE_BUFFER_COMPLETE_STATE))
     with pytest.raises(TimeoutError):
-        ankaios._responses.put(Response(MESSAGE_BUFFER_COMPLETE_STATE))
         ankaios._get_response_by_id("3344", timeout=0.01)
 
+    ankaios._responses.put(Response(MESSAGE_BUFFER_CONNECTION_CLOSED))
     with pytest.raises(ConnectionClosedException):
-        ankaios._responses.put(Response(MESSAGE_BUFFER_CONNECTION_CLOSED))
         ankaios._get_response_by_id("1122")
 
 
