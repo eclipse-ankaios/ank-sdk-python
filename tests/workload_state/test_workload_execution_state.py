@@ -51,7 +51,6 @@ def test_interpret_state_error():
     Test the handling of an invalid execution state in the
     WorkloadExecutionState class, ensuring it raises a ValueError.
     """
+    invalid_state = _ank_base.ExecutionState(additionalInfo="No state present")
     with pytest.raises(ValueError, match="Invalid state for workload."):
-        WorkloadExecutionState(
-            _ank_base.ExecutionState(additionalInfo="No state present")
-        )
+        WorkloadExecutionState(invalid_state)
