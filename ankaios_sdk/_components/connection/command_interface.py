@@ -105,6 +105,8 @@ class CommandInterfaceConnection(Connection):
     "(float): Seconds to wait for a single (re)connect attempt."
     SERVER_TLS_NAME = "ank-server"
     "(str): The domain name Ankaios server certificates are issued for."
+    _URL_SCHEME_PREFIXES = ("http://", "https://")
+    "(tuple): The URL scheme prefixes supported by the connection."
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
@@ -169,35 +171,21 @@ class CommandInterfaceConnection(Connection):
         self._crt_pem = crt_pem
         self._key_pem = key_pem
 
-        # The state of the connection must not be changed directly.
-        self._state_value = CommandInterfaceState.TERMINATED
+        # The state of the command interface must not be changed directly.
+        # Use the change_state method instead.
+        self._state = CommandInterfaceState.TERMINATED
         self._state_lock = threading.Lock()
+        # Serializes connect() / disconnect() so the lifecycle transitions
+        # and the resources they own cannot interleave.
+        self._lifecycle_lock = threading.Lock()
+        # Guards _channel, _call and _write_queue, which are replaced by
+        # the reconnect loop (reader thread) and read/torn down by
+        # disconnect() and write_request() (caller thread).
+        self._stream_lock = threading.Lock()
         self._channel: Optional[grpc.Channel] = None
         self._call = None
         self._write_queue: "queue.Queue" = queue.Queue()
         self._reader_thread: Optional[threading.Thread] = None
-
-    @property
-    def _state(self) -> CommandInterfaceState:
-        """
-        Get the current state of the connection.
-
-        :returns: The current state.
-        :rtype: CommandInterfaceState
-        """
-        with self._state_lock:
-            return self._state_value
-
-    @_state.setter
-    def _state(self, value: CommandInterfaceState) -> None:
-        """
-        Set the current state of the connection.
-
-        :param value: The new state to set.
-        :type value: CommandInterfaceState
-        """
-        with self._state_lock:
-            self._state_value = value
 
     @property
     def connected(self) -> bool:
@@ -208,6 +196,25 @@ class CommandInterfaceConnection(Connection):
         :rtype: bool
         """
         return self._state == CommandInterfaceState.CONNECTED
+
+    def change_state(self, state: CommandInterfaceState) -> None:
+        """
+        Change the state of the connection.
+
+        Unlike the control interface, there is no separate
+        unrecoverable state here: TERMINATED is both the initial
+        state and the one disconnect() ends in, and connect() must
+        be able to leave it again.
+
+        :param state: The new state.
+        :type state: CommandInterfaceState
+        """
+        with self._state_lock:
+            if state == self._state:
+                self._logger.debug("State is already %s.", state)
+                return
+            self._state = state
+            self._logger.debug("State changed to %s.", state)
 
     def connect(self) -> None:
         """
@@ -220,47 +227,52 @@ class CommandInterfaceConnection(Connection):
         :raises ConnectionException: If already connected, or if
             the connection could not be established.
         """
-        if self._state in (
-            CommandInterfaceState.INITIALIZED,
-            CommandInterfaceState.CONNECTED,
-            CommandInterfaceState.RECONNECTING,
-        ):
-            raise ConnectionException("Already connected.")
+        with self._lifecycle_lock:
+            if self._state in (
+                CommandInterfaceState.INITIALIZED,
+                CommandInterfaceState.CONNECTED,
+                CommandInterfaceState.RECONNECTING,
+            ):
+                raise ConnectionException("Already connected.")
 
-        # Only change the state once past the point where connecting
-        # can still fail, so a failed attempt leaves the connection
-        # exactly as it was and free to retry via a plain connect().
-        call = self._open_stream()
-        self._state = CommandInterfaceState.INITIALIZED
+            # Only change the state once past the point where connecting
+            # can still fail, so a failed attempt leaves the connection
+            # exactly as it was and free to retry via a plain connect().
+            call = self._open_stream()
+            self.change_state(CommandInterfaceState.INITIALIZED)
 
-        self._reader_thread = threading.Thread(
-            target=self._read_from_grpc, args=(call,), daemon=True
-        )
-        self._reader_thread.start()
-        self._state = CommandInterfaceState.CONNECTED
-        self._logger.debug("Connected to the Ankaios server over gRPC.")
+            self._reader_thread = threading.Thread(
+                target=self._read_from_grpc, args=(call,), daemon=True
+            )
+            self._reader_thread.start()
+            self.change_state(CommandInterfaceState.CONNECTED)
+            self._logger.debug("Connected to the Ankaios server over gRPC.")
 
     def disconnect(self) -> None:
         """
         Disconnect from the gRPC connection.
         """
-        if self._state == CommandInterfaceState.TERMINATED:
-            self._logger.debug("Already disconnected.")
-            return
+        with self._lifecycle_lock:
+            if self._state == CommandInterfaceState.TERMINATED:
+                self._logger.debug("Already disconnected.")
+                return
 
-        self._logger.debug("Disconnecting..")
-        self._state = CommandInterfaceState.TERMINATED
-        if self._call is not None:
-            self._call.cancel()
-        if self._reader_thread is not None:
-            self._reader_thread.join(timeout=2)
-            if self._reader_thread.is_alive():
-                self._logger.error("Reader thread did not stop.")
-            self._reader_thread = None
-        if self._channel is not None:
-            self._channel.close()
-            self._channel = None
-        self._call = None
+            self._logger.debug("Disconnecting..")
+            self.change_state(CommandInterfaceState.TERMINATED)
+            with self._stream_lock:
+                call = self._call
+            if call is not None:
+                call.cancel()
+            if self._reader_thread is not None:
+                self._reader_thread.join(timeout=2)
+                if self._reader_thread.is_alive():
+                    self._logger.error("Reader thread did not stop.")
+                self._reader_thread = None
+            with self._stream_lock:
+                if self._channel is not None:
+                    self._channel.close()
+                    self._channel = None
+                self._call = None
 
     def write_request(self, request: Request) -> None:
         """
@@ -271,21 +283,20 @@ class CommandInterfaceConnection(Connection):
 
         :raises ConnectionException: If not connected.
         """
-        if self._state != CommandInterfaceState.CONNECTED:
-            self._logger.error(
-                "Could not write to the gRPC connection, not connected."
+        with self._state_lock:
+            if self._state != CommandInterfaceState.CONNECTED:
+                self._logger.error(
+                    "Could not write to the gRPC connection, not connected."
+                )
+                raise ConnectionException(
+                    "Could not write to the gRPC connection, not connected."
+                )
+        # Held so the queue cannot be replaced by a concurrent reconnect
+        # between reading the reference and putting onto it.
+        with self._stream_lock:
+            self._write_queue.put(
+                _grpc_api.ToServer(request=request._to_proto())
             )
-            raise ConnectionException(
-                "Could not write to the gRPC connection, not connected."
-            )
-        self._write_queue.put(_grpc_api.ToServer(request=request._to_proto()))
-
-    # grpc's channel target is a bare host:port (or a resolver-prefixed
-    # target such as "dns:///host:port") -- it does not understand a
-    # http(s):// URL scheme. server_url is documented (and accepted)
-    # as a full URL, so the scheme is stripped here rather than
-    # pushing this onto every caller.
-    _URL_SCHEME_PREFIXES = ("http://", "https://")
 
     def _grpc_target(self) -> str:
         """
@@ -345,8 +356,8 @@ class CommandInterfaceConnection(Connection):
             ) from e
 
         stub = _grpc_api_grpc.CommandConnectionStub(channel)
-        self._write_queue = queue.Queue()
-        self._write_queue.put(
+        write_queue = queue.Queue()
+        write_queue.put(
             _grpc_api.ToServer(
                 commanderHello=_grpc_api.CommanderHello(
                     protocolVersion=str(ANKAIOS_VERSION)
@@ -354,9 +365,13 @@ class CommandInterfaceConnection(Connection):
             )
         )
 
-        call = stub.ConnectCommand(self._request_iterator())
-        self._channel = channel
-        self._call = call
+        # Held across the replacement so disconnect() and write_request()
+        # never observe a half-replaced write_queue/channel/call.
+        with self._stream_lock:
+            self._write_queue = write_queue
+            call = stub.ConnectCommand(self._request_iterator())
+            self._channel = channel
+            self._call = call
         return call
 
     def _request_iterator(self):
@@ -401,7 +416,7 @@ class CommandInterfaceConnection(Connection):
                 if self._state == CommandInterfaceState.TERMINATED:
                     return
 
-            self._state = CommandInterfaceState.RECONNECTING
+            self.change_state(CommandInterfaceState.RECONNECTING)
             self._logger.warning(
                 "Lost connection to the Ankaios server, attempting to "
                 "reconnect every %ss..",
@@ -429,7 +444,7 @@ class CommandInterfaceConnection(Connection):
             except ConnectionException as e:
                 self._logger.debug("Reconnect attempt failed: '%s'", e)
                 continue
-            self._state = CommandInterfaceState.CONNECTED
+            self.change_state(CommandInterfaceState.CONNECTED)
             self._logger.info("Reconnected to the Ankaios server.")
             return call
 

@@ -143,6 +143,26 @@ def test_connected_property_default():
     assert conn.connected is False
 
 
+def test_change_state_no_op_when_already_in_state():
+    """
+    Test that change_state() is a no-op (but still logs) when asked
+    to change to the state the connection is already in.
+    """
+    conn = _generate_test_connection()
+    conn._logger = MagicMock()
+
+    conn.change_state(CommandInterfaceState.TERMINATED)
+    conn._logger.debug.assert_called_with(
+        "State is already %s.", CommandInterfaceState.TERMINATED
+    )
+
+    conn.change_state(CommandInterfaceState.CONNECTED)
+    conn._logger.debug.assert_called_with(
+        "State changed to %s.", CommandInterfaceState.CONNECTED
+    )
+    assert conn._state == CommandInterfaceState.CONNECTED
+
+
 def test_connect_already_connected_raises():
     """
     Test that connect() raises if already connected.
@@ -485,7 +505,9 @@ def test_read_from_grpc_reconnects_on_lost_connection():
         "Error while reading from the gRPC connection: '%s'",
         first_call._error,
     )
-    conn._logger.debug.assert_not_called()
+    conn._logger.debug.assert_any_call(
+        "State changed to %s.", CommandInterfaceState.CONNECTED
+    )
 
     second_call.cancel()
     reader_thread.join(timeout=1)
