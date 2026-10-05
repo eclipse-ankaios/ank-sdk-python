@@ -362,7 +362,6 @@ class CommandInterfaceConnection(Connection):
             self._logger.info("Reconnected to the Ankaios server.")
             return call
 
-
     def change_state(self, state: CommandInterfaceState) -> None:
         """
         Change the state of the connection.
