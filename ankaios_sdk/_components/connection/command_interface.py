@@ -197,25 +197,6 @@ class CommandInterfaceConnection(Connection):
         """
         return self._state == CommandInterfaceState.CONNECTED
 
-    def change_state(self, state: CommandInterfaceState) -> None:
-        """
-        Change the state of the connection.
-
-        Unlike the control interface, there is no separate
-        unrecoverable state here: TERMINATED is both the initial
-        state and the one disconnect() ends in, and connect() must
-        be able to leave it again.
-
-        :param state: The new state.
-        :type state: CommandInterfaceState
-        """
-        with self._state_lock:
-            if state == self._state:
-                self._logger.debug("State is already %s.", state)
-                return
-            self._state = state
-            self._logger.debug("State changed to %s.", state)
-
     def connect(self) -> None:
         """
         Establish the gRPC connection to the Ankaios server.
@@ -298,39 +279,108 @@ class CommandInterfaceConnection(Connection):
                 _grpc_api.ToServer(request=request._to_proto())
             )
 
-    def _grpc_target(self) -> str:
+    def _read_from_grpc(self, call) -> None:
         """
-        Returns server_url as a bare host:port gRPC channel target.
+        Reads continuously from the gRPC bidi stream. This is meant
+        to be run in a separate thread. If the connection is lost
+        after having been established, it is retried every
+        ``RECONNECT_INTERVAL`` seconds until it succeeds or
+        :func:`disconnect` is called.
 
-        :returns: The channel target.
-        :rtype: str
+        :param call: The bidi call to read FromServer messages from.
         """
-        for prefix in self._URL_SCHEME_PREFIXES:
-            if self._server_url.startswith(prefix):
-                return self._server_url[len(prefix):]
-        return self._server_url
+        while True:
+            try:
+                for from_server in call:
+                    self._handle_from_server(from_server)
+            except grpc.RpcError as e:
+                if self._state == CommandInterfaceState.TERMINATED:
+                    # disconnect() already cancelled the call itself;
+                    # this is the expected, self-inflicted result.
+                    self._logger.debug(
+                        "gRPC connection cancelled by disconnect(): '%s'", e
+                    )
+                    return
+                self._logger.warning(
+                    "Error while reading from the gRPC connection: '%s'",
+                    e,
+                )
+            else:
+                # The stream ended without an error; still need to know
+                # whether that was disconnect()'s doing before retrying.
+                if self._state == CommandInterfaceState.TERMINATED:
+                    return
 
-    def _build_channel(self) -> grpc.Channel:
+            self.change_state(CommandInterfaceState.RECONNECTING)
+            self._logger.warning(
+                "Lost connection to the Ankaios server, attempting to "
+                "reconnect every %ss..",
+                self.RECONNECT_INTERVAL,
+            )
+            call = self._reconnect()
+            if call is None:
+                return
+
+    def _handle_from_server(self, from_server) -> None:
         """
-        Builds the (optionally mTLS-secured) gRPC channel used to
-        reach the Ankaios server.
+        Handles a decoded FromServer message and dispatches to the
+        appropriate callback.
 
-        :returns: The gRPC channel.
-        :rtype: grpc.Channel
+        :param from_server: The decoded FromServer message.
         """
-        target = self._grpc_target()
-        if self._ca_pem is None:
-            return grpc.insecure_channel(target)
+        response_type = from_server.WhichOneof("FromServerEnum")
+        if response_type == "response":
+            response = Response._from_ank_base_response(from_server.response)
+            self._dispatch_response(response)
+        elif response_type == "serverHello":
+            self._logger.debug("Received server hello.")
+        else:
+            self._logger.warning(
+                "Received unexpected message from the Ankaios server: '%s'",
+                response_type,
+            )
 
-        credentials = grpc.ssl_channel_credentials(
-            root_certificates=self._ca_pem.encode(),
-            private_key=self._key_pem.encode(),
-            certificate_chain=self._crt_pem.encode(),
-        )
-        # Ankaios server certificates are always issued for this
-        # domain name, regardless of the actual connection address.
-        options = (("grpc.ssl_target_name_override", self.SERVER_TLS_NAME),)
-        return grpc.secure_channel(target, credentials, options=options)
+    def _reconnect(self):
+        """
+        Retries opening the gRPC stream every ``RECONNECT_INTERVAL``
+        seconds until it succeeds or :func:`disconnect` is called.
+
+        :returns: The newly opened call, or None if disconnect() was
+            called while reconnecting.
+        :rtype: Optional[grpc.Call]
+        """
+        while True:
+            time.sleep(self.RECONNECT_INTERVAL)
+            if self._state == CommandInterfaceState.TERMINATED:
+                return None
+            try:
+                call = self._open_stream()
+            except ConnectionException as e:
+                self._logger.debug("Reconnect attempt failed: '%s'", e)
+                continue
+            self.change_state(CommandInterfaceState.CONNECTED)
+            self._logger.info("Reconnected to the Ankaios server.")
+            return call
+
+
+    def change_state(self, state: CommandInterfaceState) -> None:
+        """
+        Change the state of the connection.
+
+        Unlike the control interface, there is no separate
+        unrecoverable state here: TERMINATED is both the initial
+        state and the one disconnect() ends in, and connect() must
+        be able to leave it again.
+
+        :param state: The new state.
+        :type state: CommandInterfaceState
+        """
+        with self._state_lock:
+            if state == self._state:
+                self._logger.debug("State is already %s.", state)
+                return
+            self._state = state
+            self._logger.debug("State changed to %s.", state)
 
     def _open_stream(self):
         """
@@ -384,85 +434,36 @@ class CommandInterfaceConnection(Connection):
         while True:
             yield write_queue.get()
 
-    def _read_from_grpc(self, call) -> None:
+    def _build_channel(self) -> grpc.Channel:
         """
-        Reads continuously from the gRPC bidi stream. This is meant
-        to be run in a separate thread. If the connection is lost
-        after having been established, it is retried every
-        ``RECONNECT_INTERVAL`` seconds until it succeeds or
-        :func:`disconnect` is called.
+        Builds the (optionally mTLS-secured) gRPC channel used to
+        reach the Ankaios server.
 
-        :param call: The bidi call to read FromServer messages from.
+        :returns: The gRPC channel.
+        :rtype: grpc.Channel
         """
-        while True:
-            try:
-                for from_server in call:
-                    self._handle_from_server(from_server)
-            except grpc.RpcError as e:
-                if self._state == CommandInterfaceState.TERMINATED:
-                    # disconnect() already cancelled the call itself;
-                    # this is the expected, self-inflicted result.
-                    self._logger.debug(
-                        "gRPC connection cancelled by disconnect(): '%s'", e
-                    )
-                    return
-                self._logger.warning(
-                    "Error while reading from the gRPC connection: '%s'",
-                    e,
-                )
-            else:
-                # The stream ended without an error; still need to know
-                # whether that was disconnect()'s doing before retrying.
-                if self._state == CommandInterfaceState.TERMINATED:
-                    return
+        target = self._grpc_target()
+        if self._ca_pem is None:
+            return grpc.insecure_channel(target)
 
-            self.change_state(CommandInterfaceState.RECONNECTING)
-            self._logger.warning(
-                "Lost connection to the Ankaios server, attempting to "
-                "reconnect every %ss..",
-                self.RECONNECT_INTERVAL,
-            )
-            call = self._reconnect()
-            if call is None:
-                return
+        credentials = grpc.ssl_channel_credentials(
+            root_certificates=self._ca_pem.encode(),
+            private_key=self._key_pem.encode(),
+            certificate_chain=self._crt_pem.encode(),
+        )
+        # Ankaios server certificates are always issued for this
+        # domain name, regardless of the actual connection address.
+        options = (("grpc.ssl_target_name_override", self.SERVER_TLS_NAME),)
+        return grpc.secure_channel(target, credentials, options=options)
 
-    def _reconnect(self):
+    def _grpc_target(self) -> str:
         """
-        Retries opening the gRPC stream every ``RECONNECT_INTERVAL``
-        seconds until it succeeds or :func:`disconnect` is called.
+        Returns server_url as a bare host:port gRPC channel target.
 
-        :returns: The newly opened call, or None if disconnect() was
-            called while reconnecting.
-        :rtype: Optional[grpc.Call]
+        :returns: The channel target.
+        :rtype: str
         """
-        while True:
-            time.sleep(self.RECONNECT_INTERVAL)
-            if self._state == CommandInterfaceState.TERMINATED:
-                return None
-            try:
-                call = self._open_stream()
-            except ConnectionException as e:
-                self._logger.debug("Reconnect attempt failed: '%s'", e)
-                continue
-            self.change_state(CommandInterfaceState.CONNECTED)
-            self._logger.info("Reconnected to the Ankaios server.")
-            return call
-
-    def _handle_from_server(self, from_server) -> None:
-        """
-        Handles a decoded FromServer message and dispatches to the
-        appropriate callback.
-
-        :param from_server: The decoded FromServer message.
-        """
-        response_type = from_server.WhichOneof("FromServerEnum")
-        if response_type == "response":
-            response = Response._from_ank_base_response(from_server.response)
-            self._dispatch_response(response)
-        elif response_type == "serverHello":
-            self._logger.debug("Received server hello.")
-        else:
-            self._logger.warning(
-                "Received unexpected message from the Ankaios server: '%s'",
-                response_type,
-            )
+        for prefix in self._URL_SCHEME_PREFIXES:
+            if self._server_url.startswith(prefix):
+                return self._server_url[len(prefix):]
+        return self._server_url
