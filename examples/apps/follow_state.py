@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from ankaios_sdk import Ankaios, ControlInterfaceException, Workload
+from ankaios_sdk import Ankaios, ConnectionException, Workload
 from time import sleep
 import sys, signal
 
@@ -36,7 +36,7 @@ with Ankaios() as ankaios:
             complete_state = ankaios.get_state(
                 timeout=5, field_masks=["workloadStates"]
             )
-        except ControlInterfaceException as e:
+        except ConnectionException as e:
             print(f"Error while getting the state: {e}")
         else:
             # Get the workload states present in the complete_state

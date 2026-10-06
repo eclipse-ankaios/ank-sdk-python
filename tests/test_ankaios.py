@@ -20,11 +20,13 @@ This module contains unit tests for the Ankaios class in the ankaios_sdk.
 
 from io import StringIO
 import logging
+import sys
 from unittest.mock import patch, MagicMock, PropertyMock
 import pytest
 from ankaios_sdk import (
     Ankaios,
     AnkaiosLogLevel,
+    ConnectionType,
     LogEntry,
     Response,
     UpdateStateSuccess,
@@ -33,6 +35,7 @@ from ankaios_sdk import (
     WorkloadInstanceName,
     WorkloadStateCollection,
     WorkloadStateEnum,
+    ControlInterfaceConnection,
     ControlInterfaceState,
     AnkaiosProtocolException,
     AnkaiosResponseError,
@@ -52,7 +55,7 @@ from tests.response.test_response import (
     MESSAGE_BUFFER_UPDATE_SUCCESS,
     MESSAGE_BUFFER_CONNECTION_CLOSED,
     MESSAGE_BUFFER_LOGS_REQUEST_ACCEPTED,
-    MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED,
+    MESSAGE_BUFFER_LOGS_CANCEL_ACCEPTED_RESPONSE,
     MESSAGE_BUFFER_EVENTS_CANCEL_ACCEPTED_RESPONSE,
 )
 from tests.test_manifest import MANIFEST_DICT
@@ -70,13 +73,16 @@ def generate_test_ankaios() -> Ankaios:
     Returns:
         Ankaios: The Ankaios instance.
     """
-    with patch("ankaios_sdk.ControlInterface.connect") as mock_connect, patch(
-        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+    with patch(
+        "ankaios_sdk.ControlInterfaceConnection.connect"
+    ) as mock_connect, patch(
+        "ankaios_sdk.ControlInterfaceConnection.connected",
+        new_callable=PropertyMock,
     ) as mock_connected:
         mock_connected.return_value = True
         ankaios = Ankaios()
         mock_connect.assert_called_once()
-    ankaios._control_interface._state = ControlInterfaceState.CONNECTED
+    ankaios._connection._state = ControlInterfaceState.CONNECTED
     return ankaios
 
 
@@ -104,11 +110,12 @@ def test_connect_disconnect():
     Test the connect and disconnect of the Ankaios class.
     """
     with patch(
-        "ankaios_sdk.ControlInterface.connect"
+        "ankaios_sdk.ControlInterfaceConnection.connect"
     ) as mock_ci_connect, patch(
-        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+        "ankaios_sdk.ControlInterfaceConnection.connected",
+        new_callable=PropertyMock,
     ) as mock_ci_connected, patch(
-        "ankaios_sdk.ControlInterface.disconnect"
+        "ankaios_sdk.ControlInterfaceConnection.disconnect"
     ) as mock_ci_disconnect:
         mock_ci_connected.return_value = True
         with Ankaios() as ankaios:
@@ -123,11 +130,12 @@ def test_connection_timeout():
     Test the connection timeout case.
     """
     with patch("time.time") as mock_time, patch("time.sleep"), patch(
-        "ankaios_sdk.ControlInterface.connect"
+        "ankaios_sdk.ControlInterfaceConnection.connect"
     ) as mock_ci_connect, patch(
-        "ankaios_sdk.ControlInterface.disconnect"
+        "ankaios_sdk.ControlInterfaceConnection.disconnect"
     ) as _, patch(
-        "ankaios_sdk.ControlInterface.connected", new_callable=PropertyMock
+        "ankaios_sdk.ControlInterfaceConnection.connected",
+        new_callable=PropertyMock,
     ) as mock_ci_connected:
         # The first 2 values are needed to call the sleep
         # The last 2 values are needed to exceed the timeout properly
@@ -138,10 +146,80 @@ def test_connection_timeout():
         mock_ci_connect.assert_called_once()
 
 
+def test_create_connection_default_is_control_interface():
+    """
+    Test that the default connection_type builds a ControlInterfaceConnection.
+    """
+    ankaios = generate_test_ankaios()
+    assert isinstance(ankaios._connection, ControlInterfaceConnection)
+
+
+def test_create_connection_grpc_missing_server_url_raises():
+    """
+    Test that using ConnectionType.COMMAND_INTERFACE without a
+    server_url raises ValueError before any connection is attempted.
+    """
+    with pytest.raises(ValueError, match="server_url is required"):
+        Ankaios(connection_type=ConnectionType.COMMAND_INTERFACE)
+
+
+def test_create_connection_grpc_missing_dependency_raises_import_error():
+    """
+    Test that using ConnectionType.COMMAND_INTERFACE without the 'command'
+    extra installed raises a clear ImportError.
+    """
+    with patch.dict(
+        sys.modules,
+        {"ankaios_sdk._components.connection.command_interface": None},
+    ):
+        with pytest.raises(
+            ImportError, match="pip install ankaios-sdk\\[command\\]"
+        ):
+            Ankaios(
+                connection_type=ConnectionType.COMMAND_INTERFACE,
+                server_url="http://127.0.0.1:25551",
+            )
+
+
+def test_create_connection_grpc_success():
+    """
+    Test that Ankaios builds and connects a CommandInterfaceConnection
+    when using ConnectionType.COMMAND_INTERFACE, wiring in its own
+    callbacks and the given gRPC-specific arguments.
+    """
+    with patch(
+        "ankaios_sdk._components.connection.command_interface."
+        "CommandInterfaceConnection"
+    ) as mock_grpc_connection_cls:
+        mock_instance = MagicMock()
+        mock_instance.connected = True
+        mock_grpc_connection_cls.return_value = mock_instance
+
+        ankaios = Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="http://127.0.0.1:25551",
+            ca_pem="ca-secret",
+            crt_pem="crt-secret",
+            key_pem="key-secret",
+        )
+
+        mock_grpc_connection_cls.assert_called_once_with(
+            "http://127.0.0.1:25551",
+            add_response_callback=ankaios._add_response,
+            add_log_callback=ankaios._add_logs,
+            add_event_callback=ankaios._add_events,
+            ca_pem="ca-secret",
+            crt_pem="crt-secret",
+            key_pem="key-secret",
+        )
+        mock_instance.connect.assert_called_once()
+        assert ankaios._connection is mock_instance
+
+
 def test_add_response():
     """
     Test the _add_response method of the Ankaios class.
-    This method is called from the ControlInterface when a response
+    This method is called from the ControlInterfaceConnection when a response
     is received.
     """
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
@@ -157,7 +235,7 @@ def test_add_response():
 def test_add_logs():
     """
     Test the _add_logs method of the Ankaios class.
-    This method is called from the ControlInterface when a response
+    This method is called from the ControlInterfaceConnection when a response
     of type Logs Entries is received.
     """
     log_entries = [
@@ -182,7 +260,7 @@ def test_add_logs():
 def test_add_events():
     """
     Test the _add_events method of the Ankaios class.
-    This method is called from the ControlInterface when a response
+    This method is called from the ControlInterfaceConnection when a response
     of type EventEntry is received.
     """
     event_entry = generate_test_event_entry()
@@ -232,7 +310,7 @@ def test_send_request():
 
     request = generate_test_request()
     with patch(
-        "ankaios_sdk.ControlInterface.write_request"
+        "ankaios_sdk.ControlInterfaceConnection.write_request"
     ) as mock_write, patch(
         "ankaios_sdk.Ankaios._get_response_by_id"
     ) as mock_get_response:
@@ -243,7 +321,7 @@ def test_send_request():
         )
 
     with patch(
-        "ankaios_sdk.ControlInterface.write_request"
+        "ankaios_sdk.ControlInterfaceConnection.write_request"
     ) as mock_write, patch(
         "ankaios_sdk.Ankaios._get_response_by_id"
     ) as mock_get_response:
@@ -1027,7 +1105,7 @@ def test_stop_receiving_logs():
     # Test success
     with patch("ankaios_sdk.Ankaios._send_request") as mock_send_request:
         mock_send_request.return_value = Response(
-            MESSAGE_BUFFER_LOGS_CANCEL_REQUEST_ACCEPTED
+            MESSAGE_BUFFER_LOGS_CANCEL_ACCEPTED_RESPONSE
         )
         cancel_request = LogsCancelRequest(log_campaign.queue._request_id)
         ankaios.stop_receiving_logs(log_campaign)

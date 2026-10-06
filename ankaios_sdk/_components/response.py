@@ -91,6 +91,8 @@ from .workload_state import WorkloadInstanceName
 
 logger = get_logger()
 
+_LOG_RESPONSE_RECEIVED = "Got response of type '%s' with request id '%s'"
+
 
 class Response:
     """
@@ -134,8 +136,7 @@ class Response:
             logger.error("Error parsing the received message: %s", e)
             raise ResponseException(f"Parsing error: '{e}'") from e
         if from_ankaios.HasField("response"):
-            self._response = from_ankaios.response
-            self._from_proto()
+            self._from_ank_base(from_ankaios.response)
         elif from_ankaios.HasField("controlInterfaceAccepted"):
             self.content_type = ResponseType.CONTROL_INTERFACE_ACCEPTED
         elif from_ankaios.HasField("connectionClosed"):
@@ -146,10 +147,102 @@ class Response:
                 "Invalid response type."
             )
         logger.debug(
-            "Got response of type '%s' with request id '%s'",
+            _LOG_RESPONSE_RECEIVED,
             self.content_type,
             self.get_request_id(),
         )
+
+    def _from_ank_base(self, ank_base_response: _ank_base.Response) -> None:
+        """
+        Converts an already-decoded ank_base.Response into this
+        Response's content. Shared by every connection (control
+        interface, gRPC), since ank_base.Response carries no
+        envelope-specific concepts of its own.
+
+        :param ank_base_response: The decoded ank_base Response message.
+        :type ank_base_response: _ank_base.Response
+        """
+        self._response = ank_base_response
+        self._from_proto()
+
+    @classmethod
+    def _from_ank_base_response(
+        cls, ank_base_response: _ank_base.Response
+    ) -> "Response":
+        """
+        Creates a Response directly from an already-decoded
+        ank_base.Response message. Used by every connection
+        implementation once it has unwrapped its own envelope (e.g.
+        gRPC's FromServer, or the control interface's FromAnkaios) and
+        found the actual response payload, so the ank_base-specific
+        parsing in :func:`_from_proto` is never duplicated.
+
+        :param ank_base_response: The decoded ank_base Response message.
+        :type ank_base_response: _ank_base.Response
+
+        :returns: The constructed Response object.
+        :rtype: Response
+        """
+        response = cls.__new__(cls)
+        response.buffer = None
+        response.content_type = None
+        response.content = None
+        response._from_ank_base(ank_base_response)
+        logger.debug(
+            _LOG_RESPONSE_RECEIVED,
+            response.content_type,
+            response.get_request_id(),
+        )
+        return response
+
+    @classmethod
+    def _control_interface_accepted(cls) -> "Response":
+        """
+        Creates a Response representing the control interface's
+        handshake-accepted message. Carries no ank_base.Response
+        payload, since this is a concept specific to the control
+        interface's own envelope.
+
+        :returns: The constructed Response object.
+        :rtype: Response
+        """
+        response = cls.__new__(cls)
+        response.buffer = None
+        response._response = None
+        response.content_type = ResponseType.CONTROL_INTERFACE_ACCEPTED
+        response.content = None
+        logger.debug(
+            _LOG_RESPONSE_RECEIVED,
+            response.content_type,
+            response.get_request_id(),
+        )
+        return response
+
+    @classmethod
+    def _connection_closed(cls, reason: str) -> "Response":
+        """
+        Creates a Response representing the control interface's
+        connection-closed message. Carries no ank_base.Response
+        payload, since this is a concept specific to the control
+        interface's own envelope.
+
+        :param reason: The reason the connection was closed.
+        :type reason: str
+
+        :returns: The constructed Response object.
+        :rtype: Response
+        """
+        response = cls.__new__(cls)
+        response.buffer = None
+        response._response = None
+        response.content_type = ResponseType.CONNECTION_CLOSED
+        response.content = reason
+        logger.debug(
+            _LOG_RESPONSE_RECEIVED,
+            response.content_type,
+            response.get_request_id(),
+        )
+        return response
 
     # pylint: disable=too-many-branches
     def _from_proto(self) -> None:

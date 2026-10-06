@@ -23,7 +23,9 @@
    file
    log_campaign
    event_campaign
+   connection
    control_interface
+   command_interface
    utils
    exceptions
 
