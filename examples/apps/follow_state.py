@@ -12,9 +12,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from ankaios_sdk import Ankaios, ConnectionException, Workload
+from ankaios_sdk import Ankaios, ConnectionException
 from time import sleep
-import sys, signal
+import signal
 
 # Create a new Ankaios object.
 # The connection to the control interface is automatically done at this step.
