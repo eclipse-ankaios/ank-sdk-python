@@ -772,17 +772,18 @@ def test_write_to_pipe():
         add_log_callback=lambda _: None,
         add_event_callback=lambda _: None,
     )
+    request = _control_api.FromAnkaios()
 
     ci._output_file = None
     with pytest.raises(
         ConnectionException, match="Could not write to pipe"
     ):
-        ci._write_to_pipe(_control_api.FromAnkaios())
+        ci._write_to_pipe(request)
 
     output_file = MagicMock()
     ci._output_file = output_file
 
-    ci._write_to_pipe(_control_api.FromAnkaios())
+    ci._write_to_pipe(request)
 
     output_file.write.assert_called()
     output_file.flush.assert_called_once()
@@ -801,12 +802,13 @@ def test_write_to_pipe_closed_output_file():
     output_file = MagicMock()
     output_file.write.side_effect = ValueError("write to closed file")
     ci._output_file = output_file
+    request = _control_api.FromAnkaios()
 
     with pytest.raises(
         ConnectionException,
         match="Could not write to pipe, output file closed.",
     ):
-        ci._write_to_pipe(_control_api.FromAnkaios())
+        ci._write_to_pipe(request)
 
 
 def test_write_request():
