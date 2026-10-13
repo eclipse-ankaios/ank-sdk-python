@@ -29,7 +29,8 @@ PROTO_FILES = [
 # gRPC client library and codegen tooling, needed both to actually run
 # the gRPC connection and to develop/test it (hence reused in "dev").
 COMMAND_REQUIRES = [
-    "grpcio-tools==1.76.0",
+    'grpcio-tools==1.76.0; python_version < "3.15"',
+    'grpcio-tools==1.84.0; python_version >= "3.15"',
 ]
 
 config = configparser.ConfigParser()
@@ -166,12 +167,15 @@ setup(
         "Bug Tracker": "https://github.com/eclipse-ankaios/ank-sdk-python/issues",
     },
     install_requires=[
-        "protobuf==6.33.5",  # Protocol Buffers
+        'protobuf==6.33.5; python_version < "3.15"',
+        'protobuf==7.36.2; python_version >= "3.15"',
         "PyYAML",  # Used to parse manifest files
     ],
     setup_requires=[
-        "protobuf==6.33.5",  # Protocol Buffers
-        "grpcio-tools==1.76.0",  # Needed for an OS independent protoc
+        'protobuf==6.33.5; python_version < "3.15"',
+        'protobuf==7.36.2; python_version >= "3.15"',
+        'grpcio-tools==1.76.0; python_version < "3.15"',
+        'grpcio-tools==1.84.0; python_version >= "3.15"',
         "requests",  # Used to download the proto files
     ],
     extras_require={
