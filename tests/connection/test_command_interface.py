@@ -17,6 +17,7 @@ This module contains unit tests for the CommandInterfaceConnection class in the
 ankaios_sdk.
 """
 
+import queue
 import threading
 import time
 from unittest.mock import MagicMock, patch
@@ -257,7 +258,8 @@ def test_connect_write_and_disconnect_success():
         conn.disconnect()
         assert conn.connected is False
         assert fake_call.cancelled.is_set()
-        assert conn._reader_thread is None
+        # Kept so a later connect() can check it has stopped.
+        assert not conn._reader_thread.is_alive()
 
         # Disconnecting again is a no-op.
         conn.disconnect()
@@ -280,6 +282,27 @@ def test_open_stream_channel_not_ready_raises():
             ConnectionException, match="Could not connect"
         ):
             conn._open_stream()
+
+
+def test_open_stream_channel_not_ready_closes_channel():
+    """
+    Test that _open_stream() closes the channel it built when the
+    channel does not become ready in time, so failed (re)connect
+    attempts do not leak channels.
+    """
+    with patch("grpc.insecure_channel") as mock_channel, patch(
+        "grpc.channel_ready_future"
+    ) as mock_ready:
+        channel = MagicMock()
+        mock_channel.return_value = channel
+        mock_ready.return_value = MagicMock(
+            result=MagicMock(side_effect=grpc.FutureTimeoutError())
+        )
+        conn = _generate_test_connection()
+        with pytest.raises(ConnectionException):
+            conn._open_stream()
+
+    channel.close.assert_called_once()
 
 
 def test_build_channel_insecure():
@@ -344,11 +367,11 @@ def test_request_iterator():
     Test that _request_iterator() yields exactly the queued messages,
     in order.
     """
-    conn = _generate_test_connection()
-    conn._write_queue.put("message_1")
-    conn._write_queue.put("message_2")
+    write_queue = queue.Queue()
+    write_queue.put("message_1")
+    write_queue.put("message_2")
 
-    iterator = conn._request_iterator()
+    iterator = CommandInterfaceConnection._request_iterator(write_queue)
     assert next(iterator) == "message_1"
     assert next(iterator) == "message_2"
 
@@ -457,15 +480,15 @@ def test_handle_from_server_ignores_non_response_messages():
     conn._add_event_callback.assert_not_called()
 
 
-def test_read_from_grpc_stops_on_terminated_state():
+def test_read_from_grpc_stops_on_disconnect():
     """
     Test that the reader loop returns without attempting a reconnect
-    if the connection was terminated (disconnect() was called), and
-    logs the resulting RpcError at debug level, since it's the
-    expected result of disconnect()'s own call.cancel().
+    if disconnect() was called, and logs the resulting RpcError at
+    debug level, since it's the expected result of disconnect()'s own
+    call.cancel().
     """
     conn = _generate_test_connection()
-    conn._state = CommandInterfaceState.TERMINATED
+    conn._stop_event.set()
     conn._logger = MagicMock()
     fake_call = _FakeCall(error=grpc.RpcError("boom"))
 
@@ -493,7 +516,11 @@ def test_read_from_grpc_reconnects_on_lost_connection():
 
     with patch.object(
         CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
-    ), patch.object(conn, "_open_stream", return_value=second_call):
+    ), patch.object(
+        conn,
+        "_open_stream",
+        return_value=(MagicMock(), second_call, queue.Queue()),
+    ):
         reader_thread = threading.Thread(
             target=conn._read_from_grpc, args=(first_call,), daemon=True
         )
@@ -509,18 +536,20 @@ def test_read_from_grpc_reconnects_on_lost_connection():
         "State changed to %s.", CommandInterfaceState.CONNECTED
     )
 
+    conn._stop_event.set()
     second_call.cancel()
     reader_thread.join(timeout=1)
+    assert not reader_thread.is_alive()
 
 
-def test_reconnect_gives_up_when_terminated():
+def test_reconnect_gives_up_when_disconnected():
     """
     Test that _reconnect() gives up (returns None) as soon as it
-    notices the connection was terminated, without attempting to
-    reopen the stream.
+    notices disconnect() was called, without attempting to reopen
+    the stream.
     """
     conn = _generate_test_connection()
-    conn._state = CommandInterfaceState.TERMINATED
+    conn._stop_event.set()
 
     with patch.object(
         CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
@@ -537,9 +566,14 @@ def test_reconnect_retries_until_success():
     """
     conn = _generate_test_connection()
     conn._state = CommandInterfaceState.RECONNECTING
+    channel = MagicMock()
     fake_call = _FakeCall()
+    write_queue = queue.Queue()
 
-    attempts = [ConnectionException("still down"), fake_call]
+    attempts = [
+        ConnectionException("still down"),
+        (channel, fake_call, write_queue),
+    ]
 
     def _fake_open_stream():
         attempt = attempts.pop(0)
@@ -554,6 +588,67 @@ def test_reconnect_retries_until_success():
 
     assert result is fake_call
     assert conn._state == CommandInterfaceState.CONNECTED
+    assert conn._channel is channel
+    assert conn._call is fake_call
+    assert conn._write_queue is write_queue
+    channel.close.assert_not_called()
+
+
+def test_reconnect_closes_replaced_channel():
+    """
+    Test that a successful reconnect closes the channel of the lost
+    connection it replaces.
+    """
+    conn = _generate_test_connection()
+    conn._state = CommandInterfaceState.RECONNECTING
+    old_channel = MagicMock()
+    conn._channel = old_channel
+    new_channel = MagicMock()
+
+    with patch.object(
+        CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
+    ), patch.object(
+        conn,
+        "_open_stream",
+        return_value=(new_channel, _FakeCall(), queue.Queue()),
+    ):
+        conn._reconnect()
+
+    old_channel.close.assert_called_once()
+    new_channel.close.assert_not_called()
+    assert conn._channel is new_channel
+
+
+def test_reconnect_discarded_when_disconnected_while_opening():
+    """
+    Test that a stream opened by _reconnect() is discarded (call
+    cancelled, channel closed) instead of being stored when
+    disconnect() was called while it was being opened, so the
+    connection is not brought back to life.
+    """
+    conn = _generate_test_connection()
+    conn._state = CommandInterfaceState.RECONNECTING
+    channel = MagicMock()
+    fake_call = _FakeCall()
+
+    def _open_stream_racing_disconnect():
+        conn._state = CommandInterfaceState.TERMINATED
+        conn._stop_event.set()
+        return channel, fake_call, queue.Queue()
+
+    with patch.object(
+        CommandInterfaceConnection, "RECONNECT_INTERVAL", 0.01
+    ), patch.object(
+        conn, "_open_stream", side_effect=_open_stream_racing_disconnect
+    ):
+        result = conn._reconnect()
+
+    assert result is None
+    assert fake_call.cancelled.is_set()
+    channel.close.assert_called_once()
+    assert conn._call is None
+    assert conn._channel is None
+    assert conn._state == CommandInterfaceState.TERMINATED
 
 
 def test_read_from_grpc_dispatches_messages():
@@ -572,7 +667,7 @@ def test_read_from_grpc_dispatches_messages():
     reader_thread.start()
     time.sleep(0.05)
 
-    conn._state = CommandInterfaceState.TERMINATED
+    conn._stop_event.set()
     fake_call.cancel()
     reader_thread.join(timeout=1)
     assert not reader_thread.is_alive()
@@ -589,6 +684,23 @@ def test_read_from_grpc_stops_when_reconnect_gives_up():
 
     with patch.object(conn, "_reconnect", return_value=None):
         conn._read_from_grpc(fake_call)
+
+
+def test_read_from_grpc_stream_end_after_disconnect():
+    """
+    Test that the reader loop returns without attempting a reconnect
+    or changing the state when the stream ends without an error after
+    disconnect() was called.
+    """
+    conn = _generate_test_connection()
+    conn._stop_event.set()
+    fake_call = _FakeCall()
+    fake_call.cancel()
+
+    with patch.object(conn, "_reconnect") as mock_reconnect:
+        conn._read_from_grpc(fake_call)
+        mock_reconnect.assert_not_called()
+    assert conn._state == CommandInterfaceState.TERMINATED
 
 
 def test_disconnect_logs_error_when_reader_thread_does_not_stop():
@@ -622,3 +734,25 @@ def test_disconnect_logs_error_when_reader_thread_does_not_stop():
         conn._logger.error.assert_called_once_with(
             "Reader thread did not stop."
         )
+        # Kept so a following connect() is refused.
+        assert conn._reader_thread is mock_thread_instance
+
+
+def test_connect_refuses_while_previous_reader_alive():
+    """
+    Test that connect() refuses to start while the reader thread of a
+    previous connection is still alive, since it could otherwise
+    reconnect and replace the new connection's stream.
+    """
+    conn = _generate_test_connection()
+    conn._reader_thread = MagicMock()
+    conn._reader_thread.is_alive.return_value = True
+
+    with patch.object(conn, "_open_stream") as mock_open_stream, pytest.raises(
+        ConnectionException,
+        match="Previous connection is still shutting down.",
+    ):
+        conn.connect()
+
+    mock_open_stream.assert_not_called()
+    assert conn._state == CommandInterfaceState.TERMINATED

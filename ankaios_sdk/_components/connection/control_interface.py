@@ -104,6 +104,13 @@ class ControlInterfaceConnection(Connection):
     AGENT_RECONNECT_INTERVAL_SEC = 1
     "(int): Seconds to wait between hello retries while the agent is gone."
 
+    _ACTIVE_STATES = (
+        ControlInterfaceState.INITIALIZED,
+        ControlInterfaceState.CONNECTED,
+        ControlInterfaceState.AGENT_DISCONNECTED,
+    )
+    "(tuple): The states in which a reader thread is running."
+
     def __init__(
         self,
         add_response_callback: Callable,
@@ -127,21 +134,17 @@ class ControlInterfaceConnection(Connection):
         super().__init__(
             add_response_callback, add_log_callback, add_event_callback
         )
-        self._input_file = None
-        self._output_file = None
         # The state of the control interface must not be changed directly.
         # Use the change_state method instead.
         self._state = ControlInterfaceState.TERMINATED
-        self._state_lock = threading.Lock()
-        # Serializes connect() / disconnect() so the lifecycle transitions
-        # and the resources they own cannot interleave.
-        self._lifecycle_lock = threading.Lock()
-        # Guards the output file handle and every write to it, so a write
-        # can never race the handle being closed or another writer.
+        # Guards _state, _output_file and _read_thread. Never held across
+        # a fifo write or a thread join.
+        self._lock = threading.Lock()
+        # Held across every framed write and around closing the output
+        # file, so a write can never be split by another writer or have
+        # its file closed underneath it. Never taken while holding _lock.
         self._write_lock = threading.Lock()
-        # Serializes _cleanup() when the reader thread and a caller both
-        # reach it.
-        self._cleanup_lock = threading.Lock()
+        self._output_file = None
         self._read_thread = None
         self._disconnect_event = threading.Event()
 
@@ -162,12 +165,16 @@ class ControlInterfaceConnection(Connection):
 
         :raises ConnectionException: If an error occurred.
         """
-        with self._lifecycle_lock:
-            if self._state in [
-                ControlInterfaceState.INITIALIZED,
-                ControlInterfaceState.CONNECTED,
-            ]:
+        with self._lock:
+            if self._state in self._ACTIVE_STATES:
                 raise ConnectionException("Already connected.")
+            # Only one reader thread may ever run: a previous one that did
+            # not stop in time would otherwise read the same fifo and tear
+            # down this connection's resources when it finally exits.
+            if self._read_thread is not None and self._read_thread.is_alive():
+                raise ConnectionException(
+                    "Previous connection is still shutting down."
+                )
 
             if not os.path.exists(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input"
@@ -200,57 +207,74 @@ class ControlInterfaceConnection(Connection):
             # A previous disconnect leaves the event set; clear it so the
             # new reader thread is not stopped immediately.
             self._disconnect_event.clear()
+            # Set before the reader starts, so a reader that fails right
+            # away cannot have its TERMINATED overwritten.
+            self._set_state(ControlInterfaceState.INITIALIZED)
             self._read_thread = threading.Thread(
                 target=self._read_from_control_interface, daemon=True
             )
             self._read_thread.start()
-            self.change_state(ControlInterfaceState.INITIALIZED)
 
-        # Released the lifecycle lock: the hello write can block on the
-        # fifo and must not hold off a concurrent disconnect().
+        # Sent without holding the lock: the hello write can block on
+        # the fifo and must not hold off a concurrent disconnect().
         self._send_initial_hello()
 
     def disconnect(self) -> None:
         """
         Disconnect from the control interface.
         """
-        with self._lifecycle_lock:
-            if self._state not in [
-                ControlInterfaceState.INITIALIZED,
-                ControlInterfaceState.CONNECTED,
-            ]:
+        with self._lock:
+            if self._state not in self._ACTIVE_STATES:
                 self._logger.debug("Already disconnected.")
                 return
 
             self._logger.debug("Disconnecting..")
             self._disconnect_event.set()
-            if self._read_thread is not None:
-                self._read_thread.join(timeout=2)
-                if self._read_thread.is_alive():
-                    self._logger.error("Read thread did not stop.")
-                self._read_thread = None
-            self._cleanup()
+            output_file = self._detach_resources()
+            # Kept even if it does not stop in time, so connect() can
+            # refuse to start a second reader while it is still alive.
+            read_thread = self._read_thread
+
+        # The resources are detached, so the slow teardown runs unlocked.
+        if read_thread is not None:
+            read_thread.join(timeout=2)
+            if read_thread.is_alive():
+                self._logger.error("Read thread did not stop.")
+        self._close_output_file(output_file)
 
     def _cleanup(self) -> None:
         """
-        Clean up the resources.
-
-        Safe to call from both the reader thread and a caller thread: the
-        lock serializes the two and the None checks make a repeat call a
-        no-op.
+        Clean up the resources. Called by the reader thread when it
+        stops; a no-op if disconnect() already cleaned up.
         """
-        with self._cleanup_lock:
-            self.change_state(ControlInterfaceState.TERMINATED)
-            with self._write_lock:
-                if self._output_file is not None:
-                    self._output_file.close()
-                    self._output_file = None
-            # Normally the reader thread reaches this via its finally block;
-            # a stuck or already-gone thread lets a caller close it instead.
-            if self._input_file is not None:
-                self._input_file.close()
-                self._input_file = None
-            self._logger.debug("Cleanup happened")
+        with self._lock:
+            output_file = self._detach_resources()
+        self._close_output_file(output_file)
+        self._logger.debug("Cleanup happened")
+
+    def _detach_resources(self):
+        """
+        Marks the connection as terminated and detaches the output
+        file from it. The caller must hold the lock.
+
+        :returns: The detached output file (or None if already
+            detached), to be closed once the lock is released.
+        """
+        self._set_state(ControlInterfaceState.TERMINATED)
+        output_file, self._output_file = self._output_file, None
+        return output_file
+
+    def _close_output_file(self, output_file) -> None:
+        """
+        Closes a detached output file, waiting for any write in
+        progress on it to finish first.
+
+        :param output_file: The output file to close, or None.
+        """
+        if output_file is None:
+            return
+        with self._write_lock:
+            output_file.close()
 
     def change_state(
         self, state: ControlInterfaceState, info: str = None
@@ -263,18 +287,49 @@ class ControlInterfaceConnection(Connection):
         :param info: Additional information about the state change.
         :type info: str
         """
-        with self._state_lock:
-            if state == self._state:
-                self._logger.debug("State is already %s.", state)
-                return
-            if self._state == ControlInterfaceState.CONNECTION_CLOSED:
-                self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
-                return
-            self._state = state
-            if info is None:
-                self._logger.debug("State changed to %s.", state)
-            else:
-                self._logger.debug("State changed to %s: %s", state, info)
+        with self._lock:
+            self._set_state(state, info)
+
+    def _change_state_from_reader(
+        self, state: ControlInterfaceState, info: str = None
+    ) -> None:
+        """
+        Change the state of the control interface on behalf of the
+        reader thread, unless a disconnect was requested, so the reader
+        cannot overwrite the TERMINATED state set by disconnect().
+
+        :param state: The new state.
+        :type state: ControlInterfaceState
+        :param info: Additional information about the state change.
+        :type info: str
+        """
+        with self._lock:
+            if not self._disconnect_event.is_set():
+                self._set_state(state, info)
+
+    def _set_state(
+        self, state: ControlInterfaceState, info: str = None
+    ) -> None:
+        """
+        Change the state of the control interface. The caller must
+        hold the lock.
+
+        :param state: The new state.
+        :type state: ControlInterfaceState
+        :param info: Additional information about the state change.
+        :type info: str
+        """
+        if state == self._state:
+            self._logger.debug("State is already %s.", state)
+            return
+        if self._state == ControlInterfaceState.CONNECTION_CLOSED:
+            self._logger.debug("State CONNECTION_CLOSED is unrecoverable.")
+            return
+        self._state = state
+        if info is None:
+            self._logger.debug("State changed to %s.", state)
+        else:
+            self._logger.debug("State changed to %s: %s", state, info)
 
     # pylint: disable=too-many-statements, too-many-branches
     def _read_from_control_interface(self) -> None:
@@ -282,6 +337,7 @@ class ControlInterfaceConnection(Connection):
         Reads from the control interface input fifo.
         This is meant to be run in a separate thread.
         The responses are then sent to the Ankaios class to be handled.
+        The input fifo is opened and closed by this thread alone.
 
         :raises ConnectionException: If an error occurs
             while reading the fifo.
@@ -295,7 +351,7 @@ class ControlInterfaceConnection(Connection):
 
         # pylint: disable=consider-using-with
         try:
-            self._input_file = open(
+            input_file = open(
                 f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb"
             )
         except Exception as e:
@@ -308,14 +364,14 @@ class ControlInterfaceConnection(Connection):
             raise ConnectionException(
                 "Error while opening input fifo."
             ) from e
-        os.set_blocking(self._input_file.fileno(), False)
+        os.set_blocking(input_file.fileno(), False)
 
         try:
             self._logger.debug("Started reading from the input pipe.")
             while not self._disconnect_event.is_set():
                 # The loop continues when data is available or when the
                 # timeout of 1 second is reached.
-                ready, _, _ = select.select([self._input_file], [], [], 1)
+                ready, _, _ = select.select([input_file], [], [], 1)
                 if not ready:  # pragma: no cover
                     continue
 
@@ -323,7 +379,7 @@ class ControlInterfaceConnection(Connection):
                 varint_buffer = bytearray()
                 while not self._disconnect_event.is_set():
                     # Consume byte for byte
-                    next_byte = self._input_file.read(1)
+                    next_byte = input_file.read(1)
                     if not next_byte:  # pragma: no cover
                         break
                     varint_buffer += next_byte
@@ -332,7 +388,9 @@ class ControlInterfaceConnection(Connection):
                         break
 
                 if not varint_buffer:
-                    self.change_state(ControlInterfaceState.AGENT_DISCONNECTED)
+                    self._change_state_from_reader(
+                        ControlInterfaceState.AGENT_DISCONNECTED
+                    )
                     self._logger.warning(
                         "Nothing to read from the input fifo pipe."
                     )
@@ -345,7 +403,7 @@ class ControlInterfaceConnection(Connection):
                 msg_buf = bytearray()
                 for _ in range(msg_len):
                     # Read the message according to the length
-                    next_byte = self._input_file.read(1)
+                    next_byte = input_file.read(1)
                     if not next_byte:  # pragma: no cover
                         break
                     msg_buf += next_byte
@@ -361,8 +419,7 @@ class ControlInterfaceConnection(Connection):
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error("Error while reading fifo file: %s", e)
         finally:
-            # _cleanup() closes the input file under its lock so it cannot
-            # race a concurrent disconnect() touching the same handle.
+            input_file.close()
             self._cleanup()
 
     @staticmethod
@@ -421,10 +478,12 @@ class ControlInterfaceConnection(Connection):
                 self._logger.debug(
                     "Received control interface accepted response."
                 )
-                self.change_state(ControlInterfaceState.CONNECTED)
+                self._change_state_from_reader(
+                    ControlInterfaceState.CONNECTED
+                )
             elif response.content_type == ResponseType.CONNECTION_CLOSED:
                 self._add_response_callback(response)
-                self.change_state(
+                self._change_state_from_reader(
                     ControlInterfaceState.CONNECTION_CLOSED,
                     response.content,
                 )
@@ -444,7 +503,7 @@ class ControlInterfaceConnection(Connection):
             # Check if the response is connection closed in order to
             # terminate the thread.
             if response.content_type == ResponseType.CONNECTION_CLOSED:
-                self.change_state(
+                self._change_state_from_reader(
                     ControlInterfaceState.CONNECTION_CLOSED,
                     response.content,
                 )
@@ -483,7 +542,9 @@ class ControlInterfaceConnection(Connection):
                     self.AGENT_RECONNECT_INTERVAL_SEC
                 )
             else:
-                self.change_state(ControlInterfaceState.INITIALIZED)
+                self._change_state_from_reader(
+                    ControlInterfaceState.INITIALIZED
+                )
                 break
 
     def _write_to_pipe(self, to_ankaios: _control_api.ToAnkaios) -> None:
@@ -494,25 +555,34 @@ class ControlInterfaceConnection(Connection):
         :param to_ankaios: The ToAnkaios proto message.
         :type to_ankaios: _control_api.ToAnkaios
 
-        :raises ConnectionException: If the output pipe is None.
+        :raises ConnectionException: If the output pipe is None, or
+            was closed by a disconnect before the write.
         """
-        # Held across the whole write so the length prefix and the payload
-        # cannot be split by another writer, and so the handle cannot be
-        # closed mid-write by _cleanup().
-        with self._write_lock:
-            if self._output_file is None:
-                self._logger.error(
-                    "Could not write to pipe, output file handler is None."
-                )
-                raise ConnectionException(
-                    "Could not write to pipe, output file handler is None."
-                )
+        with self._lock:
+            output_file = self._output_file
+        if output_file is None:
+            self._logger.error(
+                "Could not write to pipe, output file handler is None."
+            )
+            raise ConnectionException(
+                "Could not write to pipe, output file handler is None."
+            )
 
-            # Adds the byte length of the proto msg
-            self._output_file.write(_VarintBytes(to_ankaios.ByteSize()))
-            # Adds the proto msg itself
-            self._output_file.write(to_ankaios.SerializeToString())
-            self._output_file.flush()
+        # Held across the whole write so the length prefix and the payload
+        # cannot be split by another writer, and so the file cannot be
+        # closed mid-write.
+        with self._write_lock:
+            try:
+                # Adds the byte length of the proto msg
+                output_file.write(_VarintBytes(to_ankaios.ByteSize()))
+                # Adds the proto msg itself
+                output_file.write(to_ankaios.SerializeToString())
+                output_file.flush()
+            except ValueError as e:
+                # A disconnect closed the file after we took it.
+                raise ConnectionException(
+                    "Could not write to pipe, output file closed."
+                ) from e
 
     def write_request(self, request: Request) -> None:
         """
@@ -524,7 +594,7 @@ class ControlInterfaceConnection(Connection):
         :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
-        with self._state_lock:
+        with self._lock:
             if self._state == ControlInterfaceState.CONNECTION_CLOSED:
                 raise ConnectionClosedException(
                     "Could not write to pipe, connection closed."
