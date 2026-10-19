@@ -144,20 +144,20 @@ def test_connected_property_default():
     assert conn.connected is False
 
 
-def test_change_state_no_op_when_already_in_state():
+def test_set_state_no_op_when_already_in_state():
     """
-    Test that change_state() is a no-op (but still logs) when asked
+    Test that _set_state() is a no-op (but still logs) when asked
     to change to the state the connection is already in.
     """
     conn = _generate_test_connection()
     conn._logger = MagicMock()
 
-    conn.change_state(CommandInterfaceState.TERMINATED)
+    conn._set_state(CommandInterfaceState.TERMINATED)
     conn._logger.debug.assert_called_with(
         "State is already %s.", CommandInterfaceState.TERMINATED
     )
 
-    conn.change_state(CommandInterfaceState.CONNECTED)
+    conn._set_state(CommandInterfaceState.CONNECTED)
     conn._logger.debug.assert_called_with(
         "State changed to %s.", CommandInterfaceState.CONNECTED
     )

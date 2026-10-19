@@ -39,11 +39,6 @@ Usage
         ci.connect()
         ...
         ci.disconnect()
-
-- Change the state of the control interface connection.
-    .. code-block:: python
-
-        ci.change_state(ControlInterfaceState.TERMINATED)
 """
 
 
@@ -135,7 +130,7 @@ class ControlInterfaceConnection(Connection):
             add_response_callback, add_log_callback, add_event_callback
         )
         # The state of the control interface must not be changed directly.
-        # Use the change_state method instead.
+        # Use the _set_state method instead.
         self._state = ControlInterfaceState.TERMINATED
         # Guards _state, _output_file and _read_thread. Never held across
         # a fifo write or a thread join.
@@ -276,20 +271,6 @@ class ControlInterfaceConnection(Connection):
         with self._write_lock:
             output_file.close()
 
-    def change_state(
-        self, state: ControlInterfaceState, info: str = None
-    ) -> None:
-        """
-        Change the state of the control interface.
-
-        :param state: The new state.
-        :type state: ControlInterfaceState
-        :param info: Additional information about the state change.
-        :type info: str
-        """
-        with self._lock:
-            self._set_state(state, info)
-
     def _change_state_from_reader(
         self, state: ControlInterfaceState, info: str = None
     ) -> None:
@@ -382,7 +363,7 @@ class ControlInterfaceConnection(Connection):
 
                 # Buffer for reading in the byte size of the proto msg
                 varint_buffer = bytearray()
-                while not self._disconnect_event.is_set():
+                while True:
                     # Consume byte for byte
                     next_byte = input_file.read(1)
                     if not next_byte:  # pragma: no cover
@@ -589,8 +570,7 @@ class ControlInterfaceConnection(Connection):
         :raises ConnectionException: If the output pipe is None, or
             was closed by a disconnect before the write.
         """
-        with self._lock:
-            output_file = self._output_file
+        output_file = self._output_file
         if output_file is None:
             self._logger.error(
                 "Could not write to pipe, output file handler is None."
@@ -625,15 +605,15 @@ class ControlInterfaceConnection(Connection):
         :raises ConnectionException: If not connected.
         :raises ConnectionClosedException: If the connection is closed.
         """
-        with self._lock:
-            if self._state == ControlInterfaceState.CONNECTION_CLOSED:
-                raise ConnectionClosedException(
-                    "Could not write to pipe, connection closed."
-                )
-            if self._state != ControlInterfaceState.CONNECTED:
-                raise ConnectionException(
-                    "Could not write to pipe, not connected."
-                )
+        state = self._state
+        if state == ControlInterfaceState.CONNECTION_CLOSED:
+            raise ConnectionClosedException(
+                "Could not write to pipe, connection closed."
+            )
+        if state != ControlInterfaceState.CONNECTED:
+            raise ConnectionException(
+                "Could not write to pipe, not connected."
+            )
 
         request_to_ankaios = _control_api.ToAnkaios(
             request=request._to_proto()

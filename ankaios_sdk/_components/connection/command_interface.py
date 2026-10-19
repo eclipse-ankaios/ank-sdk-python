@@ -171,7 +171,7 @@ class CommandInterfaceConnection(Connection):
         self._key_pem = key_pem
 
         # The state of the command interface must not be changed directly.
-        # Use the change_state method instead.
+        # Use the _set_state method instead.
         self._state = CommandInterfaceState.TERMINATED
         # Guards _state, _channel, _call, _write_queue and _reader_thread.
         # Only connect() holds it across a blocking call.
@@ -387,25 +387,15 @@ class CommandInterfaceConnection(Connection):
             return call
         return None
 
-    def change_state(self, state: CommandInterfaceState) -> None:
+    def _set_state(self, state: CommandInterfaceState) -> None:
         """
-        Change the state of the connection.
+        Change the state of the connection. The caller must hold
+        the lock.
 
         Unlike the control interface, there is no separate
         unrecoverable state here: TERMINATED is both the initial
         state and the one disconnect() ends in, and connect() must
         be able to leave it again.
-
-        :param state: The new state.
-        :type state: CommandInterfaceState
-        """
-        with self._lock:
-            self._set_state(state)
-
-    def _set_state(self, state: CommandInterfaceState) -> None:
-        """
-        Change the state of the connection. The caller must hold
-        the lock.
 
         :param state: The new state.
         :type state: CommandInterfaceState
