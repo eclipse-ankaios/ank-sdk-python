@@ -351,8 +351,13 @@ class ControlInterfaceConnection(Connection):
 
         # pylint: disable=consider-using-with
         try:
+            # Unbuffered, so select() sees every byte not yet read: a
+            # buffered reader could hold a whole message in its own buffer
+            # while select() reports the fifo as empty.
             input_file = open(
-                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input", "rb"
+                f"{self.ANKAIOS_CONTROL_INTERFACE_BASE_PATH}/input",
+                "rb",
+                buffering=0,
             )
         except Exception as e:
             self._logger.error("Error while opening input fifo: %s", e)
@@ -399,17 +404,15 @@ class ControlInterfaceConnection(Connection):
                 # Decode the varint and receive the proto msg length
                 msg_len, _ = _DecodeVarint(varint_buffer, 0)
 
-                # Buffer for the proto msg itself
-                msg_buf = bytearray()
-                for _ in range(msg_len):
-                    # Read the message according to the length
-                    next_byte = input_file.read(1)
-                    if not next_byte:  # pragma: no cover
-                        break
-                    msg_buf += next_byte
+                msg_buf = self._read_exactly(input_file, msg_len)
+                if len(msg_buf) < msg_len:
+                    self._logger.error(
+                        "Incomplete message read from the input fifo."
+                    )
+                    continue
 
                 try:
-                    response = self._decode_response(bytes(msg_buf))
+                    response = self._decode_response(msg_buf)
                 except ResponseException as e:  # pragma: no cover
                     self._logger.error("Error while reading: %s", e)
                     continue
@@ -421,6 +424,34 @@ class ControlInterfaceConnection(Connection):
         finally:
             input_file.close()
             self._cleanup()
+
+    def _read_exactly(self, input_file, size: int) -> bytes:
+        """
+        Reads size bytes from the non-blocking input fifo, waiting for
+        the rest to arrive if needed: a fifo only delivers a write in one
+        piece up to PIPE_BUF bytes, so a large message can arrive in
+        several chunks.
+
+        :param input_file: The unbuffered, non-blocking input fifo.
+        :param size: The number of bytes to read.
+        :type size: int
+
+        :returns: The bytes read; fewer than size if the agent closed
+            the fifo or a disconnect was requested meanwhile.
+        :rtype: bytes
+        """
+        buffer = bytearray()
+        while len(buffer) < size and not self._disconnect_event.is_set():
+            chunk = input_file.read(size - len(buffer))
+            if chunk is None:
+                # The rest has not arrived yet.
+                select.select([input_file], [], [], 1)
+                continue
+            if not chunk:
+                # End of file: the agent closed the fifo.
+                break
+            buffer += chunk
+        return bytes(buffer)
 
     @staticmethod
     def _decode_response(message_buffer: bytes) -> Response:
