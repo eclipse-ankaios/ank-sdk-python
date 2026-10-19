@@ -58,16 +58,17 @@ def test_state():
     assert ci._state == ControlInterfaceState.TERMINATED
     assert str(ci._state) == "TERMINATED"
 
-    ci.change_state(ControlInterfaceState.TERMINATED)
+    ci._set_state(ControlInterfaceState.TERMINATED)
     ci._logger.debug.assert_called_with(
         "State is already %s.", ControlInterfaceState.TERMINATED
     )
 
-    ci.change_state(ControlInterfaceState.CONNECTION_CLOSED)
-    ci.change_state(ControlInterfaceState.INITIALIZED)
+    ci._set_state(ControlInterfaceState.CONNECTION_CLOSED)
+    ci._set_state(ControlInterfaceState.INITIALIZED)
     ci._logger.debug.assert_called_with(
         "State CONNECTION_CLOSED is unrecoverable."
     )
+    assert ci._state == ControlInterfaceState.CONNECTION_CLOSED
 
 
 def test_connection():
