@@ -17,6 +17,7 @@ This module contains unit tests for the ControlInterfaceConnection class
 in the ankaios_sdk.
 """
 
+import os
 import threading
 import time
 from unittest.mock import patch, mock_open, MagicMock
@@ -44,40 +45,49 @@ from tests.response.test_response import (
 )
 
 
+def _generate_test_ci(
+    add_response_callback=lambda _: None,
+    add_log_callback=lambda _: None,
+    add_event_callback=lambda _: None,
+) -> ControlInterfaceConnection:
+    """
+    Builds a ControlInterfaceConnection whose callbacks do nothing,
+    unless given.
+    """
+    return ControlInterfaceConnection(
+        add_response_callback=add_response_callback,
+        add_log_callback=add_log_callback,
+        add_event_callback=add_event_callback,
+    )
+
+
 def test_state():
     """
     Test the state enum and the changing of the state.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._logger = MagicMock()
     assert ci._state == ControlInterfaceState.TERMINATED
     assert str(ci._state) == "TERMINATED"
 
-    ci.change_state(ControlInterfaceState.TERMINATED)
+    ci._set_state(ControlInterfaceState.TERMINATED)
     ci._logger.debug.assert_called_with(
         "State is already %s.", ControlInterfaceState.TERMINATED
     )
 
-    ci.change_state(ControlInterfaceState.CONNECTION_CLOSED)
-    ci.change_state(ControlInterfaceState.INITIALIZED)
+    ci._set_state(ControlInterfaceState.CONNECTION_CLOSED)
+    ci._set_state(ControlInterfaceState.INITIALIZED)
     ci._logger.debug.assert_called_with(
         "State CONNECTION_CLOSED is unrecoverable."
     )
+    assert ci._state == ControlInterfaceState.CONNECTION_CLOSED
 
 
 def test_connection():
     """
     Test the connect / disconnect functionality.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._state = ControlInterfaceState.CONNECTED
     assert ci.connected
 
@@ -148,10 +158,10 @@ def test_connection():
         assert ci._disconnect_event.is_set()
         assert ci._state == ControlInterfaceState.TERMINATED
         mock_thread_instance.join.assert_called_once()
-        assert ci._read_thread is None
+        # Kept so a later connect() can check it has stopped.
+        assert ci._read_thread is mock_thread_instance
         output_file_mock.close.assert_called_once()
         assert ci._output_file is None
-        assert ci._input_file is None
 
     # Test disconnect while not connected
     ci._logger = MagicMock()
@@ -165,11 +175,7 @@ def test_connect_clears_disconnect_event():
     connect() must clear a disconnect_event left set by a prior disconnect,
     otherwise the freshly started reader thread would stop immediately.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._disconnect_event.set()
     with patch("os.path.exists", return_value=True), patch(
         "threading.Thread"
@@ -183,29 +189,146 @@ def test_connect_clears_disconnect_event():
         assert ci._state == ControlInterfaceState.INITIALIZED
 
 
+def test_connect_refuses_while_previous_reader_alive():
+    """
+    connect() must refuse to start a second reader thread while the one
+    of a previous connection has not stopped yet, since both would read
+    the same fifo.
+    """
+    ci = _generate_test_ci()
+    ci._read_thread = MagicMock()
+    ci._read_thread.is_alive.return_value = True
+    with patch("os.path.exists", return_value=True), patch(
+        "builtins.open"
+    ) as mock_open_file, pytest.raises(
+        ConnectionException,
+        match="Previous connection is still shutting down.",
+    ):
+        ci.connect()
+
+    mock_open_file.assert_not_called()
+    assert ci._state == ControlInterfaceState.TERMINATED
+
+
+def test_connect_after_previous_reader_stopped():
+    """
+    connect() succeeds once the reader thread of a previous connection
+    has stopped.
+    """
+    ci = _generate_test_ci()
+    ci._read_thread = MagicMock()
+    ci._read_thread.is_alive.return_value = False
+    with patch("os.path.exists", return_value=True), patch(
+        "threading.Thread"
+    ) as mock_thread, patch("builtins.open"), patch(
+        "ankaios_sdk.ControlInterfaceConnection._send_initial_hello"
+    ):
+        mock_thread.return_value = MagicMock()
+        ci.connect()
+
+    assert ci._read_thread is mock_thread.return_value
+    assert ci._state == ControlInterfaceState.INITIALIZED
+
+
+def test_connect_while_agent_disconnected_raises():
+    """
+    While the agent is gone the reader thread is still running, so
+    connect() must treat the connection as already connected.
+    """
+    ci = _generate_test_ci()
+    ci._state = ControlInterfaceState.AGENT_DISCONNECTED
+    with pytest.raises(ConnectionException, match="Already connected."):
+        ci.connect()
+
+
+def test_disconnect_while_agent_disconnected():
+    """
+    disconnect() must stop the reader thread and release the output
+    file while the agent is gone, too.
+    """
+    ci = _generate_test_ci()
+    ci._state = ControlInterfaceState.AGENT_DISCONNECTED
+    read_thread = MagicMock()
+    read_thread.is_alive.return_value = False
+    output_file_mock = MagicMock()
+    ci._read_thread = read_thread
+    ci._output_file = output_file_mock
+
+    ci.disconnect()
+
+    assert ci._disconnect_event.is_set()
+    read_thread.join.assert_called_once_with(timeout=2)
+    output_file_mock.close.assert_called_once()
+    assert ci._output_file is None
+    assert ci._state == ControlInterfaceState.TERMINATED
+
+
+def test_disconnect_keeps_read_thread_that_did_not_stop():
+    """
+    If the reader thread does not stop in time, disconnect() logs an
+    error and keeps it, so a following connect() is refused.
+    """
+    ci = _generate_test_ci()
+    ci._logger = MagicMock()
+    ci._state = ControlInterfaceState.CONNECTED
+    read_thread = MagicMock()
+    read_thread.is_alive.return_value = True
+    ci._read_thread = read_thread
+
+    ci.disconnect()
+
+    ci._logger.error.assert_called_once_with("Read thread did not stop.")
+    assert ci._read_thread is read_thread
+    assert ci._state == ControlInterfaceState.TERMINATED
+    with pytest.raises(
+        ConnectionException,
+        match="Previous connection is still shutting down.",
+    ):
+        ci.connect()
+
+
+def test_change_state_from_reader():
+    """
+    The reader thread may change the state while no disconnect was
+    requested.
+    """
+    ci = _generate_test_ci()
+    ci._state = ControlInterfaceState.CONNECTED
+
+    ci._change_state_from_reader(ControlInterfaceState.AGENT_DISCONNECTED)
+
+    assert ci._state == ControlInterfaceState.AGENT_DISCONNECTED
+
+
+def test_change_state_from_reader_ignored_after_disconnect():
+    """
+    Once a disconnect was requested, the reader thread must not
+    overwrite the TERMINATED state set by disconnect().
+    """
+    ci = _generate_test_ci()
+    ci._state = ControlInterfaceState.TERMINATED
+    ci._disconnect_event.set()
+
+    ci._change_state_from_reader(ControlInterfaceState.AGENT_DISCONNECTED)
+
+    assert ci._state == ControlInterfaceState.TERMINATED
+
+
 def test_cleanup_is_idempotent():
     """
     _cleanup() may be reached by both the reader thread and a caller;
-    a repeat call must not raise or double-close the handles.
+    a repeat call must not raise or double-close the output file.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._state = ControlInterfaceState.CONNECTED
     output_file_mock = MagicMock()
-    input_file_mock = MagicMock()
     ci._output_file = output_file_mock
-    ci._input_file = input_file_mock
 
     ci._cleanup()
     ci._cleanup()
 
     output_file_mock.close.assert_called_once()
-    input_file_mock.close.assert_called_once()
     assert ci._output_file is None
-    assert ci._input_file is None
     assert ci._state == ControlInterfaceState.TERMINATED
 
 
@@ -250,11 +373,7 @@ def test_read_thread_general():
     with patch("builtins.open", side_effect=OSError), patch(
         "ankaios_sdk.ControlInterfaceConnection._cleanup"
     ) as mock_cleanup:
-        ci = ControlInterfaceConnection(
-            add_response_callback=lambda _: None,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
+        ci = _generate_test_ci()
         with pytest.raises(
             ConnectionException, match="Error while opening input fifo"
         ):
@@ -276,11 +395,7 @@ def test_read_thread_general():
             bytes([b]) for b in update_success_content
         ]
 
-        ci = ControlInterfaceConnection(
-            add_response_callback=lambda _: None,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
+        ci = _generate_test_ci()
 
         # Start thread (similar to _connect)
         ci._read_thread = threading.Thread(
@@ -296,9 +411,10 @@ def test_read_thread_general():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
         mock_handle_response.assert_called_once()
+        mock_file.return_value.close.assert_called_once()
 
 
 def test_read_thread_agent_disconnected():
@@ -317,11 +433,7 @@ def test_read_thread_agent_disconnected():
         mock_file_handle = mock_file.return_value.__enter__.return_value
         mock_file_handle.read.return_value = b""
 
-        ci = ControlInterfaceConnection(
-            add_response_callback=lambda _: None,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
+        ci = _generate_test_ci()
 
         # Start thread (similar to _connect)
         ci._read_thread = threading.Thread(
@@ -339,7 +451,7 @@ def test_read_thread_agent_disconnected():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
         mock_agent_gone.assert_called()
 
@@ -364,11 +476,7 @@ def test_read_thread_connection_closed():
             bytes([b]) for b in connection_closed_content
         ]
 
-        ci = ControlInterfaceConnection(
-            add_response_callback=lambda _: None,
-            add_log_callback=lambda _: None,
-            add_event_callback=lambda _: None,
-        )
+        ci = _generate_test_ci()
 
         # Start thread (similar to _connect)
         ci._read_thread = threading.Thread(
@@ -382,9 +490,136 @@ def test_read_thread_connection_closed():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
-        assert ci._input_file is None
+        mock_file.return_value.close.assert_called_once()
+        assert ci._state == ControlInterfaceState.TERMINATED
+
+
+def test_read_thread_handles_messages_arriving_together(tmp_path):
+    """
+    Two messages arriving in the fifo at once must both be handled
+    right away, not leave the second one waiting for more data. Uses
+    a real fifo, since this depends on how select() and the input
+    file interact.
+    """
+    os.mkfifo(tmp_path / "input")
+    # Opened read-write so neither side blocks waiting for the other.
+    writer_fd = os.open(tmp_path / "input", os.O_RDWR)
+    message = MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + (
+        MESSAGE_BUFFER_UPDATE_SUCCESS
+    )
+    handled = []
+    two_handled = threading.Event()
+
+    def _record(response):
+        handled.append(response)
+        if len(handled) == 2:
+            two_handled.set()
+
+    ci = _generate_test_ci()
+    try:
+        with patch.object(
+            ControlInterfaceConnection,
+            "ANKAIOS_CONTROL_INTERFACE_BASE_PATH",
+            str(tmp_path),
+        ), patch.object(ci, "_handle_response", side_effect=_record):
+            os.write(writer_fd, message + message)
+            read_thread = threading.Thread(
+                target=ci._read_from_control_interface, daemon=True
+            )
+            read_thread.start()
+
+            assert two_handled.wait(timeout=0.5)
+
+            ci._disconnect_event.set()
+            read_thread.join(timeout=2)
+            assert not read_thread.is_alive()
+    finally:
+        os.close(writer_fd)
+
+    assert [r.content_type for r in handled] == [
+        ResponseType.UPDATE_STATE_SUCCESS,
+        ResponseType.UPDATE_STATE_SUCCESS,
+    ]
+
+
+def test_read_thread_skips_incomplete_message():
+    """
+    A message cut short (the agent closed the fifo or a disconnect was
+    requested while reading it) must be logged and not handled.
+    """
+    ci = _generate_test_ci()
+    ci._logger = MagicMock()
+
+    def _short_read(_input_file, _size):
+        ci._disconnect_event.set()
+        return b"\x01"
+
+    with patch("builtins.open", mock_open()) as mock_file, patch(
+        "os.set_blocking"
+    ), patch("select.select", return_value=([True], [], [])), patch.object(
+        ci, "_read_exactly", side_effect=_short_read
+    ), patch.object(
+        ci, "_handle_response"
+    ) as mock_handle_response:
+        mock_file.return_value.read.return_value = bytes([5])
+        ci._read_from_control_interface()
+
+    mock_handle_response.assert_not_called()
+    ci._logger.error.assert_called_once_with(
+        "Incomplete message read from the input fifo."
+    )
+
+
+def test_read_exactly_joins_chunks():
+    """
+    _read_exactly() keeps reading until it has the requested size,
+    asking only for the bytes still missing.
+    """
+    ci = _generate_test_ci()
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"ab", b"cd"]
+
+    assert ci._read_exactly(input_file, 4) == b"abcd"
+    assert [c.args for c in input_file.read.call_args_list] == [(4,), (2,)]
+
+
+def test_read_exactly_waits_for_rest():
+    """
+    _read_exactly() waits with select() when the rest of the message
+    has not arrived yet, instead of returning it cut short.
+    """
+    ci = _generate_test_ci()
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"a", None, b"bc"]
+
+    with patch("select.select") as mock_select:
+        assert ci._read_exactly(input_file, 3) == b"abc"
+    mock_select.assert_called_once_with([input_file], [], [], 1)
+
+
+def test_read_exactly_stops_at_end_of_file():
+    """
+    _read_exactly() returns what it has when the agent closes the fifo.
+    """
+    ci = _generate_test_ci()
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"ab", b""]
+
+    assert ci._read_exactly(input_file, 4) == b"ab"
+
+
+def test_read_exactly_stops_on_disconnect():
+    """
+    _read_exactly() stops reading once a disconnect was requested.
+    """
+    ci = _generate_test_ci()
+    ci._disconnect_event.set()
+    input_file = MagicMock()
+
+    assert ci._read_exactly(input_file, 4) == b""
+    input_file.read.assert_not_called()
 
 
 def test_handle_response():
@@ -394,11 +629,7 @@ def test_handle_response():
     """
     response = Response(MESSAGE_BUFFER_UPDATE_SUCCESS)
     response_callback = MagicMock()
-    ci = ControlInterfaceConnection(
-        add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci(add_response_callback=response_callback)
     ci._logger = MagicMock()
 
     # Test handle when not connected
@@ -440,11 +671,7 @@ def test_handle_response_control_interface_accepted():
 
     # Got control interface accepted response as initial response
     response_callback = MagicMock()
-    ci = ControlInterfaceConnection(
-        add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci(add_response_callback=response_callback)
     ci._state = ControlInterfaceState.INITIALIZED
 
     ci._handle_response(ci_accepted_response)
@@ -453,11 +680,7 @@ def test_handle_response_control_interface_accepted():
 
     # Got control interface accepted response while already connected
     response_callback = MagicMock()
-    ci = ControlInterfaceConnection(
-        add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci(add_response_callback=response_callback)
     ci._logger = MagicMock()
     ci._state = ControlInterfaceState.CONNECTED
 
@@ -477,11 +700,7 @@ def test_handle_response_connection_closed():
 
     # Got connection closed response as initial response
     response_callback = MagicMock()
-    ci = ControlInterfaceConnection(
-        add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci(add_response_callback=response_callback)
     ci._state = ControlInterfaceState.INITIALIZED
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
@@ -490,11 +709,7 @@ def test_handle_response_connection_closed():
 
     # Got connection closed response while already connected
     response_callback = MagicMock()
-    ci = ControlInterfaceConnection(
-        add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci(add_response_callback=response_callback)
     ci._state = ControlInterfaceState.CONNECTED
     with pytest.raises(
         ConnectionClosedException, match="Connection closed reason"
@@ -511,10 +726,9 @@ def test_handle_response_logs():
     response_callback = MagicMock()
     logs_callback = MagicMock()
 
-    ci = ControlInterfaceConnection(
+    ci = _generate_test_ci(
         add_response_callback=response_callback,
         add_log_callback=logs_callback,
-        add_event_callback=lambda _: None,
     )
     ci._state = ControlInterfaceState.CONNECTED
 
@@ -533,9 +747,8 @@ def test_handle_response_events():
     response_callback = MagicMock()
     events_callback = MagicMock()
 
-    ci = ControlInterfaceConnection(
+    ci = _generate_test_ci(
         add_response_callback=response_callback,
-        add_log_callback=lambda _: None,
         add_event_callback=events_callback,
     )
     ci._state = ControlInterfaceState.CONNECTED
@@ -551,11 +764,7 @@ def test_agent_gone_routine():
     Test the _agent_gone_routine method of the
     ControlInterfaceConnection class.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._state = ControlInterfaceState.CONNECTED
     with patch(
         "ankaios_sdk.ControlInterfaceConnection._send_initial_hello"
@@ -591,11 +800,7 @@ def test_agent_gone_routine_stops_on_disconnect():
     _agent_gone_routine must exit promptly when a disconnect is requested,
     even while the agent stays gone.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     ci._state = ControlInterfaceState.AGENT_DISCONNECTED
     with patch(
         "ankaios_sdk.ControlInterfaceConnection._send_initial_hello",
@@ -616,36 +821,47 @@ def test_write_to_pipe():
     """
     Test the _write_to_pipe method of the ControlInterfaceConnection class.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
+    request = _control_api.FromAnkaios()
 
     ci._output_file = None
     with pytest.raises(
         ConnectionException, match="Could not write to pipe"
     ):
-        ci._write_to_pipe(_control_api.FromAnkaios())
+        ci._write_to_pipe(request)
 
     output_file = MagicMock()
     ci._output_file = output_file
 
-    ci._write_to_pipe(_control_api.FromAnkaios())
+    ci._write_to_pipe(request)
 
     output_file.write.assert_called()
     output_file.flush.assert_called_once()
+
+
+def test_write_to_pipe_closed_output_file():
+    """
+    A write whose output file was closed by a concurrent disconnect
+    must raise a ConnectionException, not a ValueError.
+    """
+    ci = _generate_test_ci()
+    output_file = MagicMock()
+    output_file.write.side_effect = ValueError("write to closed file")
+    ci._output_file = output_file
+    request = _control_api.FromAnkaios()
+
+    with pytest.raises(
+        ConnectionException,
+        match="Could not write to pipe, output file closed.",
+    ):
+        ci._write_to_pipe(request)
 
 
 def test_write_request():
     """
     Test the write_request method of the ControlInterfaceConnection class.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     test_request = generate_test_request()
 
     ci._state = ControlInterfaceState.TERMINATED
@@ -673,11 +889,7 @@ def test_send_initial_hello():
     """
     Test the _send_initial_hello method of the Ankaios class.
     """
-    ci = ControlInterfaceConnection(
-        add_response_callback=lambda _: None,
-        add_log_callback=lambda _: None,
-        add_event_callback=lambda _: None,
-    )
+    ci = _generate_test_ci()
     with patch(
         "ankaios_sdk.ControlInterfaceConnection._write_to_pipe"
     ) as mock_write:
