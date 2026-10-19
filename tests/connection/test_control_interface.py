@@ -17,6 +17,7 @@ This module contains unit tests for the ControlInterfaceConnection class
 in the ankaios_sdk.
 """
 
+import os
 import threading
 import time
 from unittest.mock import patch, mock_open, MagicMock
@@ -445,7 +446,7 @@ def test_read_thread_general():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
         mock_handle_response.assert_called_once()
         mock_file.return_value.close.assert_called_once()
@@ -489,7 +490,7 @@ def test_read_thread_agent_disconnected():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
         mock_agent_gone.assert_called()
 
@@ -532,10 +533,160 @@ def test_read_thread_connection_closed():
         ci._read_thread.join()
 
         mock_file.assert_called_once_with(
-            "/run/ankaios/control_interface/input", "rb"
+            "/run/ankaios/control_interface/input", "rb", buffering=0
         )
         mock_file.return_value.close.assert_called_once()
         assert ci._state == ControlInterfaceState.TERMINATED
+
+
+def test_read_thread_handles_messages_arriving_together(tmp_path):
+    """
+    Two messages arriving in the fifo at once must both be handled
+    right away, not leave the second one waiting for more data. Uses
+    a real fifo, since this depends on how select() and the input
+    file interact.
+    """
+    os.mkfifo(tmp_path / "input")
+    # Opened read-write so neither side blocks waiting for the other.
+    writer_fd = os.open(tmp_path / "input", os.O_RDWR)
+    message = MESSAGE_BUFFER_UPDATE_SUCCESS_LENGTH + (
+        MESSAGE_BUFFER_UPDATE_SUCCESS
+    )
+    handled = []
+    two_handled = threading.Event()
+
+    def _record(response):
+        handled.append(response)
+        if len(handled) == 2:
+            two_handled.set()
+
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    try:
+        with patch.object(
+            ControlInterfaceConnection,
+            "ANKAIOS_CONTROL_INTERFACE_BASE_PATH",
+            str(tmp_path),
+        ), patch.object(ci, "_handle_response", side_effect=_record):
+            os.write(writer_fd, message + message)
+            read_thread = threading.Thread(
+                target=ci._read_from_control_interface, daemon=True
+            )
+            read_thread.start()
+
+            assert two_handled.wait(timeout=0.5)
+
+            ci._disconnect_event.set()
+            read_thread.join(timeout=2)
+            assert not read_thread.is_alive()
+    finally:
+        os.close(writer_fd)
+
+    assert [r.content_type for r in handled] == [
+        ResponseType.UPDATE_STATE_SUCCESS,
+        ResponseType.UPDATE_STATE_SUCCESS,
+    ]
+
+
+def test_read_thread_skips_incomplete_message():
+    """
+    A message cut short (the agent closed the fifo or a disconnect was
+    requested while reading it) must be logged and not handled.
+    """
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._logger = MagicMock()
+
+    def _short_read(_input_file, _size):
+        ci._disconnect_event.set()
+        return b"\x01"
+
+    with patch("builtins.open", mock_open()) as mock_file, patch(
+        "os.set_blocking"
+    ), patch("select.select", return_value=([True], [], [])), patch.object(
+        ci, "_read_exactly", side_effect=_short_read
+    ), patch.object(
+        ci, "_handle_response"
+    ) as mock_handle_response:
+        mock_file.return_value.read.return_value = bytes([5])
+        ci._read_from_control_interface()
+
+    mock_handle_response.assert_not_called()
+    ci._logger.error.assert_called_once_with(
+        "Incomplete message read from the input fifo."
+    )
+
+
+def test_read_exactly_joins_chunks():
+    """
+    _read_exactly() keeps reading until it has the requested size,
+    asking only for the bytes still missing.
+    """
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"ab", b"cd"]
+
+    assert ci._read_exactly(input_file, 4) == b"abcd"
+    assert [c.args for c in input_file.read.call_args_list] == [(4,), (2,)]
+
+
+def test_read_exactly_waits_for_rest():
+    """
+    _read_exactly() waits with select() when the rest of the message
+    has not arrived yet, instead of returning it cut short.
+    """
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"a", None, b"bc"]
+
+    with patch("select.select") as mock_select:
+        assert ci._read_exactly(input_file, 3) == b"abc"
+    mock_select.assert_called_once_with([input_file], [], [], 1)
+
+
+def test_read_exactly_stops_at_end_of_file():
+    """
+    _read_exactly() returns what it has when the agent closes the fifo.
+    """
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    input_file = MagicMock()
+    input_file.read.side_effect = [b"ab", b""]
+
+    assert ci._read_exactly(input_file, 4) == b"ab"
+
+
+def test_read_exactly_stops_on_disconnect():
+    """
+    _read_exactly() stops reading once a disconnect was requested.
+    """
+    ci = ControlInterfaceConnection(
+        add_response_callback=lambda _: None,
+        add_log_callback=lambda _: None,
+        add_event_callback=lambda _: None,
+    )
+    ci._disconnect_event.set()
+    input_file = MagicMock()
+
+    assert ci._read_exactly(input_file, 4) == b""
+    input_file.read.assert_not_called()
 
 
 def test_handle_response():
