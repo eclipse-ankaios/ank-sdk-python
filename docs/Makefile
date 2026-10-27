@@ -29,7 +29,7 @@ open:
 clean:
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(V_BUILDDIR)" $(SPHINXOPTS) $(O)
-	rmdir build build_versioned
+	@rmdir build build_versioned 2>/dev/null || true
 
 .PHONY: help clean Makefile
 
