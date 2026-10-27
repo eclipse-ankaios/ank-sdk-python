@@ -63,6 +63,7 @@ are using. For information regarding versioning, please refer to this table:
 | 0.6.x           | 0.6.x                                           |
 | 0.7.x           | 0.7.x                                           |
 | 1.0.x           | 1.0.x                                           |
+| 1.1.x           | 1.1.x                                           |
 
 ## Usage
 
