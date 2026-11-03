@@ -1,0 +1,30 @@
+name: Install check
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: "Runner to install on"
+        type: string
+        default: ubuntu-latest
+      python:
+        description: "Python version to install with"
+        type: string
+        default: "3.10"
+
+jobs:
+  install_and_import:
+    name: Install ${{ inputs.python }} on ${{ inputs.os }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/ci-setup
+        with:
+          python-version: ${{ inputs.python }}
+          extras: ""
+
+      - name: Print packages
+        run: python3 -m pip list
+
+      - name: Test installation
+        run: python3 -c "from ankaios_sdk import Ankaios"
