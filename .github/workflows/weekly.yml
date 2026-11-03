@@ -12,6 +12,15 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
 
+  install_other_os:
+    name: Install on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['windows-latest', 'macos-latest']
+    uses: ./.github/workflows/install-check.yml
+    with:
+      os: ${{ matrix.os }}
+
   check-python-version:
     runs-on: ubuntu-latest
     permissions:
