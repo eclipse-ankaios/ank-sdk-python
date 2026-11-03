@@ -17,9 +17,14 @@ This module contains unit tests for the CommandInterfaceConnection class in the
 ankaios_sdk.
 """
 
+import os
 import queue
+import shutil
+import socket
+import tempfile
 import threading
 import time
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import grpc
@@ -42,6 +47,8 @@ from tests.response.test_log_response import (
 
 SERVER_URL = "http://127.0.0.1:25551"
 SERVER_TARGET = "127.0.0.1:25551"
+# The :authority header must be valid for the Ankaios (hyper) server.
+UNIX_CHANNEL_OPTIONS = (("grpc.default_authority", "localhost"),)
 
 
 class _FakeCall:
@@ -95,9 +102,32 @@ def _mock_stub(call_factory):
     return stub_instance, sent_messages
 
 
-def _generate_test_connection(**kwargs) -> CommandInterfaceConnection:
+@contextmanager
+def _unix_socket(create=True):
+    """
+    Yields the path of a unix socket in a temporary directory, bound
+    to a real socket file if create is True. A short directory is used
+    since unix socket paths are limited in length.
+    """
+    directory = tempfile.mkdtemp()
+    path = os.path.join(directory, "ankaios.sock")
+    sock = None
+    try:
+        if create:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.bind(path)
+        yield path
+    finally:
+        if sock is not None:
+            sock.close()
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def _generate_test_connection(
+    server_url=SERVER_URL, **kwargs
+) -> CommandInterfaceConnection:
     return CommandInterfaceConnection(
-        SERVER_URL,
+        server_url,
         add_response_callback=MagicMock(),
         add_log_callback=MagicMock(),
         add_event_callback=MagicMock(),
@@ -756,3 +786,262 @@ def test_connect_refuses_while_previous_reader_alive():
 
     mock_open_stream.assert_not_called()
     assert conn._state == CommandInterfaceState.TERMINATED
+
+
+def test_init_validation_unix_socket():
+    """
+    Test the __init__ validation of unix:// URLs: an absolute path is
+    accepted, while an empty or relative path and any TLS certificate
+    are rejected.
+    """
+    conn = _generate_test_connection("unix:///run/ankaios.sock")
+    assert conn._server_url == "unix:///run/ankaios.sock"
+
+    with pytest.raises(ValueError, match="socket path is empty"):
+        _generate_test_connection("unix://")
+
+    with pytest.raises(ValueError, match="socket path must be absolute"):
+        _generate_test_connection("unix://tmp/ankaios.sock")
+
+    with pytest.raises(ValueError, match="not supported for unix://"):
+        _generate_test_connection(
+            "unix:///run/ankaios.sock",
+            ca_pem="ca-secret",
+            crt_pem="crt-secret",
+            key_pem="key-secret",
+        )
+
+    # A single certificate is rejected as well.
+    with pytest.raises(ValueError, match="not supported for unix://"):
+        _generate_test_connection(
+            "unix:///run/ankaios.sock", crt_pem="crt-secret"
+        )
+
+
+def test_unix_socket_path():
+    """
+    Test that _unix_socket_path() returns the path of a unix:// URL and
+    None for TCP URLs.
+    """
+    conn = _generate_test_connection("unix:///run/ankaios.sock")
+    assert conn._unix_socket_path() == "/run/ankaios.sock"
+
+    for url in (SERVER_URL, "https://127.0.0.1:25551", "127.0.0.1:25551"):
+        assert _generate_test_connection(url)._unix_socket_path() is None
+
+
+def test_build_channel_unix_socket():
+    """
+    Test that _build_channel() builds a plaintext channel with a unix:
+    target when server_url is a unix:// URL, without any credentials.
+    """
+    with patch("grpc.insecure_channel") as mock_channel, patch(
+        "grpc.secure_channel"
+    ) as mock_secure_channel:
+        conn = _generate_test_connection("unix:///run/ankaios.sock")
+        conn._build_channel()
+        mock_channel.assert_called_once_with(
+            "unix:/run/ankaios.sock", options=UNIX_CHANNEL_OPTIONS
+        )
+        mock_secure_channel.assert_not_called()
+
+
+def test_check_unix_socket_ignores_tcp_urls():
+    """
+    Test that _check_unix_socket() does nothing for a TCP URL.
+    """
+    with patch("os.stat") as mock_stat:
+        _generate_test_connection()._check_unix_socket()
+    mock_stat.assert_not_called()
+
+
+def test_check_unix_socket_accessible():
+    """
+    Test that _check_unix_socket() accepts an existing, accessible socket.
+    """
+    with _unix_socket() as path:
+        _generate_test_connection(f"unix://{path}")._check_unix_socket()
+
+
+def test_check_unix_socket_missing():
+    """
+    Test that _check_unix_socket() raises a specific error if the
+    socket does not exist.
+    """
+    with _unix_socket(create=False) as path:
+        conn = _generate_test_connection(f"unix://{path}")
+        with pytest.raises(
+            ConnectionException, match="does not exist.*server running"
+        ):
+            conn._check_unix_socket()
+
+
+def test_check_unix_socket_not_a_socket():
+    """
+    Test that _check_unix_socket() raises a specific error if the path
+    exists but is not a socket.
+    """
+    with _unix_socket(create=False) as path:
+        with open(path, "w", encoding="utf-8"):
+            pass
+        conn = _generate_test_connection(f"unix://{path}")
+        with pytest.raises(ConnectionException, match="is not a unix socket"):
+            conn._check_unix_socket()
+
+
+def test_check_unix_socket_permission_denied():
+    """
+    Test that _check_unix_socket() raises a specific error if the socket
+    can not be read and written by this user.
+    """
+    with _unix_socket() as path:
+        conn = _generate_test_connection(f"unix://{path}")
+        with patch("os.access", return_value=False) as mock_access:
+            with pytest.raises(
+                ConnectionException, match="permission denied.*read and write"
+            ):
+                conn._check_unix_socket()
+        mock_access.assert_called_once_with(path, os.R_OK | os.W_OK)
+
+
+def test_check_unix_socket_stat_error():
+    """
+    Test that _check_unix_socket() raises a specific error if the socket
+    can not be inspected, e.g. when the parent directory is not accessible.
+    """
+    conn = _generate_test_connection("unix:///run/ankaios.sock")
+    error = PermissionError(13, "Permission denied")
+    with patch("os.stat", side_effect=error):
+        with pytest.raises(
+            ConnectionException, match="could not be accessed: Permission"
+        ):
+            conn._check_unix_socket()
+
+
+def test_open_stream_unix_socket_missing_fails_fast():
+    """
+    Test that _open_stream() fails right away for a missing socket,
+    without building a channel or waiting for the ready timeout.
+    """
+    with _unix_socket(create=False) as path, patch(
+        "grpc.insecure_channel"
+    ) as mock_channel:
+        conn = _generate_test_connection(f"unix://{path}")
+        start = time.monotonic()
+        with pytest.raises(ConnectionException, match="does not exist"):
+            conn._open_stream()
+        assert time.monotonic() - start < conn.CHANNEL_READY_TIMEOUT
+    mock_channel.assert_not_called()
+
+
+def test_connect_fails_on_missing_unix_socket():
+    """
+    Test that connect() fails (and leaves the state untouched) when the
+    unix socket does not exist.
+    """
+    with _unix_socket(create=False) as path:
+        conn = _generate_test_connection(f"unix://{path}")
+        with pytest.raises(
+            ConnectionException, match="Could not connect to the Ankaios"
+        ):
+            conn.connect()
+    assert conn._state == CommandInterfaceState.TERMINATED
+    assert conn.connected is False
+
+
+def test_connect_write_and_disconnect_success_unix_socket():
+    """
+    Test the full connect -> write_request -> disconnect flow over a
+    unix socket using a mocked gRPC channel/stub boundary.
+    """
+    fake_call = _FakeCall()
+    stub_instance, sent_messages = _mock_stub(lambda: fake_call)
+
+    with _unix_socket() as path, patch(
+        "ankaios_sdk._components.connection.command_interface."
+        "_grpc_api_grpc.CommandConnectionStub"
+    ) as mock_stub_cls, patch("grpc.insecure_channel") as mock_channel, patch(
+        "grpc.channel_ready_future"
+    ) as mock_ready:
+        mock_stub_cls.return_value = stub_instance
+        mock_channel.return_value = MagicMock()
+        mock_ready.return_value = MagicMock(
+            result=MagicMock(return_value=None)
+        )
+
+        conn = _generate_test_connection(f"unix://{path}")
+        conn.connect()
+        assert conn.connected is True
+        mock_channel.assert_called_once_with(
+            f"unix:{path}", options=UNIX_CHANNEL_OPTIONS
+        )
+
+        time.sleep(0.05)
+        assert len(sent_messages) == 1
+        assert sent_messages[0].WhichOneof("ToServerEnum") == "commanderHello"
+        assert (
+            sent_messages[0].commanderHello.protocolVersion
+            == ANKAIOS_VERSION
+        )
+
+        request = generate_test_request()
+        conn.write_request(request)
+        time.sleep(0.05)
+        assert len(sent_messages) == 2
+        assert sent_messages[1].request == request._to_proto()
+
+        conn.disconnect()
+        assert conn.connected is False
+        assert fake_call.cancelled.is_set()
+        assert not conn._reader_thread.is_alive()
+
+
+def test_reconnect_unix_socket_waits_for_socket_to_return():
+    """
+    Test that _reconnect() keeps retrying while the unix socket is
+    missing (e.g. the server is restarting) and reconnects once it is
+    back.
+    """
+    fake_call = _FakeCall()
+    stub_instance, _ = _mock_stub(lambda: fake_call)
+
+    with _unix_socket(create=False) as path:
+        conn = _generate_test_connection(f"unix://{path}")
+        conn._state = CommandInterfaceState.RECONNECTING
+        sockets = []
+        waits = []
+
+        def _wait_then_create_socket(_interval):
+            # Stands in for the stop event wait before each attempt: the
+            # socket appears only after the first attempt has failed.
+            if waits and not sockets:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.bind(path)
+                sockets.append(sock)
+            waits.append(_interval)
+            return False
+
+        try:
+            with patch(
+                "ankaios_sdk._components.connection.command_interface."
+                "_grpc_api_grpc.CommandConnectionStub",
+                return_value=stub_instance,
+            ), patch("grpc.insecure_channel") as mock_channel, patch(
+                "grpc.channel_ready_future"
+            ) as mock_ready, patch.object(
+                conn._stop_event, "wait", side_effect=_wait_then_create_socket
+            ):
+                mock_ready.return_value = MagicMock(
+                    result=MagicMock(return_value=None)
+                )
+                result = conn._reconnect()
+        finally:
+            for sock in sockets:
+                sock.close()
+
+    assert result is fake_call
+    assert conn._state == CommandInterfaceState.CONNECTED
+    # No channel was built while the socket was missing.
+    mock_channel.assert_called_once_with(
+        f"unix:{path}", options=UNIX_CHANNEL_OPTIONS
+    )
