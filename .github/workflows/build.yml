@@ -12,23 +12,13 @@ on:
 
 jobs:
   setup:
-    name: Setup ${{ matrix.python }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Setup ${{ matrix.python }}
     strategy:
       matrix:
-        python: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
-        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/ci-setup
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Print packages
-        run: python3 -m pip list
-
-      - name: Test installation
-        run: python3 -c "from ankaios_sdk import Ankaios"
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+    uses: ./.github/workflows/install-check.yml
+    with:
+      python: ${{ matrix.python }}
 
   unit_test:
     needs: setup
