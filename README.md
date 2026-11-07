@@ -162,6 +162,22 @@ pip install ankaios-sdk[command]
 For mTLS-secured connections, also pass `ca_pem`, `crt_pem` and `key_pem`
 (the PEM-encoded CA certificate, client certificate and client key content).
 
+To connect over a Unix domain socket (the Ankaios server listening on
+`unix://<absolute-path>`), pass a `unix://` URL:
+
+```python
+with Ankaios(
+    connection_type=ConnectionType.COMMAND_INTERFACE,
+    server_url="unix:///run/ankaios.sock",
+) as ankaios:
+    ...
+```
+
+TLS is not used over a Unix domain socket, so `ca_pem`, `crt_pem` and
+`key_pem` must not be passed. Access is governed by the socket's file
+permissions: the user needs read and write access to the socket file (for
+example by being in the socket's group, `ankaios` by default).
+
 ### Resources
 
 For more details, please visit:

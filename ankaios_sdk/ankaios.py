@@ -64,6 +64,19 @@ Usage
         ...
         del ankaios
 
+- Create an Ankaios object connected over a Unix domain socket (no TLS,
+  access is governed by the socket's file permissions):
+    .. code-block:: python
+
+        from ankaios_sdk import Ankaios, ConnectionType
+
+        ankaios = Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="unix:///run/ankaios.sock",
+        )
+        ...
+        del ankaios
+
 - Connect and disconnect using a context manager:
     .. code-block:: python
 
@@ -251,8 +264,10 @@ class Ankaios:
         :param log_level: The log level to be set.
         :type log_level: AnkaiosLogLevel
         :param server_url: The URL of the Ankaios server, e.g.
-            "http://127.0.0.1:25551". Required when connection_type
-            is ConnectionType.COMMAND_INTERFACE, ignored otherwise.
+            "http://127.0.0.1:25551", or "unix:///run/ankaios.sock"
+            for a Unix domain socket (absolute path, no TLS). Required
+            when connection_type is ConnectionType.COMMAND_INTERFACE,
+            ignored otherwise.
         :type server_url: Optional[str]
         :param ca_pem: The PEM-encoded CA certificate content, for a
             mTLS-secured gRPC connection. Ignored unless
@@ -268,8 +283,8 @@ class Ankaios:
         :type key_pem: Optional[str]
 
         :raises ValueError: If connection_type is
-            ConnectionType.COMMAND_INTERFACE and server_url is not
-            provided.
+            ConnectionType.COMMAND_INTERFACE and server_url is missing
+            or invalid.
         :raises ImportError: If connection_type is
             ConnectionType.COMMAND_INTERFACE and the SDK was
             installed without the 'grpc' extra.
