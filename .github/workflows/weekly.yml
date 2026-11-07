@@ -21,6 +21,8 @@ jobs:
     with:
       os: ${{ matrix.os }}
 
+  # Checks for a new Python version and creates an issue if one is available
+  # and it hasn't been updated in the workflow yet.
   check-python-version:
     runs-on: ubuntu-latest
     permissions:
@@ -31,6 +33,7 @@ jobs:
       - name: Check for new Python versions
         env:
           GH_TOKEN: ${{ github.token }}
+          LABEL: ci/python-version
         run: |
           latest=$(curl -s https://endoflife.date/api/python.json | \
             jq -r '[.[] | select(.cycle | test("^3\\.[0-9]+$"))] | .[0].cycle')
@@ -44,7 +47,7 @@ jobs:
           fi
 
           # Check if an issue already exists
-          existing=$(gh issue list --label "python-version" --state open --json number -q '.[0].number')
+          existing=$(gh issue list --label "$LABEL" --state open --json number -q '.[0].number')
 
           if [ -n "$existing" ]; then
             echo "Issue #$existing already exists, skipping."
@@ -53,13 +56,60 @@ jobs:
 
           gh issue create \
             --title "Update Python support to $latest" \
-            --label "python-version" \
+            --label "$LABEL" \
             --body "$(cat <<EOF
           Python **$latest** has been released (currently testing up to **$LATEST_KNOWN_PYTHON**).
 
           ## Required changes
           - [ ] Add \`$latest\` to the Python matrix in \`.github/workflows/build.yml\` (jobs/setup/strategy/matrix/python)
           - [ ] Add \`Programming Language :: Python :: $latest\` classifier in \`setup.py\` (in the \`classifiers=[...]\`)
-          - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (beggining of the file, env section)
+          - [ ] Update \`LATEST_KNOWN_PYTHON\` to \`$latest\` in \`.github/workflows/weekly.yml\` (beginning of the file, env section)
           EOF
           )"
+
+  # Keeps a single open issue while the weekly build fails: opened on the first
+  # failure, commented on only if the failed jobs change, closed on the next green run.
+  report:
+    needs: [build, install_other_os, check-python-version]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Update weekly failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          LABEL: ci/weekly-failure
+        run: |
+          set -euo pipefail
+
+          # Cancelled jobs are ignored: fail-fast cancels the whole matrix after one failure
+          failed=$(gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs" \
+            --jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out") | "- \(.name)"' | sort)
+          existing=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+
+          if [ -z "$failed" ]; then
+            echo "No failed jobs."
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --comment "Weekly build is passing again: $RUN_URL"
+            fi
+            exit 0
+          fi
+
+          body=$(printf '**Last failed run:** %s\n\n### Failed jobs\n%s' "$RUN_URL" "$failed")
+
+          if [ -z "$existing" ]; then
+            gh issue create --title "Weekly build is failing" --label "$LABEL" --body "$body"
+            exit 0
+          fi
+
+          previous=$(gh issue view "$existing" --json body --jq '.body' | grep '^- ' || true)
+          gh issue edit "$existing" --body "$body"
+          if [ "$failed" != "$previous" ]; then
+            gh issue comment "$existing" --body "Failed jobs changed in $RUN_URL"
+          fi
