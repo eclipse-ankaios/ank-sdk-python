@@ -175,7 +175,7 @@ with Ankaios(
 
 TLS is not used over a Unix domain socket, so `ca_pem`, `crt_pem` and
 `key_pem` must not be passed. Access is governed by the socket's file
-permissions: the user needs read and write access to the socket file (for
+permissions: the user needs write access to the socket file (for
 example by being in the socket's group, `ankaios` by default).
 
 ### Resources

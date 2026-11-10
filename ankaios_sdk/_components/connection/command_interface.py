@@ -555,7 +555,7 @@ class CommandInterfaceConnection(Connection):
         itself is still the final judge.
 
         :raises ConnectionException: If the socket does not exist, is
-            not a socket or is not readable and writable by this user.
+            not a socket or is not writable by this user.
         """
         socket_path = self._unix_socket_path()
         if socket_path is None:
@@ -577,9 +577,9 @@ class CommandInterfaceConnection(Connection):
             raise ConnectionException(
                 f"{prefix}'{socket_path}' is not a unix socket."
             )
-        if not os.access(socket_path, os.R_OK | os.W_OK):
+        if not os.access(socket_path, os.W_OK):
             raise ConnectionException(
                 f"{prefix}permission denied for the unix socket "
-                f"'{socket_path}'. The user needs read and write access "
-                "to the socket file."
+                f"'{socket_path}'. The user needs write access to the "
+                "socket file."
             )

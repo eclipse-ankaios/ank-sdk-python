@@ -23,7 +23,7 @@ ank-agent --insecure --name agent_A --server-url http://127.0.0.1:25551 &
 **Option 2: Unix domain socket** (`unix://<absolute-path>`)
 
 No TLS is used, so do not pass `--insecure`. The socket is created with
-mode `0660`, so your user needs read and write access to the socket file,
+mode `0660`, so your user needs write access to the socket file,
 for example by being in the socket's group (see `--socket-group` of
 `ank-server`). Remove a stale socket file first if the server was not
 shut down cleanly.

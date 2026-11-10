@@ -894,16 +894,16 @@ def test_check_unix_socket_not_a_socket():
 def test_check_unix_socket_permission_denied():
     """
     Test that _check_unix_socket() raises a specific error if the socket
-    can not be read and written by this user.
+    can not be written by this user.
     """
     with _unix_socket() as path:
         conn = _generate_test_connection(f"unix://{path}")
         with patch("os.access", return_value=False) as mock_access:
             with pytest.raises(
-                ConnectionException, match="permission denied.*read and write"
+                ConnectionException, match="permission denied.*write access"
             ):
                 conn._check_unix_socket()
-        mock_access.assert_called_once_with(path, os.R_OK | os.W_OK)
+        mock_access.assert_called_once_with(path, os.W_OK)
 
 
 def test_check_unix_socket_stat_error():
