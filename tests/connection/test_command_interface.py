@@ -17,6 +17,8 @@ This module contains unit tests for the CommandInterfaceConnection class in the
 ankaios_sdk.
 """
 
+# pylint: disable=too-many-lines
+
 import os
 import queue
 import shutil
