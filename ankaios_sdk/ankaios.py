@@ -27,6 +27,7 @@ Usage
 -----
 
 - Create an Ankaios object, connect and disconnect from the control interface:
+
     .. code-block:: python
 
         from ankaios_sdk import Ankaios
@@ -50,6 +51,7 @@ Usage
         del ankaios
 
 - Create an Ankaios object using a mTLS-secured gRPC connection:
+
     .. code-block:: python
 
         from ankaios_sdk import Ankaios, ConnectionType
@@ -66,6 +68,7 @@ Usage
 
 - Create an Ankaios object connected over a Unix domain socket (no TLS,
   access is governed by the socket's file permissions):
+
     .. code-block:: python
 
         from ankaios_sdk import Ankaios, ConnectionType
@@ -78,72 +81,85 @@ Usage
         del ankaios
 
 - Connect and disconnect using a context manager:
+
     .. code-block:: python
 
         with Ankaios() as ankaios:
             ...
 
 - Apply a manifest:
+
     .. code-block:: python
 
         ret = ankaios.apply_manifest(manifest)
         print(ret.to_dict())
 
 - Delete a manifest:
+
     .. code-block:: python
 
         ret = ankaios.delete_manifest(manifest)
         print(ret.to_dict())
 
 - Run a workload:
+
     .. code-block:: python
 
         ret = ankaios.apply_workload(workload)
         print(ret.to_dict())
 
 - Get a workload:
+
     .. code-block:: python
 
         workload = ankaios.get_workload(workload_name)
 
 - Delete a workload:
+
     .. code-block:: python
 
         ret = ankaios.delete_workload(workload_name)
         print(ret.to_dict())
 
 - Get the state:
+
     .. code-block:: python
 
         state = ankaios.get_state()
 
 - Get the agents:
+
     .. code-block:: python
 
         agents = ankaios.get_agents()
 
 - Get the workload states:
+
     .. code-block:: python
 
         workload_states = ankaios.get_workload_states()
 
 - Get the workload states for workloads with a specific name:
+
     .. code-block:: python
 
         workload_states = ankaios.get_workload_states_for_name(workload_name)
 
 - Get the workload states for a specific agent:
+
     .. code-block:: python
 
         workload_states = ankaios.get_workload_states_on_agent(agent_name)
 
 - Get the workload execution state for instance name:
+
     .. code-block:: python
 
         ret = ankaios.get_execution_state_for_instance_name(instance_name)
         print(f"State: {ret.state}, substate: {ret.substate}")
 
 - Wait for a workload to reach a state:
+
     .. code-block:: python
 
         try:
