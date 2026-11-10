@@ -56,7 +56,6 @@ __all__ = ["CommandInterfaceConnection", "CommandInterfaceState"]
 
 import os
 import queue
-import stat
 import threading
 from enum import Enum
 from typing import Callable, Optional
@@ -549,20 +548,18 @@ class CommandInterfaceConnection(Connection):
 
     def _check_unix_socket(self) -> None:
         """
-        For a unix:// server_url, checks that the socket exists and
-        is accessible, so a clear error is raised right away instead of
-        an opaque timeout. This is best effort: the connection attempt
-        itself is still the final judge.
+        For a unix:// server_url, checks that the socket file exists.
 
-        :raises ConnectionException: If the socket does not exist, is
-            not a socket or is not writable by this user.
+        :raises ConnectionException: If the socket does not exist or
+            could not be inspected (e.g. a parent directory is not
+            accessible).
         """
         socket_path = self._unix_socket_path()
         if socket_path is None:
             return
         prefix = "Could not connect to the Ankaios server: "
         try:
-            mode = os.stat(socket_path).st_mode
+            os.stat(socket_path)
         except FileNotFoundError as e:
             raise ConnectionException(
                 f"{prefix}the unix socket '{socket_path}' does not "
@@ -573,13 +570,3 @@ class CommandInterfaceConnection(Connection):
                 f"{prefix}the unix socket '{socket_path}' could not be "
                 f"accessed: {e.strerror}."
             ) from e
-        if not stat.S_ISSOCK(mode):
-            raise ConnectionException(
-                f"{prefix}'{socket_path}' is not a unix socket."
-            )
-        if not os.access(socket_path, os.W_OK):
-            raise ConnectionException(
-                f"{prefix}permission denied for the unix socket "
-                f"'{socket_path}'. The user needs write access to the "
-                "socket file."
-            )

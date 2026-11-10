@@ -878,34 +878,6 @@ def test_check_unix_socket_missing():
             conn._check_unix_socket()
 
 
-def test_check_unix_socket_not_a_socket():
-    """
-    Test that _check_unix_socket() raises a specific error if the path
-    exists but is not a socket.
-    """
-    with _unix_socket(create=False) as path:
-        with open(path, "w", encoding="utf-8"):
-            pass
-        conn = _generate_test_connection(f"unix://{path}")
-        with pytest.raises(ConnectionException, match="is not a unix socket"):
-            conn._check_unix_socket()
-
-
-def test_check_unix_socket_permission_denied():
-    """
-    Test that _check_unix_socket() raises a specific error if the socket
-    can not be written by this user.
-    """
-    with _unix_socket() as path:
-        conn = _generate_test_connection(f"unix://{path}")
-        with patch("os.access", return_value=False) as mock_access:
-            with pytest.raises(
-                ConnectionException, match="permission denied.*write access"
-            ):
-                conn._check_unix_socket()
-        mock_access.assert_called_once_with(path, os.W_OK)
-
-
 def test_check_unix_socket_stat_error():
     """
     Test that _check_unix_socket() raises a specific error if the socket

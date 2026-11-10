@@ -22,11 +22,13 @@ both implementing the `Connection` abstract base class
   by `CommandInterfaceConnection`. The transport is chosen by the
   `server_url` scheme: `http(s)://` for TCP (plaintext or mTLS) or
   `unix://<absolute-path>` for a Unix domain socket. Sockets never use TLS, and
-  access is governed only by the socket's file permissions. A missing or
-  inaccessible socket is reported immediately, also during reconnects,
-  instead of as an opaque timeout. The socket channel overrides the gRPC
-  authority (`grpc.default_authority`): grpc-python would otherwise send the
-  encoded socket path, which the Ankaios server rejects as a protocol error.
+  access is governed only by the socket's file permissions. A missing socket
+  is reported immediately, also during reconnects, instead of blocking for
+  the full connect timeout with an opaque message; other socket problems
+  (e.g. wrong permissions) surface from the connection attempt itself. The
+  socket channel overrides the gRPC authority (`grpc.default_authority`):
+  grpc-python would otherwise send the encoded socket path, which the
+  Ankaios server rejects as a protocol error.
 
 Both run a background reader thread that deserializes incoming messages and
 dispatches them to `Ankaios` via callbacks. `Ankaios` routes responses to the
