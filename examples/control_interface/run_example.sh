@@ -65,7 +65,7 @@ fi
 
 if [[ "$2" == "dev" ]]; then
   echo Build Ankaios Python SDK dev example ...
-  podman build "${@:3}" --target=dev -t app:0.1 -f app/Dockerfile ../
+  podman build "${@:3}" --target=dev -t app:0.1 -f app/Dockerfile ../../
 else
   echo Build Ankaios Python SDK example ...
   podman build "${@:2}" --target=prod -t app:0.1 -f app/Dockerfile ./app
