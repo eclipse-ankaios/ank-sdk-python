@@ -216,6 +216,52 @@ def test_create_connection_grpc_success():
         assert ankaios._connection is mock_instance
 
 
+def test_create_connection_grpc_unix_socket():
+    """
+    Test that Ankaios hands a unix:// server_url to the
+    CommandInterfaceConnection unchanged and without certificates.
+    """
+    with patch(
+        "ankaios_sdk._components.connection.command_interface."
+        "CommandInterfaceConnection"
+    ) as mock_grpc_connection_cls:
+        mock_instance = MagicMock()
+        mock_instance.connected = True
+        mock_grpc_connection_cls.return_value = mock_instance
+
+        ankaios = Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="unix:///run/ankaios.sock",
+        )
+
+        mock_grpc_connection_cls.assert_called_once_with(
+            "unix:///run/ankaios.sock",
+            add_response_callback=ankaios._add_response,
+            add_log_callback=ankaios._add_logs,
+            add_event_callback=ankaios._add_events,
+            ca_pem=None,
+            crt_pem=None,
+            key_pem=None,
+        )
+        mock_instance.connect.assert_called_once()
+        assert ankaios._connection is mock_instance
+
+
+def test_create_connection_grpc_unix_socket_with_certs_raises():
+    """
+    Test that a unix:// server_url combined with certificates is
+    rejected with a ValueError before any connection is attempted.
+    """
+    with pytest.raises(ValueError, match="not supported for unix://"):
+        Ankaios(
+            connection_type=ConnectionType.COMMAND_INTERFACE,
+            server_url="unix:///run/ankaios.sock",
+            ca_pem="ca-secret",
+            crt_pem="crt-secret",
+            key_pem="key-secret",
+        )
+
+
 def test_add_response():
     """
     Test the _add_response method of the Ankaios class.

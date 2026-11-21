@@ -1,6 +1,6 @@
-# Basic Example Applications for the Python SDK
+# Basic Control Interface Example Applications for the Python SDK
 
-This basic example applications show how the Ankaios Python SDK can be used to interact with a running cluster.
+This basic example applications show how the Ankaios Python SDK can be used to interact with a running cluster by using the control interface from an Ankaios managed workload.
 
 ## Prerequisites
 
@@ -42,15 +42,15 @@ To stop the example just call
 ```
 
 > **WARNING**  
-> The stop script terminates all running ankaios instances, both server and agents and **delete all podman containers** on the system. If you don't want this, you would need to clean up manually.
+> The stop script terminates all running ankaios instances, both server and agents and **deletes all podman containers** on the system. If you don't want this, you would need to clean up manually.
 
 ## Examples
 
-This folder currently contains three examples:
+This folder currently contains the following examples:
 
 ### `hello_ankaios`
 
-This example executes a workload that runs the example script from the main [README](../README.md#usage) of this repo.
+This example executes a workload that runs the example script from the main [README](../../README.md#usage) of this repo.
 
 Feel free to update the code in the example and test it with the `run_example.sh` script.
 

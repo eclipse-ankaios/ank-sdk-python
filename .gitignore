@@ -22,9 +22,10 @@ docs/build/
 docs/build_versioned/
 
 /venv
+/.venv*
 
 # Tests
-examples/app/app.py
+examples/control_interface/app/app.py
 
 # docs temp folder
 docs_env

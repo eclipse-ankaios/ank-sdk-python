@@ -41,12 +41,20 @@ Usage
         conn.connect()
         ...
         conn.disconnect()
+
+- Connect over a Unix domain socket (no TLS, absolute path).
+    .. code-block:: python
+
+        conn = CommandInterfaceConnection(
+            "unix:///run/ankaios.sock", <callbacks from Ankaios>
+        )
 """
 
 
 __all__ = ["CommandInterfaceConnection", "CommandInterfaceState"]
 
 
+import os
 import queue
 import threading
 from enum import Enum
@@ -106,6 +114,8 @@ class CommandInterfaceConnection(Connection):
     "(str): The domain name Ankaios server certificates are issued for."
     _URL_SCHEME_PREFIXES = ("http://", "https://")
     "(tuple): The URL scheme prefixes supported by the connection."
+    _UNIX_URL_PREFIX = "unix://"
+    "(str): The URL scheme prefix selecting a Unix domain socket."
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
@@ -128,9 +138,16 @@ class CommandInterfaceConnection(Connection):
         provided, the connection is mTLS-secured. Providing only
         some of them is invalid.
 
+        A server_url starting with "unix://" selects a Unix domain
+        socket. Access to it is governed by the socket's file
+        permissions, and TLS is not supported, so none of ca_pem,
+        crt_pem and key_pem may be provided.
+
         :param server_url: The URL of the Ankaios server, e.g.
-            "http://127.0.0.1:25551" (insecure) or
-            "https://127.0.0.1:25551" (mTLS-secured).
+            "http://127.0.0.1:25551" (insecure),
+            "https://127.0.0.1:25551" (mTLS-secured) or
+            "unix:///run/ankaios.sock" (Unix domain socket, the path
+            must be absolute).
         :type server_url: str
         :param add_response_callback: The callback function to add
             a response to the Ankaios class.
@@ -149,14 +166,29 @@ class CommandInterfaceConnection(Connection):
         :type key_pem: Optional[str]
 
         :raises ValueError: If only some of ca_pem, crt_pem and
-            key_pem are provided.
+            key_pem are provided, or if server_url is a unix:// URL
+            with an empty or relative path, or combined with
+            certificates.
         """
         provided = (
             ca_pem is not None,
             crt_pem is not None,
             key_pem is not None,
         )
-        if any(provided) and not all(provided):
+        if server_url.startswith(self._UNIX_URL_PREFIX):
+            socket_path = server_url[len(self._UNIX_URL_PREFIX):]
+            if not socket_path:
+                raise ValueError("The unix socket path is empty.")
+            if not os.path.isabs(socket_path):
+                raise ValueError(
+                    f"The unix socket path must be absolute: '{socket_path}'."
+                )
+            if any(provided):
+                raise ValueError(
+                    "TLS certificates are not supported for unix:// "
+                    "endpoints."
+                )
+        elif any(provided) and not all(provided):
             raise ValueError(
                 "ca_pem, crt_pem and key_pem must all be provided "
                 "together for a secured connection, or all omitted "
@@ -417,9 +449,11 @@ class CommandInterfaceConnection(Connection):
             FromServer messages) and the queue feeding its requests.
         :rtype: tuple
 
-        :raises ConnectionException: If the channel does not become
-            ready in time, or the stream could not be opened.
+        :raises ConnectionException: If the unix socket is missing or
+            not accessible, if the channel does not become ready in
+            time, or the stream could not be opened.
         """
+        self._check_unix_socket()
         channel = None
         try:
             channel = self._build_channel()
@@ -460,12 +494,20 @@ class CommandInterfaceConnection(Connection):
 
     def _build_channel(self) -> grpc.Channel:
         """
-        Builds the (optionally mTLS-secured) gRPC channel used to
-        reach the Ankaios server.
+        Builds the gRPC channel used to reach the Ankaios server: a
+        plaintext channel over a Unix domain socket, or a plaintext or
+        mTLS-secured one over TCP.
 
         :returns: The gRPC channel.
         :rtype: grpc.Channel
         """
+        socket_path = self._unix_socket_path()
+        if socket_path is not None:
+            return grpc.insecure_channel(
+                f"unix:{socket_path}",
+                options=(("grpc.default_authority", "localhost"),),
+            )
+
         target = self._grpc_target()
         if self._ca_pem is None:
             return grpc.insecure_channel(target)
@@ -491,3 +533,40 @@ class CommandInterfaceConnection(Connection):
             if self._server_url.startswith(prefix):
                 return self._server_url[len(prefix):]
         return self._server_url
+
+    def _unix_socket_path(self) -> Optional[str]:
+        """
+        Returns the Unix domain socket path server_url points to.
+
+        :returns: The socket path, or None if server_url is not a
+            unix:// URL.
+        :rtype: Optional[str]
+        """
+        if self._server_url.startswith(self._UNIX_URL_PREFIX):
+            return self._server_url[len(self._UNIX_URL_PREFIX):]
+        return None
+
+    def _check_unix_socket(self) -> None:
+        """
+        For a unix:// server_url, checks that the socket file exists.
+
+        :raises ConnectionException: If the socket does not exist or
+            could not be inspected (e.g. a parent directory is not
+            accessible).
+        """
+        socket_path = self._unix_socket_path()
+        if socket_path is None:
+            return
+        prefix = "Could not connect to the Ankaios server: "
+        try:
+            os.stat(socket_path)
+        except FileNotFoundError as e:
+            raise ConnectionException(
+                f"{prefix}the unix socket '{socket_path}' does not "
+                "exist. Is the Ankaios server running?"
+            ) from e
+        except OSError as e:
+            raise ConnectionException(
+                f"{prefix}the unix socket '{socket_path}' could not be "
+                f"accessed: {e.strerror}."
+            ) from e

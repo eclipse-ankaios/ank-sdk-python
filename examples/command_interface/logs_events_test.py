@@ -96,6 +96,10 @@ def main() -> None:
                     f"Workload '{workload_instance_name}' not accepted "
                     "for log retrieval"
                 )
+                ankaios.stop_receiving_logs(log_campaign)
+                ankaios.unregister_event(event_queue)
+                ankaios.delete_workload(workload_instance_name.workload_name)
+                return
 
             # Print events in the background while logs are streamed
             # on the main thread below.

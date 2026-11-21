@@ -25,4 +25,7 @@ see [DEVELOPMENT.md](../DEVELOPMENT.md).
 ## Static analysis
 
 - **Pylint score must stay at 10.0/10** — no new lint violations.
+  The printed score can round to 10.00 while violations still exist;
+  always check the full report (`reports/pylint/pylint_report.txt`
+  after `run_checks.py --lint`), not just the score line.
 - **PEP 8 compliance is mandatory** — zero violations.
